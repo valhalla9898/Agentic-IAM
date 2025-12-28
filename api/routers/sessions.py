@@ -1,8 +1,14 @@
 """Agentic-IAM: Session Management API Router (Simplified)"""
 from datetime import datetime
 from typing import List, Optional, Dict, Any
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
+
+# Project imports
+from core.agentic_iam import AgenticIAM
+from api.main import get_iam, get_settings
+from config.settings import Settings
+from api.models import SuccessResponse
 
 router = APIRouter()
 
@@ -46,7 +52,7 @@ class SessionTerminateRequest(BaseModel):
 @router.get("/", response_model=List[SessionInfo])
 async def list_sessions(
     agent_id: Optional[str] = None,
-    status: Optional[str] = None,
+    status_filter: Optional[str] = None,
     limit: int = 100,
     offset: int = 0,
     iam: AgenticIAM = Depends(get_iam)
@@ -69,7 +75,7 @@ async def list_sessions(
             # Get sessions for specific agent
             agent_sessions = iam.session_manager.session_store.get_agent_sessions(agent_id)
             for session in agent_sessions:
-                if not status or session.status.value == status:
+                if not status_filter or session.status.value == status_filter:
                     sessions.append(SessionInfo(
                         session_id=session.session_id,
                         agent_id=session.agent_id,
@@ -87,7 +93,7 @@ async def list_sessions(
             # Get all sessions
             all_sessions = iam.session_manager.session_store.get_all_sessions()
             for session in all_sessions:
-                if not status or session.status.value == status:
+                if not status_filter or session.status.value == status_filter:
                     sessions.append(SessionInfo(
                         session_id=session.session_id,
                         agent_id=session.agent_id,
