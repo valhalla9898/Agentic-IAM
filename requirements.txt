@@ -61,7 +61,12 @@ isort>=5.12.0
 # pymongo>=4.5.0            # MongoDB
 
 # Advanced ML and Analytics
-# scikit-learn>=1.3.0
+# scikit-learn for trust scoring models
+scikit-learn>=1.3.0
+# Ariadne GraphQL integration
+ariadne>=0.18.0
+# Kopf for Kubernetes operator scaffolding
+kopf>=1.36.0
 # tensorflow>=2.13.0
 # torch>=2.0.0
 

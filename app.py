@@ -12,6 +12,8 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from dashboard.components.agent_management import show_agent_management
 from dashboard.utils import show_alert
+from database import get_database
+from dashboard.components.agent_selection import show_agent_registration, show_agent_selector, show_agent_list, show_agent_details
 
 # Page configuration
 st.set_page_config(
@@ -42,6 +44,10 @@ def initialize_session():
         st.session_state.iam = None
     if "agent_page" not in st.session_state:
         st.session_state.agent_page = 1
+    if "db" not in st.session_state:
+        st.session_state.db = get_database()
+    if "selected_agent" not in st.session_state:
+        st.session_state.selected_agent = None
 
 
 def main():
@@ -56,9 +62,18 @@ def main():
         # Navigation
         page = st.radio(
             "Navigation",
-            ["Home", "Agent Management", "Sessions", "Audit Log", "Settings"],
+            ["Home", "Register Agent", "Select Agent", "Audit Log", "Settings"],
             index=0
         )
+        
+        st.markdown("---")
+        
+        # Selected Agent Info
+        if st.session_state.selected_agent:
+            st.write("### 👤 Selected Agent:")
+            agent = st.session_state.db.get_agent(st.session_state.selected_agent)
+            if agent:
+                st.info(f"**{agent['name']}** (ID: {agent['id']})")
         
         st.markdown("---")
         
@@ -79,10 +94,23 @@ def main():
     # Main content
     if page == "Home":
         show_home()
-    elif page == "Agent Management":
-        show_agent_management(st.session_state.iam)
-    elif page == "Sessions":
-        show_sessions()
+    elif page == "Register Agent":
+        st.title("👤 Register New Agent")
+        show_agent_registration()
+        st.divider()
+        show_agent_list()
+    elif page == "Select Agent":
+        st.title("👥 Manage & Select Agents")
+        col1, col2 = st.columns([2, 1])
+        with col1:
+            selected_agent_id = show_agent_selector()
+        
+        st.divider()
+        
+        if st.session_state.selected_agent:
+            show_agent_details(st.session_state.selected_agent)
+        else:
+            show_agent_list()
     elif page == "Audit Log":
         show_audit_log()
     elif page == "Settings":
@@ -207,20 +235,47 @@ def show_audit_log():
     """Show audit log page"""
     st.title("📋 Audit Log")
     
+    db = st.session_state.db
+    
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        start_date = st.date_input("Start Date")
+        agent_filter = st.selectbox(
+            "🔍 Filter by Agent",
+            ["All"] + [f"{a['name']} ({a['id']})" for a in db.list_agents()],
+            key="audit_agent_filter"
+        )
     
     with col2:
-        end_date = st.date_input("End Date")
+        limit = st.slider("Number of records", 10, 100, 50)
     
     with col3:
-        event_type = st.selectbox("Event Type", ["All", "Login", "Logout", "Permission Change", "Error"])
+        st.write("")  # Spacing
     
     st.markdown("---")
     
-    st.info("No audit events to display")
+    # Get events
+    agent_id = None
+    if agent_filter != "All":
+        agent_id = agent_filter.split("(")[-1].rstrip(")")
+    
+    events = db.get_events(agent_id=agent_id, limit=limit)
+    
+    if events:
+        import pandas as pd
+        df = pd.DataFrame(events)
+        df['created_at'] = pd.to_datetime(df['created_at']).dt.strftime('%Y-%m-%d %H:%M:%S')
+        
+        # Display with colors
+        st.dataframe(
+            df[['event_type', 'agent_id', 'action', 'details', 'created_at', 'status']].sort_values('created_at', ascending=False),
+            use_container_width=True,
+            hide_index=True
+        )
+        
+        st.success(f"✅ عدد الأحداث: {len(events)}")
+    else:
+        st.info("📭 لا توجد أحداث (No events found)")
 
 
 def show_settings():

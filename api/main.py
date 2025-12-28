@@ -29,6 +29,8 @@ from api.routers import (
     health, agents, authentication, authorization, 
     sessions, intelligence, audit
 )
+from api.routers import mobile
+from . import graphql as graphql_module
 
 
 # Global instances
@@ -221,6 +223,13 @@ def setup_routers(app: FastAPI):
         tags=["Audit & Compliance"]
     )
 
+    # Mobile endpoints
+    app.include_router(
+        mobile.router,
+        prefix="/api/v1/mobile",
+        tags=["Mobile"]
+    )
+
 
 def setup_exception_handlers(app: FastAPI):
     """Configure exception handlers"""
@@ -319,6 +328,16 @@ async def root():
         "redoc": "/redoc",
         "health": "/health"
     }
+
+
+# Mount GraphQL endpoint (using Ariadne)
+try:
+    # Create a GraphQL ASGI app that picks up the IAM instance lazily
+    graphql_app = graphql_module.create_graphql_app(iam_instance)
+    app.mount("/graphql", graphql_app)
+except Exception:
+    # If GraphQL can't be mounted at import time, ignore — will be available when dependencies installed
+    pass
 
 
 # API info endpoint

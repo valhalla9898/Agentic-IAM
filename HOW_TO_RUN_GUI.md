@@ -1,59 +1,73 @@
-# تشغيل Dashboard Agentic-IAM
+# Agentic-IAM Dashboard — How to Run
 
-## الطرق المتاحة:
+## Available methods
 
-### 1️⃣ **على Windows (الطريقة السهلة):**
+### 1️⃣ — Windows (easy)
+
+Double-click the file:
+
 ```bash
-# انقر مرتين على الملف:
 run_dashboard.bat
 ```
 
-### 2️⃣ **من PowerShell/CMD:**
-```bash
+### 2️⃣ — PowerShell / CMD
+
+```powershell
 cd C:\Users\Lenovo\Desktop\Agentic-IAM-main
 streamlit run app.py
 ```
 
-### 3️⃣ **من Terminal (أي نظام):**
+### 3️⃣ — Terminal (any OS)
+
 ```bash
 streamlit run app.py
 ```
 
-### 4️⃣ **مع خيارات إضافية:**
+### 4️⃣ — Additional options
+
+Run on a specific port:
+
 ```bash
-# تشغيل على منفذ معين
 streamlit run app.py --server.port 8501
-
-# تشغيل في وضع التطوير
-streamlit run app.py --logger.level=debug
-
-# تشغيل بدون فتح المتصفح تلقائياً
-streamlit run app.py --client.showErrorDetails=true
 ```
 
-## ✅ المتطلبات:
+Run with debug logging:
 
-تأكد من تثبيت Streamlit:
+```bash
+streamlit run app.py --logger.level=debug
+```
+
+Run without opening the browser automatically:
+
+```bash
+streamlit run app.py --server.headless true
+```
+
+## ✅ Prerequisites
+
+Make sure Streamlit is installed:
+
 ```bash
 pip install streamlit
 ```
 
-## 📱 الوصول إلى Dashboard:
+## 📱 Dashboard address
 
-بعد التشغيل، سيفتح تلقائياً في المتصفح:
-- **العنوان المحلي:** `http://localhost:8501`
+After starting, the dashboard will open automatically in your browser at:
 
-## 🛑 إيقاف التطبيق:
+- **Local address:** `http://localhost:8501`
 
-- اضغط `Ctrl + C` في Terminal
-- أو أغلق نافذة المتصفح
+## 🛑 Stop the application
+
+- Press `Ctrl + C` in the terminal
+- Or close the browser window
 
 ---
 
-## 🎯 الميزات المتاحة:
+## 🎯 Available features
 
-- 👥 **Agent Management** - إدارة الوكلاء والأجنحة
-- 🔐 **Session Management** - إدارة الجلسات
-- 📋 **Audit Log** - سجل التدقيق
-- ⚙️ **Settings** - الإعدادات
-- 📊 **Home Dashboard** - لوحة التحكم الرئيسية
+- 👥 Agent Management
+- 🔐 Session Management
+- 📋 Audit Log
+- ⚙️ Settings
+- 📊 Home Dashboard

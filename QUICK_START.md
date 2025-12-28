@@ -1,129 +1,126 @@
-## 🚀 تشغيل Agentic-IAM Dashboard
+## 🚀 Agentic-IAM Dashboard — Quick Start
 
-### ✅ المتطلبات المستوفاة:
-- ✓ جميع ملفات Python الأساسية موجودة
-- ✓ جميع الاستيرادات تعمل بدون أخطاء
-- ✓ البيئة مُعدة ومختبرة بنجاح
+### ✅ Prerequisites:
+- ✓ Core Python files are present
+- ✓ Imports work without errors
+- ✓ Environment is prepared and tested
 
 ---
 
-## 🎯 طرق التشغيل:
+## 🎯 Run Options:
 
-### **الطريقة 1️⃣ : البسيطة (Windows)**
-انقر مرتين على:
+### Method 1️⃣ — Simple (Windows)
+Double-click:
 ```
 run_dashboard.bat
 ```
 
-### **الطريقة 2️⃣ : من PowerShell/CMD**
+### Method 2️⃣ — PowerShell / CMD
 ```powershell
 cd C:\Users\Lenovo\Desktop\Agentic-IAM-main
 streamlit run app.py
 ```
 
-### **الطريقة 3️⃣ : باستخدام Python Launcher**
+### Method 3️⃣ — Python Launcher
 ```powershell
 python run_gui.py
 ```
 
-### **الطريقة 4️⃣ : من Linux/Mac**
+### Method 4️⃣ — Linux / Mac
 ```bash
 ./run_dashboard.sh
 ```
 
 ---
 
-## 🌐 الوصول إلى Dashboard:
+## 🌐 Access the Dashboard
 
-سيفتح تلقائياً في المتصفح على:
+The dashboard will open automatically in your browser at:
 ```
 http://localhost:8501
 ```
 
-إذا لم يفتح تلقائياً، انتقل يدوياً للعنوان أعلاه.
+If it does not open automatically, open the address above manually.
 
 ---
 
-## 📋 الميزات المتاحة:
+## 📋 Available Features
 
-### 🏠 الصفحة الرئيسية
-- إحصائيات النظام
-- معلومات الوكلاء
-- الحالة الصحية
+### 🏠 Home
+- System statistics
+- Agent overview
+- Health status
 
-### 👥 إدارة الوكلاء
-- تسجيل وكلاء جدد
-- عرض قائمة الوكلاء
-- معلومات تفصيلية عن كل وكيل
-- عمليات جماعية
+### 👥 Agent Management
+- Register new agents
+- View agent list
+- Agent details
+- Bulk operations
 
-### 🔐 إدارة الجلسات
-- عرض الجلسات النشطة
-- معلومات الجلسة
-- إدارة توثق الجلسات
+### 🔐 Session Management
+- View active sessions
+- Session details
+- Session statistics
 
-### 📋 سجل التدقيق
-- عرض سجل الأحداث
-- تصفية حسب التاريخ والنوع
-- معلومات الامتثال
+### 📋 Audit Log
+- View event log
+- Filter by date and type
 
-### ⚙️ الإعدادات
-- إعدادات عامة
-- إعدادات الأمان
-- الإعدادات المتقدمة
+### ⚙️ Settings
+- General settings
+- Security settings
+- Advanced settings
 
 ---
 
-## 🛑 إيقاف التطبيق:
+## 🛑 Stop the Application
 
-اضغط في Terminal:
+In the terminal press:
 ```
 Ctrl + C
 ```
 
-أو أغلق نافذة المتصفح والـ Terminal.
+Or close the browser window and the terminal.
 
 ---
 
-## 🔍 استكشاف الأخطاء:
+## 🔍 Troubleshooting
 
-### المشكلة: لا يفتح المتصفح تلقائياً
-**الحل:**
+### Issue: Browser does not open automatically
+Open:
 ```
 http://localhost:8501
 ```
-انسخ والصق العنوان يدوياً في المتصفح
+Paste the address into your browser.
 
-### المشكلة: Streamlit غير مثبت
-**الحل:**
+### Issue: Streamlit not installed
 ```
 pip install streamlit
 ```
 
-### المشكلة: المنفذ 8501 قيد الاستخدام
-**الحل:**
+### Issue: Port 8501 already in use
 ```
 streamlit run app.py --server.port 8502
 ```
 
 ---
 
-## 📊 معلومات النظام:
+## 📊 System Info
 
-- **الإصدار:** 1.0.0
-- **البيئة:** Development
+- **Version:** 1.0.0
+- **Environment:** Development
 - **Python:** 3.13+
-- **Streamlit:** ✓ مثبت
+- **Streamlit:** Installed
 
 ---
 
-## 📧 الدعم:
+## 📧 Support
 
-إذا واجهت أي مشاكل:
-1. تحقق من رسائل الخطأ
-2. تأكد من تثبيت جميع المتطلبات
-3. حاول إعادة تشغيل التطبيق
+If you encounter problems:
+1. Check error messages
+2. Verify all requirements are installed
+3. Try restarting the app
 
 ---
 
-**🎉 وسيلتك الآن جاهزة!**
+🎉 Your dashboard is ready!
