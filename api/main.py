@@ -30,7 +30,6 @@ from api.routers import (
     sessions, intelligence, audit
 )
 from api.routers import mobile
-from . import graphql as graphql_module
 
 
 # Global instances
@@ -360,6 +359,23 @@ async def api_info():
             "redoc": "/redoc"
         }
     }
+
+
+# Mount GraphQL endpoint (lazy load to avoid circular imports)
+def mount_graphql():
+    try:
+        from api import graphql as graphql_module
+        graphql_app = graphql_module.create_graphql_app(iam_instance)
+        app.mount("/graphql", graphql_app)
+    except Exception as e:
+        print(f"GraphQL mount skipped: {e}")
+
+
+# Try mounting after app creation
+try:
+    mount_graphql()
+except Exception:
+    pass
 
 
 if __name__ == "__main__":

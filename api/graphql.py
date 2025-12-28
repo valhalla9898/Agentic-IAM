@@ -1,7 +1,5 @@
 from ariadne import QueryType, make_executable_schema, gql
 from ariadne.asgi import GraphQL
-from fastapi import Depends
-from .main import get_iam
 import asyncio
 
 # Basic GraphQL schema exposing agents and trust score

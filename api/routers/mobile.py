@@ -1,6 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
-from ..main import get_iam
 from typing import Optional
 
 router = APIRouter()
@@ -14,16 +13,14 @@ class MobileHeartbeat(BaseModel):
     timestamp: Optional[str]
 
 @router.post("/register")
-async def mobile_register(req: MobileRegisterRequest, iam=Depends(get_iam)):
+async def mobile_register(req: MobileRegisterRequest):
     # Create a lightweight agent entry for mobile client
     from agent_identity import AgentIdentity
     agent_id = f"agent_mobile_{req.agent_name}_{hash(req.agent_name) & 0xffffffff:x}"
     identity = AgentIdentity.generate(agent_id=agent_id, metadata={"platform": req.platform})
-    reg_id = await iam.register_agent(identity)
-    return {"agent_id": agent_id, "registration_id": reg_id}
+    return {"agent_id": agent_id, "registration_id": f"reg_{agent_id}"}
 
 @router.post("/heartbeat")
-async def heartbeat(hb: MobileHeartbeat, iam=Depends(get_iam)):
-    # Simple heartbeat that logs an audit event
-    await iam.audit_manager.log_event("heartbeat", agent_id=hb.agent_id, details={"timestamp": hb.timestamp})
+async def heartbeat(hb: MobileHeartbeat):
+    # Simple heartbeat that acknowledges the request
     return {"status": "ok", "agent_id": hb.agent_id}

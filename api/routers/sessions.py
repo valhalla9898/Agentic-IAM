@@ -1,19 +1,8 @@
-"""
-Agentic-IAM: Session Management API Router
-
-REST API endpoints for session lifecycle management, monitoring, and administration.
-"""
-from datetime import datetime, timedelta
+"""Agentic-IAM: Session Management API Router (Simplified)"""
+from datetime import datetime
 from typing import List, Optional, Dict, Any
-
-from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi import APIRouter
 from pydantic import BaseModel
-
-from core.agentic_iam import AgenticIAM
-from api.main import get_iam, get_settings
-from api.models import SuccessResponse, ErrorResponse
-from config.settings import Settings
-
 
 router = APIRouter()
 
