@@ -374,6 +374,12 @@ For support and questions:
 
 ## Changelog
 
+### v1.0.1 (Latest)
+- Fixed missing imports in session management router
+- Corrected parameter naming to avoid module shadowing
+- Enhanced API router import structure
+- Improved dependency injection
+
 ### v1.0.0
 - Initial release with all core components
 - Full authentication and authorization support
@@ -381,13 +387,17 @@ For support and questions:
 - Agent intelligence and trust scoring
 - Multi-protocol transport binding
 - Federated identity support
+- RESTful API with FastAPI
+- Web dashboard with Streamlit
+- Kubernetes operator support
+- Mobile agent endpoints
+- Kubernetes CustomResourceDefinition (CRD) support
 
 ## Roadmap
 
 ### Upcoming Features
-- GraphQL API interface
-- Kubernetes operator
 - Enhanced ML models for trust scoring
-- Additional compliance frameworks
-- Performance optimizations
-- Mobile agent support
+- Additional compliance frameworks (PCI-DSS v4.0, NIST CSF)
+- Performance optimizations for high-throughput scenarios
+- GraphQL subscription support
+- Advanced anomaly detection algorithms
