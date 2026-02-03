@@ -273,9 +273,9 @@ def show_audit_log():
             hide_index=True
         )
         
-        st.success(f"✅ عدد الأحداث: {len(events)}")
+        st.success(f"✅ Number of events: {len(events)}")
     else:
-        st.info("📭 لا توجد أحداث (No events found)")
+        st.info("📭 No events found")
 
 
 def show_settings():
