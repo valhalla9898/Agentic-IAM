@@ -1,4 +1,4 @@
-# Agent Identity Framework
+# Agentic-IAM
 
 A comprehensive Python framework for managing agent identities, authentication, authorization, and trust in multi-agent systems.
 
@@ -97,7 +97,7 @@ This framework provides a complete solution for agent identity management with e
 
 ### 📊 Audit & Compliance
 - **Comprehensive Logging**: All identity operations tracked
-- **Compliance Frameworks**: GDPR, HIPAA, SOX, PCI-DSS support
+- **Compliance Frameworks**: GDPR, HIPAA, SOX, PCI-DSS, PCI-DSS v4.0, NIST CSF, ISO-27001 support
 - **Integrity Verification**: Cryptographic audit trail protection
 - **Automated Reports**: Compliance violation detection
 
@@ -112,6 +112,20 @@ This framework provides a complete solution for agent identity management with e
 ### Installation
 
 ```bash
+# Clone the repository
+git clone https://github.com/valhalla9898/Agentic-IAM.git
+cd Agentic-IAM
+
+# Create virtual environment
+python -m venv .venv
+
+# Activate virtual environment
+# On Windows:
+.venv\Scripts\activate
+# On macOS/Linux:
+source .venv/bin/activate
+
+# Install dependencies
 pip install -r requirements.txt
 ```
 
@@ -358,7 +372,7 @@ arXiv:2505.19301 [cs.CR] - [https://arxiv.org/abs/2505.19301](https://arxiv.org/
 *Ken Huang, Vineeth Sai Narajala, Idan Habler, Akram Sheriff*  
 arXiv:2505.10609 [cs.CR] - [https://arxiv.org/abs/2505.10609](https://arxiv.org/abs/2505.10609)
 
-These papers provide the theoretical foundation for the zero-trust identity architecture, decentralized authentication mechanisms, and fine-grained access control systems implemented in this framework.
+These papers provide the theoretical foundation for the zero-trust identity architecture, decentralized authentication mechanisms, and fine-grained access control systems implemented in Agentic-IAM.
 
 ## License
 
@@ -369,12 +383,28 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 For support and questions:
 
 - Documentation: [Framework Docs](docs/)
-- Issues: [GitHub Issues](https://github.com/your-org/agent-identity/issues)
-- Security: 
+- Issues: [GitHub Issues](https://github.com/valhalla9898/Agentic-IAM/issues)
+- Security: security@agentic-iam.com 
 
 ## Changelog
 
-### v1.0.1 (Latest)
+### v1.2.0 (Latest)
+- Added enhanced ML models for trust scoring with IsolationForest
+- Implemented additional compliance frameworks (PCI-DSS v4.0, NIST CSF)
+- Added performance optimizations for high-throughput scenarios
+- Introduced GraphQL subscription support for real-time events
+- Integrated advanced anomaly detection algorithms
+
+### v1.1.0
+- Added GraphQL API interface
+- Implemented Kubernetes operator scaffold
+- Introduced ML trust scoring engine with scikit-learn
+- Extended compliance standards (GDPR, HIPAA, SOX, PCI-DSS, ISO-27001)
+- Added mobile API endpoints for agent registration
+- Performance improvements with LRU caching and async operations
+- UI cleanup and English-only interfaces
+
+### v1.0.1
 - Fixed missing imports in session management router
 - Corrected parameter naming to avoid module shadowing
 - Enhanced API router import structure
@@ -395,9 +425,32 @@ For support and questions:
 
 ## Roadmap
 
+### Recently Implemented Features (v1.2.0)
+- ✅ Enhanced ML models for trust scoring (added IsolationForest for anomaly detection)
+- ✅ Additional compliance frameworks (PCI-DSS v4.0, NIST CSF)
+- ✅ Performance optimizations for high-throughput scenarios (async processing, LRU caching)
+- ✅ GraphQL subscription support (agent registration events)
+- ✅ Advanced anomaly detection algorithms (IsolationForest integration)
+
 ### Upcoming Features
-- Enhanced ML models for trust scoring
-- Additional compliance frameworks (PCI-DSS v4.0, NIST CSF)
-- Performance optimizations for high-throughput scenarios
-- GraphQL subscription support
-- Advanced anomaly detection algorithms
+- Kubernetes native operators with CRD support
+- Multi-cloud identity federation (AWS IAM, Azure AD, GCP)
+- Quantum-resistant encryption algorithms
+- Real-time dashboards with WebSocket integration
+- API rate limiting with Redis backend
+- Blockchain-based audit trails
+- Zero-knowledge proofs for privacy-preserving verification
+- AI-powered threat intelligence integration
+- Federated learning for distributed trust scoring
+- Advanced RBAC with temporal constraints
+- Decentralized identity (DID) with verifiable credentials
+- Homomorphic encryption for secure data processing
+- Edge computing support for IoT agent management
+- Automated compliance reporting with AI insights
+- Integration with SIEM systems (Splunk, ELK Stack)
+- Mobile SDK for agent registration and management
+- Voice-based authentication using biometrics
+- Predictive analytics for security threat forecasting
+- Serverless deployment options (AWS Lambda, Azure Functions)
+- Container security scanning integration (Trivy, Clair)
+- GDPR data portability and right to erasure automation

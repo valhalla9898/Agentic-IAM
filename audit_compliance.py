@@ -12,6 +12,8 @@ class ComplianceFramework(Enum):
 	HIPAA = 'hipaa'
 	SOX = 'sox'
 	PCI_DSS = 'pci-dss'
+	PCI_DSS_V4 = 'pci-dss-v4'
+	NIST_CSF = 'nist-csf'
 	ISO_27001 = 'iso-27001'
 
 

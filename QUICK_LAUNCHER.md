@@ -1,126 +1,126 @@
 # Quick Start - Project Launcher
 
-هذا الدليل يشرح كيفية إنشاء shortcut لتشغيل المشروع بنقرة واحدة.
+This guide explains how to create a shortcut to run the project with one click.
 
-## على Windows 10/11
+## On Windows 10/11
 
-### الطريقة السريعة (موصى به):
+### Quick method (recommended):
 
-1. **افتح ملف explorer** واذهب إلى مجلد المشروع
+1. **Open File Explorer** and go to the project folder
    ```
    C:\Users\Lenovo\Desktop\Agentic-IAM-main
    ```
 
-2. **انقر بزر الفأرة الأيمن على `start_project.bat`**
+2. **Right-click on `start_project.bat`**
 
-3. **اختر "Send to" > "Desktop (create shortcut)"**
+3. **Choose "Send to" > "Desktop (create shortcut)"**
 
-4. **انقر على الـ shortcut على سطح المكتب لتشغيل المشروع** ✅
+4. **Click on the shortcut on the desktop to run the project** ✅
 
-### الطريقة اليدوية (إذا لم تنجح الطريقة الأولى):
+### Manual method (if the first method doesn't work):
 
-1. **انقر بزر الفأرة الأيمن على سطح المكتب**
-2. **اختر "New" > "Shortcut"**
-3. **في خانة الموقع، أدخل:**
+1. **Right-click on the desktop**
+2. **Choose "New" > "Shortcut"**
+3. **In the location field, enter:**
    ```
    C:\Users\Lenovo\Desktop\Agentic-IAM-main\start_project.bat
    ```
-4. **اضغط "Next"**
-5. **أدخل الاسم:** `Agentic-IAM`
-6. **اضغط "Finish"**
+4. **Press "Next"**
+5. **Enter the name:** `Agentic-IAM`
+6. **Press "Finish"**
 
-### اختياري: تغيير الأيقونة
+### Optional: Change the icon
 
-1. **انقر بزر الفأرة الأيمن على الـ shortcut**
-2. **اختر "Properties"**
-3. **اضغط "Change Icon..."**
-4. **ابحث عن أيقونة VS Code:**
+1. **Right-click on the shortcut**
+2. **Choose "Properties"**
+3. **Press "Change Icon..."**
+4. **Search for VS Code icon:**
    ```
    C:\Users\Lenovo\AppData\Local\Programs\Microsoft VS Code\Code.exe
    ```
 
 ---
 
-## على Linux/macOS
+## On Linux/macOS
 
-### باستخدام Terminal:
+### Using Terminal:
 
 ```bash
-# اجعل الـ script قابل للتنفيذ
+# Make the script executable
 chmod +x ~/Desktop/Agentic-IAM-main/start_project.sh
 
-# قم بتشغيله
+# Run it
 ~/Desktop/Agentic-IAM-main/start_project.sh
 ```
 
-### إنشاء Desktop Shortcut (Linux GNOME):
+### Create Desktop Shortcut (Linux GNOME):
 
-1. **انسخ ملف `.desktop`:**
+1. **Copy the `.desktop` file:**
    ```bash
    cp ~/Desktop/Agentic-IAM-main/agentic-iam.desktop ~/Desktop/
    ```
 
-2. **عدّل المسار في الملف:**
+2. **Edit the path in the file:**
    ```bash
    nano ~/Desktop/agentic-iam.desktop
    ```
    
-   غيّر هذا السطر:
+   Change this line:
    ```
    Exec=bash -c "cd /path/to/Agentic-IAM-main && ./start_project.sh"
    ```
    
-   إلى:
+   To:
    ```
    Exec=bash -c "cd ~/Desktop/Agentic-IAM-main && ./start_project.sh"
    ```
 
-3. **اجعله قابل للتنفيذ:**
+3. **Make it executable:**
    ```bash
    chmod +x ~/Desktop/agentic-iam.desktop
    ```
 
-4. **انقر عليه لتشغيل المشروع** ✅
+4. **Click on it to run the project** ✅
 
 ---
 
-## ماذا يفعل الـ Launcher؟
+## What does the Launcher do?
 
-عندما تضغط على الـ shortcut:
+When you press the shortcut:
 
-✅ **ينشئ بيئة افتراضية** (إذا لم تكن موجودة)  
-✅ **يثبت المكتبات المطلوبة**  
-✅ **يفتح VS Code** في المجلد  
-✅ **يشغّل API Server** على `http://localhost:8000`  
-✅ **يشغّل Streamlit Dashboard** على `http://localhost:8501`  
+✅ **Creates a virtual environment** (if not present)  
+✅ **Installs required libraries**  
+✅ **Opens VS Code** in the folder  
+✅ **Runs API Server** on `http://localhost:8000`  
+✅ **Runs Streamlit Dashboard** on `http://localhost:8501`  
 
-### الخدمات المتاحة بعد التشغيل:
+### Available services after launch:
 
-| الخدمة | الرابط |
-|--------|--------|
+| Service | Link |
+|---------|------|
 | **API Server** | http://localhost:8000 |
 | **API Documentation** | http://localhost:8000/docs |
 | **Swagger UI** | http://localhost:8000/redoc |
 | **Streamlit Dashboard** | http://localhost:8501 |
-| **VS Code Editor** | يفتح تلقائياً |
+| **VS Code Editor** | Opens automatically |
 
 ---
 
-## استكشاف الأخطاء
+## Troubleshooting
 
-### إذا لم يفتح المشروع:
+### If the project doesn't open:
 
-1. **تأكد من وجود Python 3.9+:**
+1. **Ensure Python 3.9+ is installed:**
    ```bash
    python --version
    ```
 
-2. **تأكد من وجود pip:**
+2. **Ensure pip is installed:**
    ```bash
    pip --version
    ```
 
-3. **جرب تشغيل البرنامج النصي يدويًا:**
+3. **Try running the script manually:**
    
    **Windows:**
    ```cmd
@@ -134,24 +134,24 @@ chmod +x ~/Desktop/Agentic-IAM-main/start_project.sh
    ./start_project.sh
    ```
 
-4. **إذا كان هناك خطأ في التثبيت:**
+4. **If there's an installation error:**
    ```bash
    pip install --upgrade -e .
    ```
 
 ---
 
-## الإيقاف
+## Shutdown
 
-لإيقاف جميع الخدمات:
+To stop all services:
 
-1. **أغلق نوافذ PowerShell/Command Prompt**
-2. **أو اضغط Ctrl+C في كل نافذة**
+1. **Close PowerShell/Command Prompt windows**
+2. **Or press Ctrl+C in each window**
 
 ---
 
-## ملاحظات
+## Notes
 
-- الـ launcher سيفتح **3 نوافذ جديدة** (VS Code + API + Dashboard)
-- تأكد من عدم وجود خدمات على المنافذ `8000` و `8501`
-- قد تستغرق المرة الأولى وقتاً أطول (لتثبيت المكتبات)
+- The launcher will open **3 new windows** (VS Code + API + Dashboard)
+- Ensure no services are running on ports `8000` and `8501`
+- The first time may take longer (to install libraries)

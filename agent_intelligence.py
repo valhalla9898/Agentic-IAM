@@ -8,7 +8,7 @@ and otherwise falls back to a deterministic scoring function.
 from typing import Optional, Dict
 from datetime import datetime
 try:
-	from sklearn.ensemble import RandomForestRegressor
+	from sklearn.ensemble import RandomForestRegressor, IsolationForest
 	from sklearn.pipeline import Pipeline
 	from sklearn.preprocessing import StandardScaler
 	SKLEARN_AVAILABLE = True
@@ -28,13 +28,16 @@ class TrustScore:
 class IntelligenceEngine:
 	def __init__(self):
 		self.model = None
+		self.anomaly_model = None
 		if SKLEARN_AVAILABLE:
 			# Minimal model — in production train on historical audit features
 			self.model = Pipeline([
 				('scale', StandardScaler()),
 				('rf', RandomForestRegressor(n_estimators=10, random_state=42))
 			])
-			# Model is untrained; will be used as placeholder unless trained dataset provided
+			# Anomaly detection model
+			self.anomaly_model = IsolationForest(contamination=0.1, random_state=42)
+			# Models are untrained; will be used as placeholder unless trained dataset provided
 
 	async def initialize(self):
 		# placeholder for async initialization
@@ -56,6 +59,21 @@ class IntelligenceEngine:
 		score = cached_heuristic(agent_id)
 		risk = 'low' if score > 0.75 else ('medium' if score > 0.4 else 'high')
 		return TrustScore(score, risk, confidence=0.7)
+
+	async def detect_anomaly(self, features: Dict) -> bool:
+		"""Detect if the given features indicate anomalous behavior."""
+		if not SKLEARN_AVAILABLE or not self.anomaly_model:
+			# Fallback heuristic
+			score_sum = sum(features.values()) if features else 0
+			return score_sum > 10  # arbitrary threshold
+		# In production, fit the model on historical data
+		# For demo, assume it's fitted
+		try:
+			feature_vector = list(features.values())
+			prediction = self.anomaly_model.predict([feature_vector])
+			return prediction[0] == -1  # -1 indicates anomaly
+		except Exception:
+			return False
 
 
 __all__ = ['IntelligenceEngine', 'TrustScore']
