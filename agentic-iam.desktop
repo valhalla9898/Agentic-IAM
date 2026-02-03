@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Agentic-IAM
+Comment=Launch Agentic-IAM Project
+Exec=bash -c "cd /path/to/Agentic-IAM-main && ./start_project.sh"
+Icon=code
+Categories=Development;
+Terminal=false
