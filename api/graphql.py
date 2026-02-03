@@ -1,4 +1,4 @@
-from ariadne import QueryType, make_executable_schema, gql
+from ariadne import QueryType, SubscriptionType, make_executable_schema, gql
 from ariadne.asgi import GraphQL
 import asyncio
 
@@ -22,9 +22,14 @@ type_defs = gql("""
         agent(agent_id: String!): Agent
         trustScore(agent_id: String!): TrustScore
     }
+
+    type Subscription {
+        agentRegistered: Agent
+    }
 """)
 
 query = QueryType()
+subscription = SubscriptionType()
 
 @query.field("agents")
 def resolve_agents(_, info):
@@ -76,7 +81,17 @@ def resolve_trust_score(_, info, agent_id):
         "confidence": getattr(score, "confidence", 0.0)
     }
 
-schema = make_executable_schema(type_defs, query)
+@subscription.source("agentRegistered")
+async def agent_registered_generator(obj, info):
+    # In a real implementation, this would listen to a pub/sub channel
+    # For demo, just yield nothing or a mock
+    yield {"agent_id": "demo-agent", "status": "active"}
+
+@subscription.field("agentRegistered")
+def agent_registered_resolver(agent, info):
+    return agent
+
+schema = make_executable_schema(type_defs, query, subscription)
 
 # Create an ASGI GraphQL app factory that FastAPI can mount
 def create_graphql_app(iam_instance=None):

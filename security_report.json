@@ -1,0 +1,1412 @@
+{
+  "scanned_files": 98,
+  "findings": [
+    {
+      "file": "agent_identity.py",
+      "issues": [
+        {
+          "type": "secret",
+          "pattern": "-----BEGIN (RSA |)PRIVATE KEY-----",
+          "match": "-----BEGIN PRIVATE KEY-----",
+          "snippet": "UBLIC KEY-----\"         private_key = f\"-----BEGIN PRIVATE KEY-----\\nSK_{agent_id}\\n-----END PRIVATE KEY---"
+        }
+      ]
+    },
+    {
+      "file": "COMPLETION_SUMMARY.py",
+      "issues": [
+        {
+          "type": "insecure-url",
+          "match": "http://localhost:8501"
+        }
+      ]
+    },
+    {
+      "file": "COMPREHENSIVE_REPORT.md",
+      "issues": [
+        {
+          "type": "secret",
+          "pattern": "(?i)aws(.{0,20})?(secret|access|key)",
+          "match": "AWS Secret",
+          "snippet": "ectly - [ ] Secrets manager configured (AWS Secrets, Vault, etc.) - [ ] Logging aggregatio"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)secret[_-]?key",
+          "match": "SECRET_KEY",
+          "snippet": "t:6379/0 REDIS_CACHE_TTL=600  # JWT JWT_SECRET_KEY=your-secret-key-here JWT_ALGORITHM=HS25"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)secret[_-]?key",
+          "match": "secret-key",
+          "snippet": "ACHE_TTL=600  # JWT JWT_SECRET_KEY=your-secret-key-here JWT_ALGORITHM=HS256 JWT_EXPIRATION"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "Token",
+          "snippet": "Session Creation (Redis-backed)     ↓ Token/Certificate Validation     ↓ Permissi"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "Use certificate for mTLS    - Send JWT tokens in headers     3. Operation    - Execu"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "credentials\": {     \"type\": \"jwt\",     \"token\": \"eyJhbGciOiJIUzI1NiIs...\"   } }  Resp"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "Token",
+          "snippet": "...\"   } }  Response: 200 OK {   \"accessToken\": \"token...\",   \"refreshToken\": \"token."
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "}  Response: 200 OK {   \"accessToken\": \"token...\",   \"refreshToken\": \"token...\",   \"e"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "Token",
+          "snippet": "\"accessToken\": \"token...\",   \"refreshToken\": \"token...\",   \"expiresIn\": 3600,   \"t"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "sToken\": \"token...\",   \"refreshToken\": \"token...\",   \"expiresIn\": 3600,   \"tokenType\""
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "n\": \"token...\",   \"expiresIn\": 3600,   \"tokenType\": \"Bearer\" } ```  **2. Validate Tok"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "Token",
+          "snippet": "kenType\": \"Bearer\" } ```  **2. Validate Token** ``` GET /api/v1/auth/validate Authori"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "v1/auth/validate Authorization: Bearer <token>  Response: 200 OK {   \"valid\": true,"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "tion prevention - XSS protection - CSRF token validation - JWT signature validation -"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "Token",
+          "snippet": "checking    - Audience validation    - Token revocation list checking  2. **mTLS/Cer"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "Failures  **Diagnosis Steps:** 1. Check token expiration: `jwt decode <token>` 2. Ver"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "1. Check token expiration: `jwt decode <token>` 2. Verify agent exists: `GET /api/v1/"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "agentId>`  **Common Causes:** - Expired token (renew with refresh token) - Agent cred"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": ":** - Expired token (renew with refresh token) - Agent credentials revoked (re-regist"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "TOKEN",
+          "snippet": "bile API MOBILE_API_ENABLED=true MOBILE_TOKEN_EXPIRATION=86400  # 24 hours ```  ### D"
+        },
+        {
+          "type": "insecure-url",
+          "match": "http://127.0.0.1:8501"
+        },
+        {
+          "type": "insecure-url",
+          "match": "http://127.0.0.1:9000/docs"
+        },
+        {
+          "type": "insecure-url",
+          "match": "http://127.0.0.1:9000/graphql"
+        },
+        {
+          "type": "insecure-url",
+          "match": "http://agentic_iam"
+        },
+        {
+          "type": "insecure-url",
+          "match": "http://agentic_iam"
+        }
+      ]
+    },
+    {
+      "file": "conftest.py",
+      "issues": [
+        {
+          "type": "secret",
+          "pattern": "(?i)secret[_-]?key",
+          "match": "secret_key",
+          "snippet": "mfa=False,  # Disable for tests         secret_key=\"test-secret-key-32-characters-long\","
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)secret[_-]?key",
+          "match": "secret-key",
+          "snippet": "able for tests         secret_key=\"test-secret-key-32-characters-long\",         encryption"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "staticmethod     def create_auth_header(token: str) -> dict:         \"\"\"Create author"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "return {\"Authorization\": f\"Bearer {token}\"}          @staticmethod     async def"
+        }
+      ]
+    },
+    {
+      "file": "docker-compose.yml",
+      "issues": [
+        {
+          "type": "secret",
+          "pattern": "(?i)secret[_-]?key",
+          "match": "SECRET_KEY",
+          "snippet": "urity Configuration       - AGENTIC_IAM_SECRET_KEY=${SECRET_KEY:-your-secret-key-change-in"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)secret[_-]?key",
+          "match": "SECRET_KEY",
+          "snippet": "ration       - AGENTIC_IAM_SECRET_KEY=${SECRET_KEY:-your-secret-key-change-in-production}"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)secret[_-]?key",
+          "match": "secret-key",
+          "snippet": "ENTIC_IAM_SECRET_KEY=${SECRET_KEY:-your-secret-key-change-in-production}       - AGENTIC_I"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)secret[_-]?key",
+          "match": "SECRET_KEY",
+          "snippet": "32-chars-long!}       - AGENTIC_IAM_JWT_SECRET_KEY=${JWT_SECRET_KEY:-jwt-secret-key-change"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)secret[_-]?key",
+          "match": "SECRET_KEY",
+          "snippet": "- AGENTIC_IAM_JWT_SECRET_KEY=${JWT_SECRET_KEY:-jwt-secret-key-change-in-production}"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)secret[_-]?key",
+          "match": "secret-key",
+          "snippet": "AM_JWT_SECRET_KEY=${JWT_SECRET_KEY:-jwt-secret-key-change-in-production}       - AGENTIC_I"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "TOKEN",
+          "snippet": "ESSION_TTL=3600       - AGENTIC_IAM_JWT_TOKEN_TTL=3600              # Monitoring"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)password\\s*[:=]",
+          "match": "PASSWORD=",
+          "snippet": "GRES_USER=agentic_user       - POSTGRES_PASSWORD=agentic_password       - POSTGRES_INITDB"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)password\\s*[:=]",
+          "match": "PASSWORD=",
+          "snippet": "environment:       - GF_SECURITY_ADMIN_PASSWORD=admin_password_change_me       - GF_USER"
+        },
+        {
+          "type": "insecure-url",
+          "match": "http://elasticsearch:9200"
+        }
+      ]
+    },
+    {
+      "file": "Dockerfile",
+      "issues": [
+        {
+          "type": "secret",
+          "pattern": "(?i)password\\s*[:=]",
+          "match": "password=",
+          "snippet": "1:],         user=url.username,         password=url.password,         host=url.hostname,"
+        },
+        {
+          "type": "insecure-url",
+          "match": "http://localhost:8000/health"
+        }
+      ]
+    },
+    {
+      "file": "FINAL_DELIVERY_SUMMARY.md",
+      "issues": [
+        {
+          "type": "insecure-url",
+          "match": "http://127.0.0.1:8501"
+        },
+        {
+          "type": "insecure-url",
+          "match": "http://127.0.0.1:9000/docs"
+        },
+        {
+          "type": "insecure-url",
+          "match": "http://127.0.0.1:9000/graphql"
+        },
+        {
+          "type": "insecure-url",
+          "match": "http://localhost:9000/docs"
+        }
+      ]
+    },
+    {
+      "file": "FINAL_GUIDE.md",
+      "issues": [
+        {
+          "type": "insecure-url",
+          "match": "http://localhost:8501"
+        },
+        {
+          "type": "insecure-url",
+          "match": "http://localhost:8501"
+        }
+      ]
+    },
+    {
+      "file": "HOW_TO_RUN_GUI.md",
+      "issues": [
+        {
+          "type": "insecure-url",
+          "match": "http://localhost:8501"
+        }
+      ]
+    },
+    {
+      "file": "PROJECT_COMPLETION_STATUS.md",
+      "issues": [
+        {
+          "type": "insecure-url",
+          "match": "http://127.0.0.1:9000"
+        },
+        {
+          "type": "insecure-url",
+          "match": "http://127.0.0.1:8501"
+        },
+        {
+          "type": "insecure-url",
+          "match": "http://localhost:9000/docs"
+        },
+        {
+          "type": "insecure-url",
+          "match": "http://localhost:9000/graphql"
+        },
+        {
+          "type": "insecure-url",
+          "match": "http://localhost:8501"
+        }
+      ]
+    },
+    {
+      "file": "PROJECT_REPORT.md",
+      "issues": [
+        {
+          "type": "insecure-url",
+          "match": "http://127.0.0.1:9000/graphql"
+        },
+        {
+          "type": "insecure-url",
+          "match": "http://127.0.0.1:8501"
+        },
+        {
+          "type": "insecure-url",
+          "match": "http://127.0.0.1:9000"
+        },
+        {
+          "type": "insecure-url",
+          "match": "http://127.0.0.1:8501"
+        },
+        {
+          "type": "insecure-url",
+          "match": "http://127.0.0.1:9000"
+        },
+        {
+          "type": "insecure-url",
+          "match": "http://127.0.0.1:9000/docs"
+        },
+        {
+          "type": "insecure-url",
+          "match": "http://127.0.0.1:9000/graphql"
+        },
+        {
+          "type": "insecure-url",
+          "match": "http://127.0.0.1:9000/health"
+        },
+        {
+          "type": "insecure-url",
+          "match": "http://127.0.0.1:9000/api/v1/mobile"
+        },
+        {
+          "type": "insecure-url",
+          "match": "http://127.0.0.1:8501"
+        },
+        {
+          "type": "insecure-url",
+          "match": "http://127.0.0.1:9000"
+        }
+      ]
+    },
+    {
+      "file": "QUICK_LAUNCHER.md",
+      "issues": [
+        {
+          "type": "insecure-url",
+          "match": "http://localhost:8000"
+        },
+        {
+          "type": "insecure-url",
+          "match": "http://localhost:8501"
+        },
+        {
+          "type": "insecure-url",
+          "match": "http://localhost:8000"
+        },
+        {
+          "type": "insecure-url",
+          "match": "http://localhost:8000/docs"
+        },
+        {
+          "type": "insecure-url",
+          "match": "http://localhost:8000/redoc"
+        },
+        {
+          "type": "insecure-url",
+          "match": "http://localhost:8501"
+        }
+      ]
+    },
+    {
+      "file": "QUICK_START.md",
+      "issues": [
+        {
+          "type": "insecure-url",
+          "match": "http://localhost:8501"
+        },
+        {
+          "type": "insecure-url",
+          "match": "http://localhost:8501"
+        }
+      ]
+    },
+    {
+      "file": "README.md",
+      "issues": [
+        {
+          "type": "secret",
+          "pattern": "(?i)api[_-]?key",
+          "match": "api_key",
+          "snippet": "gent, auth_result)  # Store credentials api_key_id = credential_manager.store_credentia"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)api[_-]?key",
+          "match": "api_key",
+          "snippet": "l API Key\",     credential_data=\"secret_api_key_123\",     credential_type=CredentialTyp"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)api[_-]?key",
+          "match": "API_KEY",
+          "snippet": "23\",     credential_type=CredentialType.API_KEY,     owner_agent_id=agent.agent_id )  #"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)secret[_-]?key",
+          "match": "secret_key",
+          "snippet": "nManager() jwt_auth = JWTAuthentication(secret_key=\"your-secret-key\") auth_manager.registe"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)secret[_-]?key",
+          "match": "secret-key",
+          "snippet": "th = JWTAuthentication(secret_key=\"your-secret-key\") auth_manager.register_method(\"jwt\", j"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)secret[_-]?key",
+          "match": "SECRET_KEY",
+          "snippet": "key  # Authentication configuration JWT_SECRET_KEY=your-jwt-secret JWT_TOKEN_TTL=3600  # S"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "system - **JWT Authentication**: Secure token-based authentication - **Cryptographic"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "Token",
+          "snippet": "ssion Management - **Secure Sessions**: Token lifecycle with TTL and refresh - **Audi"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "s**: API keys, passwords, certificates, tokens  ### 📖 Agent Registry - **Discovery"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "is_default=True)  # Generate and verify token token = jwt_auth.generate_token(agent)"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "ault=True)  # Generate and verify token token = jwt_auth.generate_token(agent) result"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "verify token token = jwt_auth.generate_token(agent) result = auth_manager.authentica"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "t) result = auth_manager.authenticate({'token': token}, 'jwt')  print(f\"Authenticatio"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "t = auth_manager.authenticate({'token': token}, 'jwt')  print(f\"Authentication succes"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "TOKEN",
+          "snippet": "tion JWT_SECRET_KEY=your-jwt-secret JWT_TOKEN_TTL=3600  # Session configuration SESSI"
+        }
+      ]
+    },
+    {
+      "file": "run_gui.py",
+      "issues": [
+        {
+          "type": "insecure-url",
+          "match": "http://localhost:8501..."
+        }
+      ]
+    },
+    {
+      "file": "start_project.sh",
+      "issues": [
+        {
+          "type": "insecure-url",
+          "match": "http://localhost:8000..."
+        },
+        {
+          "type": "insecure-url",
+          "match": "http://localhost:8501..."
+        },
+        {
+          "type": "insecure-url",
+          "match": "http://localhost:8000"
+        },
+        {
+          "type": "insecure-url",
+          "match": "http://localhost:8000/docs"
+        },
+        {
+          "type": "insecure-url",
+          "match": "http://localhost:8501"
+        }
+      ]
+    },
+    {
+      "file": "STATUS.txt",
+      "issues": [
+        {
+          "type": "insecure-url",
+          "match": "http://localhost:8501"
+        }
+      ]
+    },
+    {
+      "file": ".github\\workflows\\ci.yml",
+      "issues": [
+        {
+          "type": "secret",
+          "pattern": "(?i)password\\s*[:=]",
+          "match": "PASSWORD:",
+          "snippet": "gres:15         env:           POSTGRES_PASSWORD: postgres           POSTGRES_DB: agentic"
+        }
+      ]
+    },
+    {
+      "file": ".github\\workflows\\deploy.yml",
+      "issues": [
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "TOKEN",
+          "snippet": "password: ${{ secrets.PYPI_API_TOKEN }}    docker-release:     runs-on: ubun"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "TOKEN",
+          "snippet": "}}         password: ${{ secrets.GITHUB_TOKEN }}          - name: Extract metadata"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "TOKEN",
+          "snippet": "elease: false       env:         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "TOKEN",
+          "snippet": "GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)password\\s*[:=]",
+          "match": "password:",
+          "snippet": "-publish@release/v1       with:         password: ${{ secrets.PYPI_API_TOKEN }}    docker"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)password\\s*[:=]",
+          "match": "password:",
+          "snippet": "${{ secrets.DOCKER_USERNAME }}         password: ${{ secrets.DOCKER_PASSWORD }}"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)password\\s*[:=]",
+          "match": "password:",
+          "snippet": "username: ${{ github.actor }}         password: ${{ secrets.GITHUB_TOKEN }}          -"
+        }
+      ]
+    },
+    {
+      "file": "agentic_iam.egg-info\\PKG-INFO",
+      "issues": [
+        {
+          "type": "secret",
+          "pattern": "(?i)api[_-]?key",
+          "match": "api_key",
+          "snippet": "gent, auth_result)  # Store credentials api_key_id = credential_manager.store_credentia"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)api[_-]?key",
+          "match": "api_key",
+          "snippet": "l API Key\",     credential_data=\"secret_api_key_123\",     credential_type=CredentialTyp"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)api[_-]?key",
+          "match": "API_KEY",
+          "snippet": "23\",     credential_type=CredentialType.API_KEY,     owner_agent_id=agent.agent_id )  #"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)secret[_-]?key",
+          "match": "secret_key",
+          "snippet": "nManager() jwt_auth = JWTAuthentication(secret_key=\"your-secret-key\") auth_manager.registe"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)secret[_-]?key",
+          "match": "secret-key",
+          "snippet": "th = JWTAuthentication(secret_key=\"your-secret-key\") auth_manager.register_method(\"jwt\", j"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)secret[_-]?key",
+          "match": "SECRET_KEY",
+          "snippet": "key  # Authentication configuration JWT_SECRET_KEY=your-jwt-secret JWT_TOKEN_TTL=3600  # S"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "system - **JWT Authentication**: Secure token-based authentication - **Cryptographic"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "Token",
+          "snippet": "ssion Management - **Secure Sessions**: Token lifecycle with TTL and refresh - **Audi"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "s**: API keys, passwords, certificates, tokens  ### 📖 Agent Registry - **Discovery"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "is_default=True)  # Generate and verify token token = jwt_auth.generate_token(agent)"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "ault=True)  # Generate and verify token token = jwt_auth.generate_token(agent) result"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "verify token token = jwt_auth.generate_token(agent) result = auth_manager.authentica"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "t) result = auth_manager.authenticate({'token': token}, 'jwt')  print(f\"Authenticatio"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "t = auth_manager.authenticate({'token': token}, 'jwt')  print(f\"Authentication succes"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "TOKEN",
+          "snippet": "tion JWT_SECRET_KEY=your-jwt-secret JWT_TOKEN_TTL=3600  # Session configuration SESSI"
+        }
+      ]
+    },
+    {
+      "file": "api\\models.py",
+      "issues": [
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "agent_id: Optional[str] = None     token: Optional[str] = None     expires_at: O"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "Token",
+          "snippet": "r_message: Optional[str] = None   class TokenRefreshRequest(BaseModel):     \"\"\"Token"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "Token",
+          "snippet": "TokenRefreshRequest(BaseModel):     \"\"\"Token refresh request\"\"\"     session_id: str"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "ption=\"Session identifier\")     refresh_token: Optional[str] = Field(None, descriptio"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "str] = Field(None, description=\"Refresh token\")   # Agent models class AgentCreateReq"
+        }
+      ]
+    },
+    {
+      "file": "config\\settings.py",
+      "issues": [
+        {
+          "type": "secret",
+          "pattern": "(?i)secret[_-]?key",
+          "match": "secret_key",
+          "snippet": "# Security Configuration         self.secret_key = os.getenv(\"SECRET_KEY\", \"your-secret-"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)secret[_-]?key",
+          "match": "SECRET_KEY",
+          "snippet": "on         self.secret_key = os.getenv(\"SECRET_KEY\", \"your-secret-key-change-in-production"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)secret[_-]?key",
+          "match": "secret-key",
+          "snippet": "ret_key = os.getenv(\"SECRET_KEY\", \"your-secret-key-change-in-production\")         self.enc"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)secret[_-]?key",
+          "match": "secret_key",
+          "snippet": "# JWT Configuration         self.jwt_secret_key = os.getenv(\"JWT_SECRET_KEY\", \"jwt-secr"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)secret[_-]?key",
+          "match": "SECRET_KEY",
+          "snippet": "self.jwt_secret_key = os.getenv(\"JWT_SECRET_KEY\", \"jwt-secret-key-change-in-production\""
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)secret[_-]?key",
+          "match": "secret-key",
+          "snippet": "_key = os.getenv(\"JWT_SECRET_KEY\", \"jwt-secret-key-change-in-production\")         self.jwt"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)secret[_-]?key",
+          "match": "secret_key",
+          "snippet": "e          # Security Configuration     secret_key: str = \"your-secret-key-change-in-produ"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)secret[_-]?key",
+          "match": "secret-key",
+          "snippet": "nfiguration     secret_key: str = \"your-secret-key-change-in-production\"     encryption_ke"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)secret[_-]?key",
+          "match": "secret_key",
+          "snippet": "!\"          # JWT Configuration     jwt_secret_key: str = \"jwt-secret-key-change-in-produc"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)secret[_-]?key",
+          "match": "secret-key",
+          "snippet": "guration     jwt_secret_key: str = \"jwt-secret-key-change-in-production\"     jwt_algorithm"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "wt_algorithm = \"HS256\"         self.jwt_token_ttl = 3600         self.jwt_refresh_ttl"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "jwt_algorithm: str = \"HS256\"     jwt_token_ttl: int = 3600  # 1 hour     jwt_refre"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)password\\s*[:=]",
+          "match": "password =",
+          "snippet": ".getenv(\"REDIS_URL\")         self.redis_password = os.getenv(\"REDIS_PASSWORD\")         sel"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)password\\s*[:=]",
+          "match": "password:",
+          "snippet": "dis_url: Optional[str] = None     redis_password: Optional[str] = None     redis_db: int"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)password\\s*[:=]",
+          "match": "password:",
+          "snippet": "username: Optional[str] = None     smtp_password: Optional[str] = None     smtp_use_tls:"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)client[_-]?secret",
+          "match": "client_secret",
+          "snippet": "oidc_client_id = None         self.oidc_client_secret = None         self.oidc_discovery_url"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)client[_-]?secret",
+          "match": "client_secret",
+          "snippet": "lient_id: Optional[str] = None     oidc_client_secret: Optional[str] = None     oidc_discover"
+        },
+        {
+          "type": "insecure-url",
+          "match": "http://localhost:3000"
+        },
+        {
+          "type": "insecure-url",
+          "match": "http://localhost:8501"
+        }
+      ]
+    },
+    {
+      "file": "docs\\DEVELOPMENT.md",
+      "issues": [
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "s  ### Example  ``` feat(auth): add JWT token validation  - Implement JWT token valid"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "d JWT token validation  - Implement JWT token validation middleware - Add support for"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "validation middleware - Add support for token refresh - Add tests for validation logi"
+        }
+      ]
+    },
+    {
+      "file": "docs\\api\\API_REFERENCE.md",
+      "issues": [
+        {
+          "type": "secret",
+          "pattern": "(?i)api[_-]?key",
+          "match": "API-Key",
+          "snippet": "tication.  ### API Key Include key in X-API-Key header: ``` X-API-Key: your-api-key-her"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)api[_-]?key",
+          "match": "API-Key",
+          "snippet": "Include key in X-API-Key header: ``` X-API-Key: your-api-key-here ```  ## Webhooks  Su"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)api[_-]?key",
+          "match": "api-key",
+          "snippet": "n X-API-Key header: ``` X-API-Key: your-api-key-here ```  ## Webhooks  Subscribe to eve"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "method\": \"jwt\",   \"credentials\": {     \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "true,   \"agent_id\": \"agent:example\",   \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "Methods  ### JWT Authentication Include token in Authorization header: ``` Authorizat"
+        }
+      ]
+    },
+    {
+      "file": "k8s\\configmap.yaml",
+      "issues": [
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "TOKEN",
+          "snippet": "M_SESSION_TTL: \"3600\"   AGENTIC_IAM_JWT_TOKEN_TTL: \"3600\"   AGENTIC_IAM_MAX_SESSIONS_"
+        },
+        {
+          "type": "insecure-url",
+          "match": "http://agentic_api"
+        },
+        {
+          "type": "insecure-url",
+          "match": "http://agentic_api"
+        },
+        {
+          "type": "insecure-url",
+          "match": "http://agentic_dashboard"
+        }
+      ]
+    },
+    {
+      "file": "k8s\\deployment.yaml",
+      "issues": [
+        {
+          "type": "secret",
+          "pattern": "(?i)secret[_-]?key",
+          "match": "secretKey",
+          "snippet": "SSWORD           valueFrom:             secretKeyRef:               name: agentic-iam-sec"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)secret[_-]?key",
+          "match": "secretKey",
+          "snippet": "SSWORD           valueFrom:             secretKeyRef:               name: agentic-iam-sec"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)secret[_-]?key",
+          "match": "SECRET_KEY",
+          "snippet": "rom Secrets         - name: AGENTIC_IAM_SECRET_KEY           valueFrom:             secret"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)secret[_-]?key",
+          "match": "secretKey",
+          "snippet": "ET_KEY           valueFrom:             secretKeyRef:               name: agentic-iam-sec"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)secret[_-]?key",
+          "match": "secret-key",
+          "snippet": "agentic-iam-secrets               key: secret-key                  - name: AGENTIC_IAM_EN"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)secret[_-]?key",
+          "match": "secretKey",
+          "snippet": "ON_KEY           valueFrom:             secretKeyRef:               name: agentic-iam-sec"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)secret[_-]?key",
+          "match": "SECRET_KEY",
+          "snippet": "- name: AGENTIC_IAM_JWT_SECRET_KEY           valueFrom:             secret"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)secret[_-]?key",
+          "match": "secretKey",
+          "snippet": "ET_KEY           valueFrom:             secretKeyRef:               name: agentic-iam-sec"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)secret[_-]?key",
+          "match": "secret-key",
+          "snippet": "ntic-iam-secrets               key: jwt-secret-key                  - name: AGENTIC_IAM_CR"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)secret[_-]?key",
+          "match": "secretKey",
+          "snippet": "ON_KEY           valueFrom:             secretKeyRef:               name: agentic-iam-sec"
+        }
+      ]
+    },
+    {
+      "file": "monitoring\\prometheus\\prometheus.yml",
+      "issues": [
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "insecure_skip_verify: true     bearer_token_file: /var/run/secrets/kubernetes.io/se"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "un/secrets/kubernetes.io/serviceaccount/token     relabel_configs:       - source_lab"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "insecure_skip_verify: true     bearer_token_file: /var/run/secrets/kubernetes.io/se"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "un/secrets/kubernetes.io/serviceaccount/token     relabel_configs:       - action: la"
+        },
+        {
+          "type": "insecure-url",
+          "match": "http://thanos-receive:19291/api/v1/receive"
+        }
+      ]
+    },
+    {
+      "file": "scripts\\security_hardening.py",
+      "issues": [
+        {
+          "type": "secret",
+          "pattern": "(?i)secret[_-]?key",
+          "match": "secret_key",
+          "snippet": "ck secret keys         if self.settings.secret_key == \"your-secret-key-change-in-productio"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)secret[_-]?key",
+          "match": "secret-key",
+          "snippet": "if self.settings.secret_key == \"your-secret-key-change-in-production\":             issu"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)secret[_-]?key",
+          "match": "secret_key",
+          "snippet": ")                  if self.settings.jwt_secret_key == \"jwt-secret-key-change-in-production"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)secret[_-]?key",
+          "match": "secret-key",
+          "snippet": "if self.settings.jwt_secret_key == \"jwt-secret-key-change-in-production\":             issu"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)secret[_-]?key",
+          "match": "secret_key",
+          "snippet": "ey lengths         if len(self.settings.secret_key) < 32:             issues.append(\"Secre"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)secret[_-]?key",
+          "match": "secret_key",
+          "snippet": "nerate = [                 \"agentic_iam_secret_key\",                 \"agentic_iam_encrypti"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)secret[_-]?key",
+          "match": "secret_key",
+          "snippet": "key\",                  \"agentic_iam_jwt_secret_key\",                 \"agentic_iam_credenti"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "cret = base64.urlsafe_b64encode(secrets.token_bytes(32)).decode()         elif secret"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "else:             # Generate random token             new_secret = secrets.token_"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "token             new_secret = secrets.token_urlsafe(32)                  if await s"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "alue = base64.urlsafe_b64encode(secrets.token_bytes(32)).decode()"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "value = secrets.token_urlsafe(64)                     else:"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "production security def generate_secure_token(length: int = 32) -> str:     \"\"\"Genera"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "\"\"\"Generate cryptographically secure token\"\"\"     return secrets.token_urlsafe(len"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "ally secure token\"\"\"     return secrets.token_urlsafe(length)  def hash_password(pass"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "if salt is None:         salt = secrets.token_bytes(32)          pwdhash = hashlib.pb"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)password\\s*[:=]",
+          "match": "password:",
+          "snippet": "oken_urlsafe(length)  def hash_password(password: str, salt: Optional[bytes] = None) -> T"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)password\\s*[:=]",
+          "match": "password:",
+          "snippet": "(pwdhash).decode()  def verify_password(password: str, salt: str, hash_value: str) -> boo"
+        }
+      ]
+    },
+    {
+      "file": "scripts\\security_scan.py",
+      "issues": [
+        {
+          "type": "secret",
+          "pattern": "(?i)aws(.{0,20})?(secret|access|key)",
+          "match": "aws(.{0,20})?(secret|access",
+          "snippet": "= [     r\"AKIA[0-9A-Z]{16}\",     r\"(?i)aws(.{0,20})?(secret|access|key)\",     r\"(?i)api[_-]?key\",     r\"(?"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "-coded secrets (API keys, private keys, tokens) - Flag use of dangerous functions (ev"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "\",     r\"(?i)secret[_-]?key\",     r\"(?i)token\",     r\"-----BEGIN (RSA |)PRIVATE KEY--"
+        },
+        {
+          "type": "dangerous",
+          "pattern": "eval(...)",
+          "line": 36,
+          "context": "(r\"\\beval\\s*\\(\", \"eval(...)\"),"
+        },
+        {
+          "type": "dangerous",
+          "pattern": "exec(...)",
+          "line": 37,
+          "context": "(r\"\\bexec\\s*\\(\", \"exec(...)\"),"
+        },
+        {
+          "type": "dangerous",
+          "pattern": "pickle.loads(...)",
+          "line": 38,
+          "context": "(r\"pickle\\.loads\\s*\\(\", \"pickle.loads(...)\"),"
+        },
+        {
+          "type": "dangerous",
+          "pattern": "os.system(...)",
+          "line": 40,
+          "context": "(r\"os\\.system\\s*\\(\", \"os.system(...)\"),"
+        }
+      ]
+    },
+    {
+      "file": "tests\\test_integration\\test_api_integration.py",
+      "issues": [
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "d\": \"jwt\",             \"credentials\": {\"token\": \"test_token\"},             \"source_ip"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "\"credentials\": {\"token\": \"test_token\"},             \"source_ip\": \"127.0.0.1\""
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "d\": \"jwt\",             \"credentials\": {\"token\": \"test\"}         }                  #"
+        },
+        {
+          "type": "insecure-url",
+          "match": "http://localhost:3000"
+        },
+        {
+          "type": "insecure-url",
+          "match": "http://localhost:3000"
+        }
+      ]
+    },
+    {
+      "file": "tests\\test_unit\\test_api\\test_authentication.py",
+      "issues": [
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "ssion_001\")                  # Mock JWT token generation         mock_agent_entry = M"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "icMock()         mock_jwt_auth.generate_token.return_value = \"jwt_token_123\""
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "auth.generate_token.return_value = \"jwt_token_123\"         mock_iam.authentication_ma"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "= \"agent:test-001\"         assert data[\"token\"] == \"jwt_token_123\"         assert dat"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "1\"         assert data[\"token\"] == \"jwt_token_123\"         assert data[\"session_id\"]"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "\"agent_id\" not in data         assert \"token\" not in data          @pytest.mark.unit"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "@pytest.mark.api     def test_refresh_token_success(self, client, mock_iam):"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": ", mock_iam):         \"\"\"Test successful token refresh\"\"\"         # Setup mock session"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "ock_session                  # Mock JWT token generation         mock_agent_entry = M"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "icMock()         mock_jwt_auth.generate_token.return_value = \"new_jwt_token_456\""
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": ".generate_token.return_value = \"new_jwt_token_456\"         mock_iam.authentication_ma"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "d\": \"session_001\",             \"refresh_token\": \"refresh_token_123\"         }"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": ",             \"refresh_token\": \"refresh_token_123\"         }                  respons"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "= \"agent:test-001\"         assert data[\"token\"] == \"new_jwt_token_456\"         assert"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "assert data[\"token\"] == \"new_jwt_token_456\"         assert data[\"session_id\"]"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "session_id=\"session_001\", refresh_token=\"refresh_token_123\"         )"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "d=\"session_001\", refresh_token=\"refresh_token_123\"         )          @pytest.mark.un"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "@pytest.mark.api     def test_refresh_token_invalid_session(self, client, mock_iam)"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "elf, client, mock_iam):         \"\"\"Test token refresh with invalid session\"\"\""
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "\"invalid_session\",             \"refresh_token\": \"refresh_token_123\"         }"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": ",             \"refresh_token\": \"refresh_token_123\"         }                  respons"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "s False         assert \"Invalid refresh token or session expired\" in data[\"error_mess"
+        },
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "thod[\"enabled\"] is True         assert \"token_ttl\" in jwt_method          @pytest.mar"
+        }
+      ]
+    },
+    {
+      "file": "utils\\logger.py",
+      "issues": [
+        {
+          "type": "secret",
+          "pattern": "(?i)token",
+          "match": "token",
+          "snippet": "[         \"password\", \"secret\", \"key\", \"token\", \"credential\",         \"auth\", \"jwt\","
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "total_files_scanned": 98,
+    "total_issues": 225,
+    "files_with_issues": 32
+  }
+}
