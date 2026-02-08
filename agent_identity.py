@@ -201,8 +201,16 @@ class AuditManager:
 
 class ComplianceManager:
     """Compliance manager"""
-    async def initialize(self):
-        pass
+    async def initialize(self, frameworks=None, **kwargs):
+        """Initialize compliance manager with optional frameworks list."""
+        self.frameworks = frameworks or []
+        self.initialized = True
+        return None
+
+    async def shutdown(self):
+        """Shutdown/cleanup for compliance manager."""
+        self.initialized = False
+        return None
 
 
 class TrustScore:
@@ -216,17 +224,24 @@ class TrustScore:
 
 class IntelligenceEngine:
     """Intelligence engine"""
-    async def initialize(self):
-        pass
-    
+    async def initialize(self, **kwargs):
+        """Initialize intelligence engine with optional features."""
+        self.config = kwargs or {}
+        self.initialized = True
+        return None
+
     async def initialize_agent_score(self, agent_id: str):
         pass
-    
+
     async def update_trust_score(self, agent_id: str, event_type: str, context: Dict = None):
         pass
-    
+
     async def calculate_trust_score(self, agent_id: str) -> Optional[TrustScore]:
         return TrustScore(0.75, "medium", 0.85)
+
+    async def shutdown(self):
+        self.initialized = False
+        return None
 
 
 # Alias for backwards compatibility

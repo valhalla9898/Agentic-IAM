@@ -12,71 +12,71 @@ print("AGENTIC-IAM System Verification")
 print("=" * 60)
 
 # Test 1: Import core modules
-print("\n✓ Testing imports...")
+print("\n[TEST] Testing imports...")
 try:
     from agent_identity import AgentIdentity, AgenticIAM
-    print("  ✓ agent_identity")
+    print("  OK agent_identity")
 except Exception as e:
-    print(f"  ✗ agent_identity: {e}")
+    print(f"  FAIL agent_identity: {e}")
 
 try:
     from authentication import AuthenticationManager
-    print("  ✓ authentication")
+    print("  OK authentication")
 except Exception as e:
-    print(f"  ✗ authentication: {e}")
+    print(f"  FAIL authentication: {e}")
 
 try:
     from authorization import AuthorizationManager
-    print("  ✓ authorization")
+    print("  OK authorization")
 except Exception as e:
-    print(f"  ✗ authorization: {e}")
+    print(f"  FAIL authorization: {e}")
 
 try:
     from config.settings import Settings
-    print("  ✓ config.settings")
+    print("  OK config.settings")
 except Exception as e:
-    print(f"  ✗ config.settings: {e}")
+    print(f"  FAIL config.settings: {e}")
 
 try:
     from utils.logger import get_logger, setup_logging
-    print("  ✓ utils.logger")
+    print("  OK utils.logger")
 except Exception as e:
-    print(f"  ✗ utils.logger: {e}")
+    print(f"  FAIL utils.logger: {e}")
 
 try:
     from core.agentic_iam import AgenticIAM as IAM
-    print("  ✓ core.agentic_iam")
+    print("  OK core.agentic_iam")
 except Exception as e:
-    print(f"  ✗ core.agentic_iam: {e}")
+    print(f"  FAIL core.agentic_iam: {e}")
 
 try:
     import streamlit as st
-    print("  ✓ streamlit")
+    print("  OK streamlit")
 except Exception as e:
-    print(f"  ✗ streamlit: {e}")
+    print(f"  FAIL streamlit: {e}")
 
 # Test 2: Create instances
-print("\n✓ Testing object creation...")
+print("\n[TEST] Testing object creation...")
 try:
     identity = AgentIdentity.generate("agent:test-001", {"type": "service"})
-    print(f"  ✓ Created agent identity: {identity.agent_id}")
+    print(f"  OK Created agent identity: {identity.agent_id}")
 except Exception as e:
-    print(f"  ✗ Agent identity: {e}")
+    print(f"  FAIL Agent identity: {e}")
 
 try:
     settings = Settings()
-    print(f"  ✓ Settings loaded (env={settings.environment})")
+    print(f"  OK Settings loaded (env={settings.environment})")
 except Exception as e:
-    print(f"  ✗ Settings: {e}")
+    print(f"  FAIL Settings: {e}")
 
 try:
     logger = get_logger("test")
-    print(f"  ✓ Logger initialized")
+    print(f"  OK Logger initialized")
 except Exception as e:
-    print(f"  ✗ Logger: {e}")
+    print(f"  FAIL Logger: {e}")
 
 # Test 3: File structure
-print("\n✓ Checking file structure...")
+print("\n[TEST] Checking file structure...")
 required_files = [
     "app.py",
     "agent_identity.py",
@@ -90,12 +90,12 @@ required_files = [
 for file in required_files:
     path = Path(__file__).parent / file
     if path.exists():
-        print(f"  ✓ {file}")
+        print(f"  OK {file}")
     else:
-        print(f"  ✗ {file} - NOT FOUND")
+        print(f"  FAIL {file} - NOT FOUND")
 
 print("\n" + "=" * 60)
-print("✓ SYSTEM READY TO RUN")
+print("SUCCESS: SYSTEM READY TO RUN")
 print("=" * 60)
 print("\nTo start the dashboard, run:")
 print("  streamlit run app.py")

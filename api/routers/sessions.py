@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 # Project imports
 from core.agentic_iam import AgenticIAM
-from api.main import get_iam, get_settings
+from api.dependencies import get_iam, get_settings
 from config.settings import Settings
 from api.models import SuccessResponse
 

@@ -24,12 +24,46 @@ from core.agentic_iam import AgenticIAM
 from config.settings import Settings
 from utils.logger import setup_logging, get_logger
 
-# Import routers
-from api.routers import (
-    health, agents, authentication, authorization, 
-    sessions, intelligence, audit
-)
-from api.routers import mobile
+# Import routers defensively (some optional routers may be missing)
+try:
+    from api.routers import health
+except Exception:
+    health = None
+
+try:
+    from api.routers import agents
+except Exception:
+    agents = None
+
+try:
+    from api.routers import authentication
+except Exception:
+    authentication = None
+
+try:
+    from api.routers import authorization
+except Exception:
+    authorization = None
+
+try:
+    from api.routers import sessions
+except Exception:
+    sessions = None
+
+try:
+    from api.routers import intelligence
+except Exception:
+    intelligence = None
+
+try:
+    from api.routers import audit
+except Exception:
+    audit = None
+
+try:
+    from api.routers import mobile
+except Exception:
+    mobile = None
 
 
 # Global instances
@@ -174,60 +208,68 @@ def setup_routers(app: FastAPI):
     """Configure API routers"""
     
     # Health and monitoring
-    app.include_router(
-        health.router,
-        prefix="/health",
-        tags=["Health & Monitoring"]
-    )
+    if health is not None:
+        app.include_router(
+            health.router,
+            prefix="/health",
+            tags=["Health & Monitoring"]
+        )
     
     # Core agent management
-    app.include_router(
-        agents.router,
-        prefix="/api/v1/agents",
-        tags=["Agent Management"]
-    )
+    if agents is not None:
+        app.include_router(
+            agents.router,
+            prefix="/api/v1/agents",
+            tags=["Agent Management"]
+        )
     
     # Authentication
-    app.include_router(
-        authentication.router,
-        prefix="/api/v1/auth",
-        tags=["Authentication"]
-    )
+    if authentication is not None:
+        app.include_router(
+            authentication.router,
+            prefix="/api/v1/auth",
+            tags=["Authentication"]
+        )
     
     # Authorization
-    app.include_router(
-        authorization.router,
-        prefix="/api/v1/authz",
-        tags=["Authorization"]
-    )
+    if authorization is not None:
+        app.include_router(
+            authorization.router,
+            prefix="/api/v1/authz",
+            tags=["Authorization"]
+        )
     
     # Session management
-    app.include_router(
-        sessions.router,
-        prefix="/api/v1/sessions",
-        tags=["Session Management"]
-    )
+    if sessions is not None:
+        app.include_router(
+            sessions.router,
+            prefix="/api/v1/sessions",
+            tags=["Session Management"]
+        )
     
     # Intelligence & trust scoring
-    app.include_router(
-        intelligence.router,
-        prefix="/api/v1/intelligence",
-        tags=["Intelligence & Trust"]
-    )
+    if intelligence is not None:
+        app.include_router(
+            intelligence.router,
+            prefix="/api/v1/intelligence",
+            tags=["Intelligence & Trust"]
+        )
     
     # Audit & compliance
-    app.include_router(
-        audit.router,
-        prefix="/api/v1/audit",
-        tags=["Audit & Compliance"]
-    )
+    if audit is not None:
+        app.include_router(
+            audit.router,
+            prefix="/api/v1/audit",
+            tags=["Audit & Compliance"]
+        )
 
     # Mobile endpoints
-    app.include_router(
-        mobile.router,
-        prefix="/api/v1/mobile",
-        tags=["Mobile"]
-    )
+    if mobile is not None:
+        app.include_router(
+            mobile.router,
+            prefix="/api/v1/mobile",
+            tags=["Mobile"]
+        )
 
 
 def setup_exception_handlers(app: FastAPI):

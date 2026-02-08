@@ -10,6 +10,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Any
 import logging
+import bcrypt
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +36,19 @@ class Database:
         """Initialize database tables"""
         with self.get_connection() as conn:
             cursor = conn.cursor()
+            
+            # Users table for dashboard authentication
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS users (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    username TEXT UNIQUE NOT NULL,
+                    password_hash TEXT NOT NULL,
+                    email TEXT UNIQUE NOT NULL,
+                    role TEXT DEFAULT 'user',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    last_login TIMESTAMP
+                )
+            """)
             
             # Agents table
             cursor.execute("""
@@ -75,6 +89,21 @@ class Database:
                     FOREIGN KEY (agent_id) REFERENCES agents(id)
                 )
             """)
+            
+            # Create default admin user if not exists
+            cursor.execute("SELECT COUNT(*) FROM users WHERE username = 'admin'")
+            if cursor.fetchone()[0] == 0:
+                admin_password = bcrypt.hashpw("admin123".encode('utf-8'), bcrypt.gensalt())
+                cursor.execute("""
+                    INSERT INTO users (username, password_hash, email, role)
+                    VALUES (?, ?, ?, ?)
+                """, ("admin", admin_password, "admin@agentic-iam.com", "admin"))
+                
+                user_password = bcrypt.hashpw("user123".encode('utf-8'), bcrypt.gensalt())
+                cursor.execute("""
+                    INSERT INTO users (username, password_hash, email, role)
+                    VALUES (?, ?, ?, ?)
+                """, ("user", user_password, "user@agentic-iam.com", "user"))
             
             conn.commit()
             logger.info("Database tables initialized successfully")
@@ -297,6 +326,138 @@ class Database:
         except Exception as e:
             logger.error(f"Error getting sessions: {e}")
         return []
+
+    def list_users(self) -> list:
+        """List all users"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT id, username, email, role, created_at, last_login FROM users")
+                rows = cursor.fetchall()
+                users = []
+                for row in rows:
+                    users.append({
+                        'id': row[0],
+                        'username': row[1],
+                        'email': row[2],
+                        'role': row[3],
+                        'created_at': row[4],
+                        'last_login': row[5]
+                    })
+                return users
+        except Exception as e:
+            logger.error(f"Error listing users: {e}")
+            return []
+
+    def authenticate_user(self, username: str, password: str) -> dict:
+        """Authenticate a user"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT id, username, email, role, password_hash, created_at, last_login 
+                    FROM users WHERE username = ?
+                """, (username,))
+                row = cursor.fetchone()
+                if row and bcrypt.checkpw(password.encode('utf-8'), row[4]):
+                    # Update last login
+                    cursor.execute("""
+                        UPDATE users SET last_login = datetime('now') WHERE id = ?
+                    """, (row[0],))
+                    conn.commit()
+                    return {
+                        'id': row[0],
+                        'username': row[1],
+                        'email': row[2],
+                        'role': row[3],
+                        'created_at': row[5],
+                        'last_login': row[6]
+                    }
+        except Exception as e:
+            logger.error(f"Error authenticating user: {e}")
+        return None
+
+    def create_user(self, username: str, email: str, password: str, role: str = 'user') -> bool:
+        """Create a new user"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+                cursor.execute("""
+                    INSERT INTO users (username, email, password_hash, role, created_at)
+                    VALUES (?, ?, ?, ?, datetime('now'))
+                """, (username, email, password_hash, role))
+                conn.commit()
+                return True
+        except sqlite3.IntegrityError:
+            logger.error(f"User {username} already exists")
+        except Exception as e:
+            logger.error(f"Error creating user: {e}")
+        return False
+
+    def change_password(self, user_id: int, new_password: str) -> bool:
+        """Change user password"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                password_hash = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt())
+                cursor.execute("""
+                    UPDATE users SET password_hash = ? WHERE id = ?
+                """, (password_hash, user_id))
+                conn.commit()
+                return cursor.rowcount > 0
+        except Exception as e:
+            logger.error(f"Error changing password: {e}")
+        return False
+
+    def get_user_by_id(self, user_id: int) -> dict:
+        """Get user by ID"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT id, username, email, role, created_at, last_login 
+                    FROM users WHERE id = ?
+                """, (user_id,))
+                row = cursor.fetchone()
+                if row:
+                    return {
+                        'id': row[0],
+                        'username': row[1],
+                        'email': row[2],
+                        'role': row[3],
+                        'created_at': row[4],
+                        'last_login': row[5]
+                    }
+        except Exception as e:
+            logger.error(f"Error getting user by ID: {e}")
+        return None
+
+    def update_user_role(self, user_id: int, new_role: str) -> bool:
+        """Update user role"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    UPDATE users SET role = ? WHERE id = ?
+                """, (new_role, user_id))
+                conn.commit()
+                return cursor.rowcount > 0
+        except Exception as e:
+            logger.error(f"Error updating user role: {e}")
+        return False
+
+    def delete_user(self, user_id: int) -> bool:
+        """Delete a user"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("DELETE FROM users WHERE id = ?", (user_id,))
+                conn.commit()
+                return cursor.rowcount > 0
+        except Exception as e:
+            logger.error(f"Error deleting user: {e}")
+        return False
 
 
 # Global database instance

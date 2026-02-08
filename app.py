@@ -48,16 +48,73 @@ def initialize_session():
         st.session_state.db = get_database()
     if "selected_agent" not in st.session_state:
         st.session_state.selected_agent = None
+    if "user" not in st.session_state:
+        st.session_state.user = None
+    if "authenticated" not in st.session_state:
+        st.session_state.authenticated = False
+
+
+def show_login():
+    """Show login page"""
+    st.title("🔐 Agentic-IAM Login")
+    
+    col1, col2, col3 = st.columns([1, 2, 1])
+    
+    with col2:
+        st.markdown("### Welcome to Agentic-IAM")
+        st.markdown("Please log in to access the dashboard.")
+        
+        with st.form("login_form"):
+            username = st.text_input("Username")
+            password = st.text_input("Password", type="password")
+            
+            submitted = st.form_submit_button("Login")
+            
+            if submitted:
+                if username and password:
+                    user = st.session_state.db.authenticate_user(username, password)
+                    if user:
+                        st.session_state.user = user
+                        st.session_state.authenticated = True
+                        st.success("✅ Login successful!")
+                        st.rerun()
+                    else:
+                        st.error("❌ Invalid username or password")
+                else:
+                    st.error("❌ Please enter both username and password")
+        
+        st.markdown("---")
+        st.markdown("**Default Credentials:**")
+        st.info("Admin: admin / admin123\n\nUser: user / user123")
+
+
+def show_logout():
+    """Show logout button"""
+    if st.sidebar.button("🚪 Logout"):
+        st.session_state.user = None
+        st.session_state.authenticated = False
+        st.rerun()
 
 
 def main():
     """Main application"""
     initialize_session()
     
+    # Check authentication
+    if not st.session_state.authenticated:
+        show_login()
+        return
+    
     # Sidebar
     with st.sidebar:
         st.title("⚙️ Agentic-IAM")
         st.markdown("---")
+        
+        # User info
+        if st.session_state.user:
+            st.write(f"👤 **{st.session_state.user['username']}** ({st.session_state.user['role']})")
+            show_logout()
+            st.markdown("---")
         
         # Navigation
         page = st.radio(

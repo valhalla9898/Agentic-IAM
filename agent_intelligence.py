@@ -39,9 +39,16 @@ class IntelligenceEngine:
 			self.anomaly_model = IsolationForest(contamination=0.1, random_state=42)
 			# Models are untrained; will be used as placeholder unless trained dataset provided
 
-	async def initialize(self):
-		# placeholder for async initialization
-		return
+	async def initialize(self, **kwargs):
+		# placeholder for async initialization with optional features
+		self.config = kwargs or {}
+		self.initialized = True
+		return None
+
+	async def shutdown(self):
+		# placeholder for shutdown/cleanup
+		self.initialized = False
+		return None
 
 	async def calculate_trust_score(self, agent_id: str) -> Optional[TrustScore]:
 		"""Return a trust score for an agent.

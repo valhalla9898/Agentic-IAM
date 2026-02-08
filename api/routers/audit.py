@@ -10,7 +10,7 @@ from fastapi import APIRouter, HTTPException, Depends, status
 from pydantic import BaseModel
 
 from core.agentic_iam import AgenticIAM
-from api.main import get_iam, get_settings
+from api.dependencies import get_iam, get_settings
 from api.models import SuccessResponse, ErrorResponse
 from config.settings import Settings
 

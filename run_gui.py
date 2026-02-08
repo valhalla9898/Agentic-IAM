@@ -13,16 +13,26 @@ def main():
     # Run test setup
     print("📋 Verifying system setup...")
     result = subprocess.run([sys.executable, "test_setup.py"], capture_output=True, text=True)
-    print(result.stdout)
     
-    if "SYSTEM READY" in result.stdout:
+    # Print the output
+    if result.stdout:
+        print(result.stdout)
+    if result.stderr:
+        print("STDERR:", result.stderr)
+    
+    # Check for success indicators
+    success_indicators = ["SYSTEM READY TO RUN", "SUCCESS: SYSTEM READY"]
+    is_ready = any(indicator in result.stdout for indicator in success_indicators)
+    
+    if is_ready:
         print("\n✅ System verification passed!")
         print("\n🌐 Starting Streamlit dashboard on http://localhost:8501...\n")
         
         # Start streamlit
         subprocess.run([sys.executable, "-m", "streamlit", "run", "app.py"])
     else:
-        print("\n❌ System verification failed. Please fix the errors above.")
+        print("\n❌ System verification failed. Please check the output above.")
+        print(f"Exit code: {result.returncode}")
         sys.exit(1)
 
 if __name__ == "__main__":

@@ -467,3 +467,17 @@ For support and questions:
 - Nanobots security for microscopic threats
 - Time-travel debugging for audit logs
 - Interdimensional identity verification
+
+## Report After Merge
+
+تقرير ما بعد الدمج (Report After Merge)
+
+- تم حل مشكلة الاستيراد الدوري بين `api.main` وملفات الراوتر عن طريق إضافة `api/dependencies.py` واستخدام DI كسطح فصل.
+- تم إصلاح وإعادة كتابة `config/settings.py` لتوفير قيم افتراضية ومجالات مفقودة مثل مفاتيح التشفير وإعدادات mTLS وMFA.
+- أُضيف الراوتر الناقص `api/routers/authentication.py` لتغطية واجهات المصادقة المستخدمة في الاختبارات.
+- تم تحديث وتعزيز `agent_identity.py` و`agent_intelligence.py` لتقبل خيارات التهيئة (`initialize(**kwargs)`) وإضافة دوال `shutdown` لحماية عمليات الإقفال.
+- تم تعديل `api/main.py` ليحمى من أخطاء الاستيراد عند التحميل ويتيح تسجيل المكوّنات بشكل آمن.
+- تم تحديث `conftest.py` لتوافق أفضل مع pytest وpytest-asyncio (تحويل fixture `mock_iam` إلى مزود متزامن مع دوال async مُحاكية).
+- تشغيل اختبارات الوحدة أظهر تحسّن: اختبار تسجيل الدخول الآن يمر — مزيد من الاختبارات قيد المعالجة.
+
+لمزيد من التفاصيل عن التعديلات، راجع الإلتزامات (commits) في الفرع الحالي بعد الدمج.

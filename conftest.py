@@ -59,13 +59,13 @@ def test_settings(temp_dir):
 
 
 @pytest.fixture
-async def mock_iam(test_settings):
-    """Create a mock IAM instance for testing"""
+def mock_iam(test_settings):
+    """Create a mock IAM instance for testing (synchronous fixture)."""
     iam = MagicMock(spec=AgenticIAM)
     iam.settings = test_settings
     iam.is_initialized = True
     iam.start_time = datetime.utcnow()
-    
+
     # Mock managers
     iam.identity_manager = MagicMock()
     iam.authentication_manager = MagicMock()
@@ -76,8 +76,8 @@ async def mock_iam(test_settings):
     iam.audit_manager = MagicMock()
     iam.compliance_manager = MagicMock()
     iam.intelligence_engine = MagicMock()
-    
-    # Mock async methods
+
+    # Mock async methods where tests expect them
     iam.initialize = AsyncMock()
     iam.shutdown = AsyncMock()
     iam.authenticate = AsyncMock()
@@ -86,7 +86,7 @@ async def mock_iam(test_settings):
     iam.create_session = AsyncMock()
     iam.calculate_trust_score = AsyncMock()
     iam.get_platform_status = AsyncMock()
-    
+
     return iam
 
 
@@ -143,7 +143,7 @@ def client(mock_iam):
     def get_test_settings():
         return mock_iam.settings
     
-    from api.main import get_iam, get_settings
+    from api.dependencies import get_iam, get_settings
     app.dependency_overrides[get_iam] = get_test_iam
     app.dependency_overrides[get_settings] = get_test_settings
     
