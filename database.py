@@ -42,9 +42,11 @@ class Database:
                 CREATE TABLE IF NOT EXISTS users (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     username TEXT UNIQUE NOT NULL,
-                    password_hash TEXT NOT NULL,
+                    password_hash BLOB NOT NULL,
                     email TEXT UNIQUE NOT NULL,
                     role TEXT DEFAULT 'user',
+                    full_name TEXT DEFAULT '',
+                    status TEXT DEFAULT 'active',
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     last_login TIMESTAMP
                 )
@@ -90,20 +92,28 @@ class Database:
                 )
             """)
             
-            # Create default admin user if not exists
+            # Create default admin and user if not exists
+            # Ensure schema migrations for older DBs: add missing columns
+            cursor.execute("PRAGMA table_info(users)")
+            existing_cols = [r[1] for r in cursor.fetchall()]
+            if 'full_name' not in existing_cols:
+                cursor.execute("ALTER TABLE users ADD COLUMN full_name TEXT DEFAULT ''")
+            if 'status' not in existing_cols:
+                cursor.execute("ALTER TABLE users ADD COLUMN status TEXT DEFAULT 'active'")
+
             cursor.execute("SELECT COUNT(*) FROM users WHERE username = 'admin'")
             if cursor.fetchone()[0] == 0:
                 admin_password = bcrypt.hashpw("admin123".encode('utf-8'), bcrypt.gensalt())
                 cursor.execute("""
-                    INSERT INTO users (username, password_hash, email, role)
-                    VALUES (?, ?, ?, ?)
-                """, ("admin", admin_password, "admin@agentic-iam.com", "admin"))
-                
+                    INSERT INTO users (username, password_hash, email, role, full_name, status)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                """, ("admin", sqlite3.Binary(admin_password), "admin@agentic-iam.com", "admin", "Administrator", "active"))
+
                 user_password = bcrypt.hashpw("user123".encode('utf-8'), bcrypt.gensalt())
                 cursor.execute("""
-                    INSERT INTO users (username, password_hash, email, role)
-                    VALUES (?, ?, ?, ?)
-                """, ("user", user_password, "user@agentic-iam.com", "user"))
+                    INSERT INTO users (username, password_hash, email, role, full_name, status)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                """, ("user", sqlite3.Binary(user_password), "user@agentic-iam.com", "user", "Default User", "active"))
             
             conn.commit()
             logger.info("Database tables initialized successfully")
@@ -332,7 +342,7 @@ class Database:
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
-                cursor.execute("SELECT id, username, email, role, created_at, last_login FROM users")
+                cursor.execute("SELECT id, username, email, role, full_name, status, created_at, last_login FROM users")
                 rows = cursor.fetchall()
                 users = []
                 for row in rows:
@@ -341,8 +351,10 @@ class Database:
                         'username': row[1],
                         'email': row[2],
                         'role': row[3],
-                        'created_at': row[4],
-                        'last_login': row[5]
+                        'full_name': row[4],
+                        'status': row[5],
+                        'created_at': row[6],
+                        'last_login': row[7]
                     })
                 return users
         except Exception as e:
@@ -355,24 +367,33 @@ class Database:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 cursor.execute("""
-                    SELECT id, username, email, role, password_hash, created_at, last_login 
+                    SELECT id, username, email, role, password_hash, full_name, status, created_at, last_login 
                     FROM users WHERE username = ?
                 """, (username,))
                 row = cursor.fetchone()
-                if row and bcrypt.checkpw(password.encode('utf-8'), row[4]):
-                    # Update last login
-                    cursor.execute("""
-                        UPDATE users SET last_login = datetime('now') WHERE id = ?
-                    """, (row[0],))
-                    conn.commit()
-                    return {
-                        'id': row[0],
-                        'username': row[1],
-                        'email': row[2],
-                        'role': row[3],
-                        'created_at': row[5],
-                        'last_login': row[6]
-                    }
+                if row:
+                    stored_hash = row[4]
+                    # Ensure stored_hash is bytes
+                    if isinstance(stored_hash, memoryview):
+                        stored_hash = stored_hash.tobytes()
+                    if isinstance(stored_hash, str):
+                        stored_hash = stored_hash.encode('utf-8')
+                    if bcrypt.checkpw(password.encode('utf-8'), stored_hash):
+                        # Update last login
+                        cursor.execute("""
+                            UPDATE users SET last_login = datetime('now') WHERE id = ?
+                        """, (row[0],))
+                        conn.commit()
+                        return {
+                            'id': row[0],
+                            'username': row[1],
+                            'email': row[2],
+                            'role': row[3],
+                            'full_name': row[5],
+                            'status': row[6],
+                            'created_at': row[7],
+                            'last_login': row[8]
+                        }
         except Exception as e:
             logger.error(f"Error authenticating user: {e}")
         return None
@@ -384,9 +405,9 @@ class Database:
                 cursor = conn.cursor()
                 password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
                 cursor.execute("""
-                    INSERT INTO users (username, email, password_hash, role, created_at)
-                    VALUES (?, ?, ?, ?, datetime('now'))
-                """, (username, email, password_hash, role))
+                    INSERT INTO users (username, password_hash, email, role, full_name, status, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+                """, (username, sqlite3.Binary(password_hash), email, role, '', 'active'))
                 conn.commit()
                 return True
         except sqlite3.IntegrityError:
@@ -403,7 +424,7 @@ class Database:
                 password_hash = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt())
                 cursor.execute("""
                     UPDATE users SET password_hash = ? WHERE id = ?
-                """, (password_hash, user_id))
+                """, (sqlite3.Binary(password_hash), user_id))
                 conn.commit()
                 return cursor.rowcount > 0
         except Exception as e:
@@ -416,7 +437,7 @@ class Database:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 cursor.execute("""
-                    SELECT id, username, email, role, created_at, last_login 
+                    SELECT id, username, email, role, full_name, status, created_at, last_login 
                     FROM users WHERE id = ?
                 """, (user_id,))
                 row = cursor.fetchone()
@@ -426,8 +447,10 @@ class Database:
                         'username': row[1],
                         'email': row[2],
                         'role': row[3],
-                        'created_at': row[4],
-                        'last_login': row[5]
+                        'full_name': row[4],
+                        'status': row[5],
+                        'created_at': row[6],
+                        'last_login': row[7]
                     }
         except Exception as e:
             logger.error(f"Error getting user by ID: {e}")
@@ -445,6 +468,20 @@ class Database:
                 return cursor.rowcount > 0
         except Exception as e:
             logger.error(f"Error updating user role: {e}")
+        return False
+
+    def update_user_status(self, user_id: int, new_status: str) -> bool:
+        """Update user status (active/suspended)"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    UPDATE users SET status = ? WHERE id = ?
+                """, (new_status, user_id))
+                conn.commit()
+                return cursor.rowcount > 0
+        except Exception as e:
+            logger.error(f"Error updating user status: {e}")
         return False
 
     def delete_user(self, user_id: int) -> bool:

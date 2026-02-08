@@ -480,3 +480,36 @@ Post-merge report — Summary of fixes applied
 - Unit test progress: the authentication login test now passes; remaining tests are being iteratively addressed.
 
 For more details about the applied changes, see the commits on the current branch after merge.
+
+## Report After Merge
+
+This section documents the issues discovered after the recent merge, the root causes we found, and the exact remediation steps performed. All notes are in English.
+
+1) Authentication / Login failures
+- Problem: Dashboard login sometimes rejected valid credentials (default admin/user couldn't authenticate).
+- Root cause: `users` table omitted `full_name` and `status` fields and password hashes were stored/handled inconsistently across code paths (bytes vs text). Some code paths inserted raw bytes without ensuring the lookup code normalized the returned type for `bcrypt.checkpw`.
+- Fix applied:
+    - Updated `database.py` to store `password_hash` as a BLOB and to explicitly insert `sqlite3.Binary(...)` when creating users.
+    - Added `full_name` and `status` columns to the `users` schema and ensured `list_users`, `get_user_by_id`, `authenticate_user`, and `create_user` return and accept those fields.
+    - Normalized fetched password hash types (handled `memoryview`, `bytes`, and `str`) before calling `bcrypt.checkpw` to avoid type issues.
+
+2) User lifecycle helpers
+- Problem: Tests and UI expected status management (suspend/reactivate) but the API lacked a helper.
+- Fix applied: Added `update_user_status(user_id, new_status)` to `database.py` and made `change_password` consistently use `sqlite3.Binary` for updates.
+
+3) Documentation and onboarding
+- Added `HOW_TO_USE.md` with clear English instructions for installation, running the Streamlit dashboard, testing, and troubleshooting.
+- Added a Windows desktop launcher `Open-Agentic-IAM.bat` that activates the repository `.venv` and runs the Streamlit dashboard on port 8501.
+
+4) Streamlit "Report After Merge" viewer
+- The file `dashboard/report_after_merge.py` reads this section from `README.md`. Use the Streamlit viewer to read a human-friendly rendering of these notes.
+
+5) Other engineering notes
+- Dependency injection and routers: Some routers caused circular imports at import-time. The fix used lazy dependency providers and defensive router imports (see `api/dependencies.py` and `api/main.py` changes).
+- Manager lifecycle: Several managers were updated to expose `initialize(**kwargs)` and `shutdown()` to support TestClient lifespan and clean shutdown.
+- Tests: We iteratively updated fixtures and dependency overrides; a number of tests still require focused fixes (session signatures, MFA route behavior). We'll continue iterating.
+
+If you'd like, I can now:
+- Run the local authentication tests (`python test_login.py`) and share the output.
+- Capture a screenshot of the Streamlit dashboard at http://localhost:8501.
+- Push these doc and launcher files to the remote branch and open a PR description draft.
