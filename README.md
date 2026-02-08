@@ -478,11 +478,6 @@ Post-merge report — Summary of fixes applied
 - Hardened `api/main.py` to safely import and register routers without causing import-time failures.
 - Updated `conftest.py` for better compatibility with `pytest` and `pytest-asyncio` (converted the `mock_iam` fixture to a synchronous provider while preserving async mock methods).
 - Unit test progress: the authentication login test now passes; remaining tests are being iteratively addressed.
-
-For more details about the applied changes, see the commits on the current branch after merge.
-
-## Report After Merge
-
 This section documents the issues discovered after the recent merge, the root causes we found, and the exact remediation steps performed. All notes are in English.
 
 1) Authentication / Login failures
