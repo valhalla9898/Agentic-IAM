@@ -469,15 +469,14 @@ For support and questions:
 - Interdimensional identity verification
 
 ## Report After Merge
+Post-merge report — Summary of fixes applied
 
-تقرير ما بعد الدمج (Report After Merge)
+- Fixed a circular import between `api.main` and router modules by adding `api/dependencies.py` and using dependency injection to decouple imports.
+- Rewrote `config/settings.py` to provide sensible defaults and include required fields such as encryption keys, mTLS, and MFA configuration.
+- Added the missing router `api/routers/authentication.py` to provide authentication endpoints used by unit tests.
+- Updated `agent_identity.py` and `agent_intelligence.py` to accept configuration via `initialize(**kwargs)` and added `shutdown` methods for graceful shutdown.
+- Hardened `api/main.py` to safely import and register routers without causing import-time failures.
+- Updated `conftest.py` for better compatibility with `pytest` and `pytest-asyncio` (converted the `mock_iam` fixture to a synchronous provider while preserving async mock methods).
+- Unit test progress: the authentication login test now passes; remaining tests are being iteratively addressed.
 
-- تم حل مشكلة الاستيراد الدوري بين `api.main` وملفات الراوتر عن طريق إضافة `api/dependencies.py` واستخدام DI كسطح فصل.
-- تم إصلاح وإعادة كتابة `config/settings.py` لتوفير قيم افتراضية ومجالات مفقودة مثل مفاتيح التشفير وإعدادات mTLS وMFA.
-- أُضيف الراوتر الناقص `api/routers/authentication.py` لتغطية واجهات المصادقة المستخدمة في الاختبارات.
-- تم تحديث وتعزيز `agent_identity.py` و`agent_intelligence.py` لتقبل خيارات التهيئة (`initialize(**kwargs)`) وإضافة دوال `shutdown` لحماية عمليات الإقفال.
-- تم تعديل `api/main.py` ليحمى من أخطاء الاستيراد عند التحميل ويتيح تسجيل المكوّنات بشكل آمن.
-- تم تحديث `conftest.py` لتوافق أفضل مع pytest وpytest-asyncio (تحويل fixture `mock_iam` إلى مزود متزامن مع دوال async مُحاكية).
-- تشغيل اختبارات الوحدة أظهر تحسّن: اختبار تسجيل الدخول الآن يمر — مزيد من الاختبارات قيد المعالجة.
-
-لمزيد من التفاصيل عن التعديلات، راجع الإلتزامات (commits) في الفرع الحالي بعد الدمج.
+For more details about the applied changes, see the commits on the current branch after merge.
