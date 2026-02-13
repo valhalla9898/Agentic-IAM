@@ -20,7 +20,7 @@ import functools
 class TrustScore:
 	def __init__(self, overall_score: float, risk_level: str, confidence: float = 0.8):
 		self.overall_score = overall_score
-		self.risk_level = type('RiskLevel', (), {'value': risk_level})()
+		self.risk_level = RiskLevel(risk_level)
 		self.confidence = confidence
 		self.component_scores = {}
 
@@ -84,3 +84,8 @@ class IntelligenceEngine:
 
 
 __all__ = ['IntelligenceEngine', 'TrustScore']
+class RiskLevel:
+	def __init__(self, value: str):
+		self.value = value
+
+__all__.extend(['RiskLevel'])

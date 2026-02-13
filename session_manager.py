@@ -1,4 +1,4 @@
 """Session management module"""
-from agent_identity import SessionManager
+from agent_identity import SessionManager, Session, SessionStatus
 
-__all__ = ['SessionManager']
+__all__ = ['SessionManager', 'Session', 'SessionStatus']

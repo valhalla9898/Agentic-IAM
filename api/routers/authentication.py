@@ -85,7 +85,7 @@ async def refresh(request: Dict[str, Any], iam: AgenticIAM = Depends(get_iam)):
         session_id = request.get("session_id")
         refresh_token = request.get("refresh_token")
         # Attempt refresh via session manager
-        success = iam.session_manager.refresh_session(session_id, refresh_token)
+        success = iam.session_manager.refresh_session(session_id=session_id, refresh_token=refresh_token)
         if not success:
             return {"success": False, "error_message": "Invalid refresh token or session expired"}
 
@@ -157,6 +157,46 @@ async def get_methods(iam: AgenticIAM = Depends(get_iam), settings=Depends(get_s
         })
 
     return {"methods": methods, "default_method": default, "mfa_enabled": getattr(settings, "enable_mfa", False), "federated_auth_enabled": getattr(settings, "enable_federated_auth", False)}
+
+
+class MFAStartRequest(BaseModel):
+    agent_id: str
+    method: Optional[str] = None
+
+
+@router.post("/mfa/start")
+async def mfa_start(payload: MFAStartRequest, iam: AgenticIAM = Depends(get_iam)):
+    try:
+        mgr = getattr(iam, "authentication_manager", None)
+        if not mgr or not hasattr(mgr, "start_mfa"):
+            raise HTTPException(status_code=501, detail="MFA not configured")
+
+        result = await mgr.start_mfa(payload.agent_id, method=payload.method)
+        return {"success": True, "data": result}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class MFAVerifyRequest(BaseModel):
+    agent_id: str
+    code: str
+
+
+@router.post("/mfa/verify")
+async def mfa_verify(payload: MFAVerifyRequest, iam: AgenticIAM = Depends(get_iam)):
+    try:
+        mgr = getattr(iam, "authentication_manager", None)
+        if not mgr or not hasattr(mgr, "verify_mfa"):
+            raise HTTPException(status_code=501, detail="MFA not configured")
+
+        ok = await mgr.verify_mfa(payload.agent_id, payload.code)
+        return {"success": bool(ok)}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/status/{agent_id}")

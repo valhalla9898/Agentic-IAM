@@ -141,7 +141,7 @@ class PerformanceTester:
         
         for session_id in session_ids:
             start = time.time()
-            iam.session_manager.refresh_session(session_id)
+            iam.session_manager.refresh_session(session_id=session_id)
             elapsed = time.time() - start
             timings.append(elapsed)
         

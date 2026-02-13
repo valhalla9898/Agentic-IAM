@@ -92,6 +92,33 @@ class Database:
                 )
             """)
             
+            # Agent permissions table
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS agent_permissions (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    agent_id TEXT NOT NULL,
+                    user_id INTEGER NOT NULL,
+                    permission TEXT NOT NULL,
+                    granted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    granted_by INTEGER,
+                    FOREIGN KEY (agent_id) REFERENCES agents(id),
+                    FOREIGN KEY (user_id) REFERENCES users(id),
+                    FOREIGN KEY (granted_by) REFERENCES users(id)
+                )
+            """)
+            
+            # Agent capabilities tracking table
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS agent_capabilities (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    agent_id TEXT NOT NULL,
+                    capability TEXT NOT NULL,
+                    enabled BOOLEAN DEFAULT 1,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (agent_id) REFERENCES agents(id)
+                )
+            """)
+            
             # Create default admin and user if not exists
             # Ensure schema migrations for older DBs: add missing columns
             cursor.execute("PRAGMA table_info(users)")
@@ -114,6 +141,13 @@ class Database:
                     INSERT INTO users (username, password_hash, email, role, full_name, status)
                     VALUES (?, ?, ?, ?, ?, ?)
                 """, ("user", sqlite3.Binary(user_password), "user@agentic-iam.com", "user", "Default User", "active"))
+                
+                # Create operator user
+                operator_password = bcrypt.hashpw("operator123".encode('utf-8'), bcrypt.gensalt())
+                cursor.execute("""
+                    INSERT INTO users (username, password_hash, email, role, full_name, status)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                """, ("operator", sqlite3.Binary(operator_password), "operator@agentic-iam.com", "operator", "System Operator", "active"))
             
             conn.commit()
             logger.info("Database tables initialized successfully")

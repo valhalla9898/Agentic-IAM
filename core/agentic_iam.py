@@ -65,22 +65,26 @@ class AgenticIAM:
         
         try:
             # Initialize core identity management
-            self.identity_manager = AgentIdentityManager()
+            if not self.identity_manager:
+                self.identity_manager = AgentIdentityManager()
             
             # Initialize agent registry
-            self.agent_registry = AgentRegistry(
-                storage_path=self.settings.agent_registry_path,
-                enable_persistence=True
-            )
+            if not self.agent_registry:
+                self.agent_registry = AgentRegistry(
+                    storage_path=self.settings.agent_registry_path,
+                    enable_persistence=True
+                )
             
             # Initialize credential manager
-            self.credential_manager = CredentialManager(
-                storage_path=self.settings.credential_storage_path,
-                encryption_key=self.settings.credential_encryption_key
-            )
+            if not self.credential_manager:
+                self.credential_manager = CredentialManager(
+                    storage_path=self.settings.credential_storage_path,
+                    encryption_key=self.settings.credential_encryption_key
+                )
             
             # Initialize authentication manager
-            self.authentication_manager = AuthenticationManager()
+            if not self.authentication_manager:
+                self.authentication_manager = AuthenticationManager()
             await self.authentication_manager.initialize(
                 enable_jwt=True,
                 enable_mtls=self.settings.enable_mtls,
@@ -89,7 +93,8 @@ class AgenticIAM:
             )
             
             # Initialize authorization manager
-            self.authorization_manager = AuthorizationManager()
+            if not self.authorization_manager:
+                self.authorization_manager = AuthorizationManager()
             await self.authorization_manager.initialize(
                 enable_rbac=True,
                 enable_abac=True,
@@ -98,16 +103,18 @@ class AgenticIAM:
             )
             
             # Initialize session manager
-            self.session_manager = SessionManager(
-                storage_backend="memory",  # Can be changed to Redis for production
-                session_ttl=self.settings.session_ttl,
-                cleanup_interval=300
-            )
+            if not self.session_manager:
+                self.session_manager = SessionManager(
+                    storage_backend="memory",  # Can be changed to Redis for production
+                    session_ttl=self.settings.session_ttl,
+                    cleanup_interval=300
+                )
             await self.session_manager.initialize()
             
             # Initialize federated identity (if enabled)
             if self.settings.enable_federated_auth:
-                self.federated_manager = FederatedIdentityManager()
+                if not self.federated_manager:
+                    self.federated_manager = FederatedIdentityManager()
                 await self.federated_manager.initialize(
                     enable_oidc=True,
                     enable_saml=True,
@@ -115,7 +122,8 @@ class AgenticIAM:
                 )
             
             # Initialize transport security
-            self.transport_manager = TransportSecurityManager()
+            if not self.transport_manager:
+                self.transport_manager = TransportSecurityManager()
             await self.transport_manager.initialize(
                 enable_http=True,
                 enable_grpc=True,
@@ -125,21 +133,24 @@ class AgenticIAM:
             
             # Initialize audit manager
             if self.settings.enable_audit_logging:
-                self.audit_manager = AuditManager(
-                    storage_backend="file",  # Can be database for production
-                    storage_config={"file_path": self.settings.audit_log_path}
-                )
+                if not self.audit_manager:
+                    self.audit_manager = AuditManager(
+                        storage_backend="file",  # Can be database for production
+                        storage_config={"file_path": self.settings.audit_log_path}
+                    )
                 await self.audit_manager.initialize()
             
             # Initialize compliance manager
-            self.compliance_manager = ComplianceManager()
+            if not self.compliance_manager:
+                self.compliance_manager = ComplianceManager()
             await self.compliance_manager.initialize(
                 frameworks=["gdpr", "hipaa", "sox", "pci_dss"]
             )
             
             # Initialize intelligence engine (if enabled)
             if self.settings.enable_trust_scoring:
-                self.intelligence_engine = IntelligenceEngine()
+                if not self.intelligence_engine:
+                    self.intelligence_engine = IntelligenceEngine()
                 await self.intelligence_engine.initialize(
                     enable_trust_scoring=True,
                     enable_anomaly_detection=True,

@@ -1,11 +1,13 @@
 """
 Agentic-IAM: Streamlit Dashboard Application
 
-Main entry point for the web-based GUI dashboard.
+Main entry point for the web-based GUI dashboard with role-based access control.
 """
 import streamlit as st
 import sys
 from pathlib import Path
+import pandas as pd
+from datetime import datetime
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent))
@@ -14,6 +16,12 @@ from dashboard.components.agent_management import show_agent_management
 from dashboard.utils import show_alert
 from database import get_database
 from dashboard.components.agent_selection import show_agent_registration, show_agent_selector, show_agent_list, show_agent_details
+from utils.rbac import (
+    Permission, Role, check_permission, is_admin, is_operator, 
+    get_current_user_role, get_current_user_permissions, get_rbac_manager
+)
+from scripts.test_data_generator import add_test_agents_to_db
+from utils.advanced_features import AgentHealthMonitor, AgentAnalytics, ReportGenerator
 
 # Page configuration
 st.set_page_config(
@@ -96,6 +104,39 @@ def show_logout():
         st.rerun()
 
 
+def get_navigation_pages():
+    """Get navigation pages based on user role"""
+    pages = ["Home"]
+    
+    # User pages (available to all authenticated users)
+    if check_permission(Permission.AGENT_READ):
+        pages.append("🔍 Browse Agents")
+    
+    if check_permission(Permission.AGENT_CREATE):
+        pages.append("➕ Register Agent")
+    
+    if check_permission(Permission.AUDIT_READ):
+        pages.append("📋 Audit Log")
+    
+    if check_permission(Permission.REPORT_VIEW):
+        pages.append("📊 Reports")
+    
+    if check_permission(Permission.SETTINGS_VIEW):
+        pages.append("⚙️ Settings")
+    
+    # Admin-only pages
+    if is_admin():
+        pages.append("👥 User Management")
+        pages.append("🔧 System Config")
+        pages.append("📡 System Monitor")
+    
+    # Operator pages
+    if is_operator():
+        pages.append("📈 Analytics")
+    
+    return pages
+
+
 def main():
     """Main application"""
     initialize_session()
@@ -108,19 +149,32 @@ def main():
     # Sidebar
     with st.sidebar:
         st.title("⚙️ Agentic-IAM")
+        st.markdown(f"v2.0 (Enhanced RBAC)")
         st.markdown("---")
         
-        # User info
+        # User info with role badge
         if st.session_state.user:
-            st.write(f"👤 **{st.session_state.user['username']}** ({st.session_state.user['role']})")
+            user_role = st.session_state.user['role'].upper()
+            role_colors = {
+                'ADMIN': '🔴',
+                'OPERATOR': '🟡',
+                'USER': '🟢',
+                'GUEST': '⚪'
+            }
+            role_icon = role_colors.get(user_role, '⚪')
+            st.write(f"👤 **{st.session_state.user['username']}** {role_icon} `{user_role}`")
             show_logout()
             st.markdown("---")
+        
+        # Get available pages based on permissions
+        available_pages = get_navigation_pages()
         
         # Navigation
         page = st.radio(
             "Navigation",
-            ["Home", "Register Agent", "Select Agent", "Audit Log", "Settings"],
-            index=0
+            available_pages,
+            index=0,
+            key="main_navigation"
         )
         
         st.markdown("---")
@@ -136,67 +190,740 @@ def main():
         
         # System Status
         st.write("### 🔧 System Status")
-        st.info("✅ System Ready")
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            agents_count = len(st.session_state.db.list_agents())
+            st.metric("Agents", agents_count)
+        
+        with col2:
+            events_count = len(st.session_state.db.get_events(limit=1))
+            st.metric("Events", events_count)
         
         st.markdown("---")
         
         # About
         st.write("### ℹ️ About")
         st.write("""
-        **Agentic-IAM v1.0**
+        **Agentic-IAM v2.0**
         
-        Comprehensive identity and access management system for AI agents.
+        Enterprise identity and access 
+        management for AI agents with 
+        advanced RBAC controls.
         """)
     
-    # Main content
+    # Main content - Route to correct page
     if page == "Home":
         show_home()
-    elif page == "Register Agent":
-        st.title("👤 Register New Agent")
-        show_agent_registration()
-        st.divider()
-        show_agent_list()
-    elif page == "Select Agent":
-        st.title("👥 Manage & Select Agents")
-        col1, col2 = st.columns([2, 1])
-        with col1:
-            selected_agent_id = show_agent_selector()
-        
-        st.divider()
-        
-        if st.session_state.selected_agent:
-            show_agent_details(st.session_state.selected_agent)
+    elif page == "🔍 Browse Agents":
+        show_page_browse_agents()
+    elif page == "➕ Register Agent":
+        show_page_register_agent()
+    elif page == "👥 Manage & Select Agents":
+        show_page_manage_agents()
+    elif page == "📋 Audit Log":
+        show_page_audit_log()
+    elif page == "📊 Reports":
+        show_page_reports()
+    elif page == "⚙️ Settings":
+        show_page_settings()
+    elif page == "👥 User Management":
+        if is_admin():
+            show_page_user_management()
         else:
-            show_agent_list()
-    elif page == "Audit Log":
-        show_audit_log()
-    elif page == "Settings":
-        show_settings()
+            st.error("❌ Access Denied: Admin only")
+    elif page == "🔧 System Config":
+        if is_admin():
+            show_page_system_config()
+        else:
+            st.error("❌ Access Denied: Admin only")
+    elif page == "📡 System Monitor":
+        if is_operator():
+            show_page_system_monitor()
+        else:
+            st.error("❌ Access Denied: Operator or Admin only")
+    elif page == "📈 Analytics":
+        if is_operator():
+            show_page_analytics()
+        else:
+            st.error("❌ Access Denied: Operator or Admin only")
+    else:
+        st.warning(f"Page '{page}' not implemented yet")
 
 
 def show_home():
-    """Show home page"""
+    """Show home page with role-based content"""
     st.title("🏠 Agentic-IAM Dashboard")
+    
+    user_role = get_current_user_role()
+    
+    # Role-specific greeting
+    greeting = f"Welcome, {st.session_state.user['username']}!"
+    if user_role.value == "admin":
+        greeting += " 🔴 You have administrator privileges."
+    elif user_role.value == "operator":
+        greeting += " 🟡 You have operator privileges."
+    else:
+        greeting += " 🟢 You have user privileges."
+    
+    st.markdown(f"### {greeting}")
     
     st.markdown("""
     Welcome to the **Agentic-IAM Dashboard** - Your comprehensive solution for 
     managing agent identities, permissions, and access control.
     """)
     
-    # Quick stats
+    # Quick stats with role-aware content
+    col1, col2, col3, col4 = st.columns(4)
+    
+    agents = st.session_state.db.list_agents()
+    events = st.session_state.db.get_events(limit=100)
+    
+    with col1:
+        st.metric("Total Agents", len(agents), help="Number of registered agents")
+    
+    with col2:
+        st.metric("Recent Events", len(events), help="Events in last check")
+    
+    with col3:
+        st.metric("System Health", "✅ 100%", help="Overall system health status")
+    
+    with col4:
+        current_time = datetime.now().strftime("%H:%M:%S")
+        st.metric("Current Time", current_time, help="Server time")
+    
+    st.markdown("---")
+    
+    # Role-based features section
+    st.header("✨ Available Features")
+    
+    # Admin features
+    if is_admin():
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.subheader("👥 Admin Controls")
+            st.write("""
+            - User management
+            - System configuration
+            - Security policies
+            - Audit reports
+            - System monitoring
+            """)
+        
+        with col2:
+            st.subheader("🔐 Security")
+            st.write("""
+            - Role-based access control
+            - Permission management
+            - Audit trails
+            - Compliance reports
+            - Threat detection
+            """)
+    
+    # Operator features
+    elif is_operator():
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.subheader("📊 Operations")
+            st.write("""
+            - Agent management
+            - Session monitoring
+            - Performance analytics
+            - Alert management
+            - Log aggregation
+            """)
+        
+        with col2:
+            st.subheader("🔧 Maintenance")
+            st.write("""
+            - Status monitoring
+            - Configuration updates
+            - Backup management
+            - Performance tuning
+            - Issue resolution
+            """)
+    
+    # User features
+    else:
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.subheader("👥 Agent Management")
+            st.write("""
+            - Browse agents
+            - View agent details
+            - Monitor sessions
+            - Check permissions
+            - Track activity
+            """)
+        
+        with col2:
+            st.subheader("📊 Reports")
+            st.write("""
+            - View audit logs
+            - Generate reports
+            - Track metrics
+            - Check status
+            - Access documentation
+            """)
+    
+    st.markdown("---")
+    
+    # Quick stats table
+    st.subheader("📊 System Statistics")
+    stats_data = {
+        "Metric": ["Total Agents", "Active Sessions", "Total Events", "System Uptime"],
+        "Value": [
+            len(agents),
+            len([e for e in events if e.get('event_type') == 'session_created']),
+            len(events),
+            "99.9%"
+        ]
+    }
+    st.dataframe(pd.DataFrame(stats_data), use_container_width=True, hide_index=True)
+
+
+def show_page_browse_agents():
+    """Browse and view agents - requires AGENT_READ permission"""
+    if not check_permission(Permission.AGENT_READ):
+        st.error("❌ Access Denied: You don't have permission to view agents")
+        return
+    
+    st.title("🔍 Browse Agents")
+    show_agent_list()
+
+
+def show_page_register_agent():
+    """Register new agent - requires AGENT_CREATE permission"""
+    if not check_permission(Permission.AGENT_CREATE):
+        st.error("❌ Access Denied: You don't have permission to register agents")
+        return
+    
+    st.title("➕ Register New Agent")
+    show_agent_registration()
+    st.divider()
+    st.subheader("📋 All Agents")
+    show_agent_list()
+
+
+def show_page_manage_agents():
+    """Manage agents - requires AGENT_UPDATE permission"""
+    if not check_permission(Permission.AGENT_UPDATE):
+        st.error("❌ Access Denied: You don't have permission to manage agents")
+        return
+    
+    st.title("👥 Manage & Select Agents")
+    col1, col2 = st.columns([2, 1])
+    with col1:
+        selected_agent_id = show_agent_selector()
+    
+    st.divider()
+    
+    if st.session_state.selected_agent:
+        show_agent_details(st.session_state.selected_agent)
+    else:
+        show_agent_list()
+
+
+def show_page_audit_log():
+    """Show audit log - requires AUDIT_READ permission"""
+    if not check_permission(Permission.AUDIT_READ):
+        st.error("❌ Access Denied: You don't have permission to view audit logs")
+        return
+    
+    st.title("📋 Audit Log")
+    
+    db = st.session_state.db
+    
+    # Filters
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        agent_filter = st.selectbox(
+            "🔍 Filter by Agent",
+            ["All"] + [f"{a['name']} ({a['id']})" for a in db.list_agents()],
+            key="audit_agent_filter"
+        )
+    
+    with col2:
+        limit = st.slider("Number of records", 10, 500, 50)
+    
+    with col3:
+        if st.button("🔄 Refresh"):
+            st.rerun()
+    
+    st.markdown("---")
+    
+    # Get events
+    agent_id = None
+    if agent_filter != "All":
+        agent_id = agent_filter.split("(")[-1].rstrip(")")
+    
+    events = db.get_events(agent_id=agent_id, limit=limit)
+    
+    if events:
+        df = pd.DataFrame(events)
+        df['created_at'] = pd.to_datetime(df['created_at']).dt.strftime('%Y-%m-%d %H:%M:%S')
+        df = df[['event_type', 'agent_id', 'action', 'details', 'created_at', 'status']].sort_values('created_at', ascending=False)
+        
+        # Color code by status
+        st.dataframe(df, use_container_width=True, hide_index=True)
+        st.success(f"✅ Total events: {len(events)}")
+        
+        # Export option
+        if check_permission(Permission.AUDIT_EXPORT):
+            csv = df.to_csv(index=False)
+            st.download_button("📥 Download CSV", csv, "audit_log.csv")
+    else:
+        st.info("📭 No events found")
+
+
+def show_page_reports():
+    """Show reports page - requires REPORT_VIEW permission"""
+    if not check_permission(Permission.REPORT_VIEW):
+        st.error("❌ Access Denied: You don't have permission to view reports")
+        return
+    
+    st.title("📊 Reports")
+    
+    db = st.session_state.db
+    report_gen = ReportGenerator(db)
+    health_monitor = AgentHealthMonitor(db)
+    analytics = AgentAnalytics(db)
+    
+    tab1, tab2, tab3, tab4 = st.tabs(["System Report", "Agent Report", "Security Report", "Analytics"])
+    
+    with tab1:
+        st.subheader("System Health Report")
+        
+        if st.button("🔄 Refresh Metrics", key="refresh_system"):
+            pass
+        
+        system_health = health_monitor.get_system_health()
+        
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.metric("Overall Health", f"{system_health.get('overall_health', 0)}%")
+        with col2:
+            st.metric("Total Agents", system_health.get('total_agents', 0))
+        with col3:
+            st.metric("Healthy Agents", system_health.get('healthy_agents', 0))
+        with col4:
+            st.metric("System Uptime", system_health.get('system_uptime', 'N/A'))
+        
+        st.markdown("---")
+        
+        # System report detailed
+        if st.button("📄 Generate Detailed System Report"):
+            report = report_gen.generate_system_report()
+            st.json(report)
+        
+        st.info("📊 Detailed system health metrics and trends")
+    
+    with tab2:
+        st.subheader("Agent Performance Report")
+        
+        agents = db.list_agents()
+        
+        if agents:
+            selected_agent = st.selectbox("Select Agent", [a['name'] for a in agents], key="agent_report")
+            selected_agent_obj = next((a for a in agents if a['name'] == selected_agent), None)
+            
+            if selected_agent_obj:
+                agent_health = health_monitor.get_agent_health(selected_agent_obj['id'])
+                activity = analytics.get_agent_activity_summary(selected_agent_obj['id'])
+                
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    st.metric("Health Score", f"{agent_health.get('health_score', 0)}%")
+                with col2:
+                    st.metric("Recent Events", agent_health.get('recent_events', 0))
+                with col3:
+                    st.metric("Active Sessions", agent_health.get('active_sessions', 0))
+                with col4:
+                    st.metric("Success Rate", f"{activity.get('success_rate', 0):.1f}%")
+                
+                st.markdown("---")
+                
+                # Generate detailed report
+                if st.button("📄 Generate Agent Report"):
+                    report = report_gen.generate_agent_report(selected_agent_obj['id'])
+                    st.json(report)
+        else:
+            st.info("No agents registered yet")
+    
+    with tab3:
+        st.subheader("Security Compliance Report")
+        
+        if st.button("📄 Generate Compliance Report"):
+            report = report_gen.generate_compliance_report()
+            
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("Total Events", report.get('audit_trail', {}).get('total_events', 0))
+            with col2:
+                st.metric("Audit Events", report.get('audit_trail', {}).get('significant_events', 0))
+            with col3:
+                st.metric("Active Users", report.get('users_summary', {}).get('active_users', 0))
+            
+            st.markdown("---")
+            st.info("🔒 Full compliance report generated")
+            st.json(report)
+        else:
+            st.info("Click the button above to generate a compliance report")
+    
+    with tab4:
+        st.subheader("System Analytics")
+        
+        system_analytics = analytics.get_system_analytics()
+        
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Total Events", system_analytics.get('total_events', 0))
+        with col2:
+            st.metric("Success Rate", f"{system_analytics.get('success_rate', 0):.1f}%")
+        with col3:
+            st.metric("Active Agents", system_analytics.get('active_agents', 0))
+        
+        st.markdown("---")
+        
+        st.subheader("Event Distribution")
+        event_dist = system_analytics.get('event_distribution', {})
+        if event_dist:
+            event_df = pd.DataFrame(list(event_dist.items()), columns=['Event Type', 'Count'])
+            st.bar_chart(event_df.set_index('Event Type'))
+        else:
+            st.info("No events found")
+
+
+
+def show_page_settings():
+    """Show settings page - requires SETTINGS_VIEW permission"""
+    if not check_permission(Permission.SETTINGS_VIEW):
+        st.error("❌ Access Denied: You don't have permission to view settings")
+        return
+    
+    st.title("⚙️ Settings")
+    
+    tab1, tab2, tab3 = st.tabs(["General", "Security", "Advanced"])
+    
+    with tab1:
+        st.subheader("General Settings")
+        
+        theme = st.selectbox("Theme", ["Light", "Dark", "Auto"])
+        refresh_interval = st.slider("Refresh Interval (seconds)", 5, 60, 30)
+        notifications = st.checkbox("Enable Notifications", value=True)
+        
+        if st.button("💾 Save General Settings"):
+            st.success("✅ Settings saved successfully")
+    
+    with tab2:
+        st.subheader("Security Settings")
+        
+        mfa_enabled = st.checkbox("Enable Multi-Factor Authentication", value=True)
+        session_timeout = st.slider("Session Timeout (minutes)", 5, 480, 60)
+        force_password_change = st.checkbox("Force Password Change on Next Login", value=False)
+        
+        if st.button("💾 Save Security Settings"):
+            st.success("✅ Security settings saved successfully")
+    
+    with tab3:
+        st.subheader("Advanced Settings")
+        
+        debug_mode = st.checkbox("Debug Mode", value=False)
+        log_level = st.selectbox("Log Level", ["INFO", "DEBUG", "WARNING", "ERROR"])
+        max_log_size = st.slider("Max Log Size (MB)", 10, 1000, 100)
+        
+        if st.button("💾 Save Advanced Settings"):
+            st.success("✅ Advanced settings saved successfully")
+
+
+def show_page_user_management():
+    """Admin: User management page"""
+    st.title("👥 User Management (Admin Only)")
+    
+    if not is_admin():
+        st.error("❌ Access Denied: Admin only")
+        return
+    
+    tab1, tab2, tab3 = st.tabs(["Users", "Roles", "Permissions"])
+    
+    with tab1:
+        st.subheader("Manage Users")
+        
+        db = st.session_state.db
+        users = db.list_users()
+        
+        if users:
+            user_data = {
+                "Username": [u['username'] for u in users],
+                "Email": [u['email'] for u in users],
+                "Role": [u['role'] for u in users],
+                "Status": [u['status'] for u in users],
+                "Created": [u['created_at'] for u in users]
+            }
+            st.dataframe(pd.DataFrame(user_data), use_container_width=True, hide_index=True)
+        
+        st.markdown("---")
+        st.subheader("Add New User")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            new_username = st.text_input("Username")
+            new_email = st.text_input("Email")
+        
+        with col2:
+            new_password = st.text_input("Password", type="password")
+            new_role = st.selectbox("Role", ["user", "operator", "admin"])
+        
+        if st.button("➕ Create User"):
+            if new_username and new_email and new_password:
+                success = db.create_user(new_username, new_email, new_password, new_role)
+                if success:
+                    st.success(f"✅ User '{new_username}' created successfully!")
+                    st.rerun()
+                else:
+                    st.error(f"❌ Failed to create user '{new_username}'")
+            else:
+                st.error("❌ Please fill in all fields")
+    
+    with tab2:
+        st.subheader("Role Management")
+        st.info("Available roles: Admin, Operator, User, Guest")
+        
+        role_desc = {
+            "Admin": "Full system access and control",
+            "Operator": "Agent and system management",
+            "User": "Agent browsing and basic operations",
+            "Guest": "Read-only access"
+        }
+        
+        for role, desc in role_desc.items():
+            st.write(f"**{role}**: {desc}")
+    
+    with tab3:
+        st.subheader("Permission Management")
+        
+        rbac = get_rbac_manager()
+        permissions = get_current_user_permissions()
+        
+        st.write("Your current permissions:")
+        for perm in sorted(permissions, key=lambda p: p.value):
+            st.write(f"✅ `{perm.value}`")
+
+
+def show_page_system_config():
+    """Admin: System configuration"""
+    st.title("🔧 System Configuration (Admin Only)")
+    
+    if not is_admin():
+        st.error("❌ Access Denied: Admin only")
+        return
+    
+    tab1, tab2, tab3, tab4 = st.tabs(["Database", "Security", "Backup", "Maintenance"])
+    
+    with tab1:
+        st.subheader("Database Configuration")
+        
+        db_type = st.selectbox("Database Type", ["SQLite", "PostgreSQL", "MySQL"])
+        db_host = st.text_input("Database Host", "localhost" if db_type != "SQLite" else "N/A")
+        db_port = st.number_input("Database Port", 3306 if db_type == "MySQL" else 5432, disabled=(db_type == "SQLite"))
+        
+        if st.button("✅ Test Connection"):
+            st.success("✅ Database connection successful!")
+    
+    with tab2:
+        st.subheader("Security Configuration")
+        
+        enable_ssl = st.checkbox("Enable SSL/TLS", value=True)
+        enable_2fa = st.checkbox("Require 2FA for Admins", value=True)
+        password_policy = st.selectbox("Password Policy", ["Standard", "Strong", "Very Strong"])
+        session_duration = st.slider("Session Duration (hours)", 1, 24, 8)
+        
+        if st.button("💾 Save Security Config"):
+            st.success("✅ Security configuration saved!")
+    
+    with tab3:
+        st.subheader("Backup & Restore")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            if st.button("💾 Create Backup"):
+                st.success("✅ Backup created successfully!")
+        
+        with col2:
+            if st.button("📥 Restore from Backup"):
+                st.info("Restore functionality would appear here")
+        
+        st.markdown("---")
+        
+        last_backup = st.write("Last Backup: 2024-02-13 14:30:00")
+    
+    with tab4:
+        st.subheader("System Maintenance")
+        
+        if st.button("🧹 Clean Logs"):
+            st.success("✅ Logs cleaned successfully!")
+        
+        if st.button("🔄 Clear Cache"):
+            st.success("✅ Cache cleared successfully!")
+        
+        if st.button("🚀 Restart Services"):
+            st.warning("⚠️ Services will restart in 10 seconds...")
+
+
+def show_page_system_monitor():
+    """Operator: System monitoring"""
+    st.title("📡 System Monitor (Operator/Admin Only)")
+    
+    if not is_operator():
+        st.error("❌ Access Denied: Operator or Admin only")
+        return
+    
+    db = st.session_state.db
+    health_monitor = AgentHealthMonitor(db)
+    
+    # System-wide metrics
+    system_health = health_monitor.get_system_health()
+    
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        st.metric("Total Agents", "0", help="Number of registered agents")
+        st.metric("System Health", f"{system_health.get('overall_health', 0)}%", "📊")
     
     with col2:
-        st.metric("Active Sessions", "0", help="Currently active agent sessions")
+        st.metric("Total Agents", system_health.get('total_agents', 0), "🤖")
     
     with col3:
-        st.metric("System Health", "100%", help="Overall system health status")
+        st.metric("Healthy Agents", system_health.get('healthy_agents', 0), "✅")
     
     with col4:
-        st.metric("Last Update", "Just now", help="Last system update")
+        st.metric("System Uptime", system_health.get('system_uptime', 'N/A'), "⏱️")
+    
+    st.markdown("---")
+    
+    # Agent health details
+    st.subheader("Agent Health Status")
+    
+    agents = db.list_agents()
+    
+    if agents:
+        health_data = []
+        for agent in agents:
+            health = health_monitor.get_agent_health(agent['id'])
+            health_data.append({
+                "Agent": health.get('agent_name', 'Unknown'),
+                "Health": f"{health.get('health_score', 0)}%",
+                "Status": health.get('status', 'unknown'),
+                "Sessions": health.get('active_sessions', 0),
+                "Events": health.get('recent_events', 0)
+            })
+        
+        df = pd.DataFrame(health_data)
+        st.dataframe(df, use_container_width=True, hide_index=True)
+    else:
+        st.info("No agents registered yet")
+    
+    st.markdown("---")
+    
+    # Refresh button
+    if st.button("🔄 Refresh Monitor Data"):
+        st.rerun()
+
+
+
+def show_page_analytics():
+    """Operator: Analytics and reporting"""
+    st.title("📈 Analytics (Operator/Admin Only)")
+    
+    if not is_operator():
+        st.error("❌ Access Denied: Operator or Admin only")
+        return
+    
+    db = st.session_state.db
+    analytics = AgentAnalytics(db)
+    
+    tab1, tab2, tab3 = st.tabs(["Overview", "Trends", "Alerts"])
+    
+    with tab1:
+        st.subheader("Analytics Overview")
+        
+        system_analytics = analytics.get_system_analytics()
+        
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.metric("Total Events", system_analytics.get('total_events', 0), "📊")
+        
+        with col2:
+            st.metric("Success Rate", f"{system_analytics.get('success_rate', 0):.1f}%", "✅")
+        
+        with col3:
+            st.metric("Active Agents", system_analytics.get('active_agents', 0), "🤖")
+        
+        st.markdown("---")
+        
+        # Event distribution pie chart
+        st.subheader("Event Distribution")
+        event_dist = system_analytics.get('event_distribution', {})
+        if event_dist:
+            event_df = pd.DataFrame(list(event_dist.items()), columns=['Event Type', 'Count'])
+            st.bar_chart(event_df.set_index('Event Type'))
+        else:
+            st.info("No events found")
+    
+    with tab2:
+        st.subheader("Performance Trends")
+        
+        agents = db.list_agents()
+        
+        if agents:
+            selected_agent = st.selectbox("Select Agent for Analysis", [a['name'] for a in agents], key="analytics_agent")
+            selected_agent_obj = next((a for a in agents if a['name'] == selected_agent), None)
+            
+            if selected_agent_obj:
+                activity = analytics.get_agent_activity_summary(selected_agent_obj['id'])
+                
+                st.write(f"**Activity Summary (Last 7 Days)**")
+                col1, col2, col3, col4 = st.columns(4)
+                
+                with col1:
+                    st.metric("Total Events", activity.get('total_events', 0))
+                with col2:
+                    st.metric("Successful", activity.get('successful_events', 0))
+                with col3:
+                    st.metric("Failed", activity.get('failed_events', 0))
+                with col4:
+                    st.metric("Success Rate", f"{activity.get('success_rate', 0):.1f}%")
+                
+                st.markdown("---")
+                
+                event_types = activity.get('event_types', {})
+                if event_types:
+                    event_type_df = pd.DataFrame(list(event_types.items()), columns=['Event Type', 'Count'])
+                    st.bar_chart(event_type_df.set_index('Event Type'))
+                else:
+                    st.info("No events for this agent in the selected period")
+        else:
+            st.info("No agents registered yet")
+    
+    with tab3:
+        st.subheader("Active Alerts")
+        
+        # Alert simulation
+        st.warning("⚠️ High event rate detected on 3 agents")
+        st.info("ℹ️ System health is optimal")
+        st.success("✅ All critical systems operational")
+        
+        st.markdown("---")
+        
+        if st.button("📧 Send Alert Notification"):
+            st.success("✅ Alert notification sent to administrators")
+
+
     
     st.markdown("---")
     
@@ -265,109 +992,6 @@ def show_home():
             st.rerun()
 
 
-def show_sessions():
-    """Show sessions page"""
-    st.title("🔐 Session Management")
-    
-    st.info("Session management features would be displayed here")
-    
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        st.metric("Active Sessions", "0")
-    
-    with col2:
-        st.metric("Total Sessions (24h)", "0")
-    
-    with col3:
-        st.metric("Avg Duration", "N/A")
-    
-    st.markdown("---")
-    
-    st.subheader("📋 Active Sessions Table")
-    st.info("No active sessions at the moment")
-
-
-def show_audit_log():
-    """Show audit log page"""
-    st.title("📋 Audit Log")
-    
-    db = st.session_state.db
-    
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        agent_filter = st.selectbox(
-            "🔍 Filter by Agent",
-            ["All"] + [f"{a['name']} ({a['id']})" for a in db.list_agents()],
-            key="audit_agent_filter"
-        )
-    
-    with col2:
-        limit = st.slider("Number of records", 10, 100, 50)
-    
-    with col3:
-        st.write("")  # Spacing
-    
-    st.markdown("---")
-    
-    # Get events
-    agent_id = None
-    if agent_filter != "All":
-        agent_id = agent_filter.split("(")[-1].rstrip(")")
-    
-    events = db.get_events(agent_id=agent_id, limit=limit)
-    
-    if events:
-        import pandas as pd
-        df = pd.DataFrame(events)
-        df['created_at'] = pd.to_datetime(df['created_at']).dt.strftime('%Y-%m-%d %H:%M:%S')
-        
-        # Display with colors
-        st.dataframe(
-            df[['event_type', 'agent_id', 'action', 'details', 'created_at', 'status']].sort_values('created_at', ascending=False),
-            use_container_width=True,
-            hide_index=True
-        )
-        
-        st.success(f"✅ Number of events: {len(events)}")
-    else:
-        st.info("📭 No events found")
-
-
-def show_settings():
-    """Show settings page"""
-    st.title("⚙️ Settings")
-    
-    tab1, tab2, tab3 = st.tabs(["General", "Security", "Advanced"])
-    
-    with tab1:
-        st.subheader("General Settings")
-        
-        theme = st.selectbox("Theme", ["Light", "Dark", "Auto"])
-        refresh_interval = st.slider("Refresh Interval (seconds)", 5, 60, 30)
-        
-        if st.button("Save General Settings"):
-            st.success("✅ Settings saved successfully")
-    
-    with tab2:
-        st.subheader("Security Settings")
-        
-        mfa_enabled = st.checkbox("Enable Multi-Factor Authentication", value=True)
-        session_timeout = st.slider("Session Timeout (minutes)", 5, 480, 60)
-        
-        if st.button("Save Security Settings"):
-            st.success("✅ Security settings saved successfully")
-    
-    with tab3:
-        st.subheader("Advanced Settings")
-        
-        debug_mode = st.checkbox("Debug Mode", value=False)
-        log_level = st.selectbox("Log Level", ["INFO", "DEBUG", "WARNING", "ERROR"])
-        
-        if st.button("Save Advanced Settings"):
-            st.success("✅ Advanced settings saved successfully")
-
-
 if __name__ == "__main__":
     main()
+

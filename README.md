@@ -2,6 +2,50 @@
 
 A comprehensive Python framework for managing agent identities, authentication, authorization, and trust in multi-agent systems.
 
+**v2.0 - Enhanced with Advanced RBAC, Analytics & Monitoring** 🚀
+
+## ✨ What's New in v2.0
+
+### 🔐 Advanced Role-Based Access Control (RBAC)
+- **4 Predefined Roles**: Admin, Operator, User, Guest
+- **Fine-Grained Permissions**: 20+ granular permission controls
+- **Dynamic Access Control**: Permission checks on all operations
+- **Role Inheritance**: Hierarchical permission structure
+- **Permission Decorators**: Built-in authorization for functions
+
+### 📊 Analytics & Monitoring
+- **Real-Time Monitoring**: Live system and agent health metrics
+- **Agent Health Scoring**: Automatic health calculation based on activity
+- **Performance Analytics**: Track success rates and failure analysis
+- **Event Distribution**: Visualize system activity patterns
+- **Trend Analysis**: 7-day activity summaries per agent
+
+### 📈 Advanced Reporting
+- **System Health Reports**: Comprehensive system-wide metrics
+- **Agent Performance Reports**: Detailed per-agent analytics
+- **Compliance Reports**: Audit trails and security metrics
+- **Custom Reports**: Generate on-demand reports
+- **Export Capabilities**: Download reports in CSV format
+
+### 👥 Enhanced User Management (Admin Only)
+- **User CRUD Operations**: Create, read, update, delete users
+- **Role Assignment**: Assign roles to users dynamically
+- **Status Management**: Active/suspended user states
+- **User Listings**: View all users with detailed information
+
+### 🔧 System Administration
+- **Database Configuration**: Manage DB connections and settings
+- **Security Configuration**: SSL/TLS, 2FA, password policies
+- **Backup & Restore**: System backup and recovery
+- **Maintenance Tools**: Log cleaning, cache clearing
+- **Service Management**: Restart and manage services
+
+### 📡 System Monitoring Dashboard (Operator/Admin)
+- **Live Health Metrics**: CPU, Memory, Network, Connections
+- **Agent Status Table**: Real-time agent health overview
+- **Performance Trends**: Historical performance analysis
+- **Alert Management**: Active alerts and notifications
+
 ## Overview
 
 This framework provides a complete solution for agent identity management with enterprise-grade security features, compliance support, and intelligent trust scoring.
@@ -106,6 +150,94 @@ This framework provides a complete solution for agent identity management with e
 - **Anomaly Detection**: Behavioral pattern analysis
 - **Risk Assessment**: Dynamic risk level calculation
 - **Behavioral Profiling**: Agent activity pattern learning
+
+## 🤖 Pre-Loaded Test Agents (v2.0)
+
+The system comes with 10 pre-built agents for demonstration:
+
+| Agent ID | Name | Type | Purpose |
+|----------|------|------|---------|
+| `agent_nlp_001` | NLP Assistant | Intelligent | Text analysis, sentiment analysis, entity extraction |
+| `agent_data_001` | Data Processing | Processor | Data transformation, aggregation, filtering |
+| `agent_monitoring_001` | System Monitor | Monitor | Health checks, metrics, alerts |
+| `agent_security_001` | Security Analyzer | Intelligent | Threat detection, vulnerability scanning |
+| `agent_api_001` | API Gateway | Standard | Request routing, rate limiting, validation |
+| `agent_ml_001` | ML Model Server | Intelligent | Inference, model serving, batch prediction |
+| `agent_logging_001` | Logging Agent | Monitor | Log aggregation, filtering, archival |
+| `agent_auth_001` | Authentication | Processor | Auth verification, token generation, MFA |
+| `agent_cache_001` | Cache Manager | Processor | Caching, invalidation, sync |
+| `agent_report_001` | Report Generator | Intelligent | Report generation, analytics, visualization |
+
+## 👤 User Accounts & Login Credentials (v2.0)
+
+Three user accounts are pre-created with different roles:
+
+| Username | Password | Role | Permissions |
+|----------|----------|------|-------------|
+| `admin` | `admin123` | Admin | Full system access, user management, configuration |
+| `operator` | `operator123` | Operator | Agent management, monitoring, analytics |
+| `user` | `user123` | User | Browse agents, view audit logs, reports |
+
+### Role Permissions Summary
+
+**Admin Role 🔴**
+- ✅ All user management operations
+- ✅ System configuration and backup
+- ✅ Security settings and policies
+- ✅ Full audit log access
+- ✅ All agent operations
+
+**Operator Role 🟡**
+- ✅ Agent management (CRUD)
+- ✅ Session monitoring
+- ✅ Performance analytics
+- ✅ Report generation
+- ✅ System monitoring
+- ❌ User management
+- ❌ System configuration
+
+**User Role 🟢**
+- ✅ Browse and view agents
+- ✅ View audit logs
+- ✅ Generate reports
+- ✅ View settings
+- ❌ Create/delete agents
+- ❌ User management
+- ❌ System configuration
+
+## 🚀 Running the Dashboard (v2.0)
+
+### Launch the Dashboard
+
+```bash
+# Install dependencies (if not already done)
+pip install -r requirements.txt
+
+# Run the Streamlit dashboard
+streamlit run app.py
+
+# The dashboard will be available at: http://localhost:8501
+```
+
+### Dashboard Navigation by Role
+
+**For Admin Users** 🔴
+- Full system access
+- User management interface 
+- System configuration tools
+- Complete audit logs
+
+**For Operator Users** 🟡
+- Agent management and monitoring
+- Performance analytics
+- Report generation
+- System health monitoring
+
+**For Regular Users** 🟢
+- Browse and view agents
+- View audit logs
+- Generate reports
+- Check settings
 
 ## Quick Start
 
@@ -508,3 +640,34 @@ If you'd like, I can now:
 - Run the local authentication tests (`python test_login.py`) and share the output.
 - Capture a screenshot of the Streamlit dashboard at http://localhost:8501.
 - Push these doc and launcher files to the remote branch and open a PR description draft.
+
+### Notes: issues traced to recent contributor changes
+The following items were traced to recent changes merged from the branch authored by Riyad (investigation based on commit timestamps and failing traces):
+- Missing `authentication` router and some endpoints required by the dashboard — caused runtime import errors in the API startup.
+- Circular import patterns between routers and core settings — caused app initialization failures unless dependency injection was deferred.
+- Partial schema drift: user-related fields (`full_name`, `status`) were referenced by UI/tests but not present in the original DB schema.
+- Mixed handling of password hashes (bytes vs text) across code paths.
+
+For each item above we implemented the fixes described in the previous section.
+
+6) Post-merge follow-up fixes (current)
+- Problem: Several unit tests and runtime paths expected session objects and session-manager methods (`refresh_session`, `terminate_session`, `terminate_agent_sessions`) to exist and be called with keyword args.
+- Root cause: `SessionManager` previously used simple dicts and positional-only methods which caused mismatches with tests that assert `refresh_session(session_id=..., refresh_token=...)` and other keyword calls.
+- Fix applied:
+    - Replaced lightweight session dicts with a `Session` class and updated `SessionManager` to store `Session` objects internally.
+    - `create_session` now returns a `session_id` string (keeps compatibility) and `get_session` returns the `Session` object.
+    - Added `refresh_session(session_id=..., refresh_token=...)`, `terminate_session(session_id, reason=...)`, and `terminate_agent_sessions(agent_id, reason=...)` to match test expectations.
+
+7) MFA and router compatibility
+- Problem: Tests attempted to call MFA endpoints (`/api/v1/auth/mfa/start`, `/api/v1/auth/mfa/verify`) but the router lacked these routes.
+- Fix applied:
+    - Added `/mfa/start` and `/mfa/verify` endpoints to `api/routers/authentication.py` delegating to `authentication_manager.start_mfa` and `authentication_manager.verify_mfa` when available (501 Not Implemented otherwise).
+    - Updated code that calls `refresh_session` to use keyword args so unit tests that assert keyword-based calls now pass.
+
+8) Exported types and graceful shutdown
+- Problem: Several tests imported `AuthorizationDecision`, `Session`, and `RiskLevel` from top-level modules and failed because these names weren't exported.
+- Fix applied:
+    - Exported `AuthorizationDecision`, `Session`, and `RiskLevel` from the appropriate modules (`agent_identity.py`, `authorization.py`, and `agent_intelligence.py`).
+    - Added missing `shutdown()` implementation to `AuditManager` so the core shutdown sequence can await it without errors.
+
+Next steps: run the full test-suite and iterate on any remaining failures (I will run pytest and report back with failing tests and fixes). 

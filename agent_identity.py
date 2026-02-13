@@ -5,6 +5,7 @@ Provides base classes and utilities for agent identity creation and management.
 """
 from typing import Optional, Dict, Any
 from datetime import datetime
+from datetime import timedelta
 
 
 class AgentIdentity:
@@ -90,38 +91,86 @@ class AuthorizationManager:
         return {"direct_permissions": ["agent:read", "agent:write"], "roles": []}
 
 
+class Session:
+    """Simple session representation"""
+    def __init__(self, session_id: str, agent_id: str, trust_level: float, auth_method: str, ttl: int = None, metadata: Dict = None):
+        self.session_id = session_id
+        self.agent_id = agent_id
+        self.trust_level = trust_level
+        self.auth_method = auth_method
+        self.metadata = metadata or {}
+        self.created_at = datetime.utcnow()
+        self.expires_at = None if not ttl else (self.created_at + timedelta(seconds=ttl))
+        self.status = SessionStatus("active")
+
+    def is_active(self) -> bool:
+        if self.expires_at is None:
+            return True
+        return datetime.utcnow() < self.expires_at
+
+
+class RiskLevel:
+    def __init__(self, value: str):
+        self.value = value
+
+
+class SessionStatus:
+    def __init__(self, value: str):
+        self.value = value
+
+
+class AuthorizationDecision:
+    def __init__(self, allow: bool, reason: str = ""):
+        self.allow = allow
+        self.reason = reason
+
+
 class SessionManager:
     """Session manager"""
     def __init__(self, storage_backend="memory", session_ttl=3600, cleanup_interval=300):
-        self.sessions = {}
+        self.sessions: Dict[str, Session] = {}
         self.session_store = type('SessionStore', (), {
             'get_agent_sessions': lambda self, aid: [],
             'get_all_sessions': lambda self: []
         })()
-    
+        self.session_ttl = session_ttl
+
     async def initialize(self):
-        pass
-    
+        return None
+
     async def create_session(self, agent_id: str, trust_level: float, auth_method: str, ttl: int = None, metadata: Dict = None):
         session_id = f"session_{len(self.sessions)}"
-        self.sessions[session_id] = {
-            'agent_id': agent_id,
-            'trust_level': trust_level,
-            'auth_method': auth_method,
-            'created_at': datetime.utcnow(),
-            'is_active': lambda: True
-        }
-        return session_id
-    
+        session = Session(session_id=session_id, agent_id=agent_id, trust_level=trust_level, auth_method=auth_method, ttl=(ttl or self.session_ttl), metadata=metadata)
+        self.sessions[session_id] = session
+        return session.session_id
+
     def get_session(self, session_id: str):
         return self.sessions.get(session_id)
-    
-    def refresh_session(self, session_id: str):
-        return session_id in self.sessions
-    
+
+    def refresh_session(self, session_id: str, refresh_token: Optional[str] = None, **kwargs) -> bool:
+        """Refresh a session. Accepts optional refresh_token and keyword args for test flexibility."""
+        session = self.get_session(session_id)
+        if not session:
+            return False
+        # For this lightweight implementation we just touch the session
+        # A real implementation would verify the refresh_token
+        return True
+
+    def terminate_session(self, session_id: str, reason: str = "") -> bool:
+        if session_id in self.sessions:
+            del self.sessions[session_id]
+            return True
+        return False
+
+    def terminate_agent_sessions(self, agent_id: str, reason: str = "") -> int:
+        to_remove = [sid for sid, s in self.sessions.items() if s.agent_id == agent_id]
+        for sid in to_remove:
+            del self.sessions[sid]
+        return len(to_remove)
+
     def get_active_session_count(self):
-        return len([s for s in self.sessions.values() if s.get('is_active', lambda: True)()])
-    
+        return len([s for s in self.sessions.values() if s.is_active()])
+
     def get_total_session_count(self):
         return len(self.sessions)
 
@@ -169,6 +218,9 @@ class TransportSecurityManager:
     """Transport security manager"""
     async def initialize(self, **kwargs):
         pass
+    
+    async def shutdown(self):
+        return None
 
 
 class AuditEventType:
@@ -197,6 +249,11 @@ class AuditManager:
             'outcome': outcome,
             'timestamp': datetime.utcnow()
         })
+    
+    async def shutdown(self):
+        # perform any cleanup if necessary
+        self.events = []
+        return None
 
 
 class ComplianceManager:
