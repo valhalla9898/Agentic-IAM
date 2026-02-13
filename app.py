@@ -22,6 +22,10 @@ from utils.rbac import (
 )
 from scripts.test_data_generator import add_test_agents_to_db
 from utils.advanced_features import AgentHealthMonitor, AgentAnalytics, ReportGenerator
+from utils.security import (
+    InputValidator, RateLimiter, AccountSecurity, AuditLogger,
+    SessionSecurityManager, SQLInjectionProtection, XSSProtection
+)
 
 # Page configuration
 st.set_page_config(
@@ -60,40 +64,112 @@ def initialize_session():
         st.session_state.user = None
     if "authenticated" not in st.session_state:
         st.session_state.authenticated = False
+    
+    # Initialize security components
+    if "rate_limiter" not in st.session_state:
+        st.session_state.rate_limiter = RateLimiter(max_attempts=5, window_seconds=300)
+    if "account_security" not in st.session_state:
+        st.session_state.account_security = AccountSecurity(max_failed_attempts=5)
+    if "csrf_token" not in st.session_state:
+        st.session_state.csrf_token = SessionSecurityManager.generate_csrf_token()
 
 
 def show_login():
-    """Show login page"""
+    """Show login page with security checks"""
     st.title("🔐 Agentic-IAM Login")
     
     col1, col2, col3 = st.columns([1, 2, 1])
     
     with col2:
-        st.markdown("### Welcome to Agentic-IAM")
-        st.markdown("Please log in to access the dashboard.")
+        st.markdown("### Welcome to Agentic-IAM v2.0")
+        st.markdown("Enterprise Security with Advanced RBAC")
         
         with st.form("login_form"):
             username = st.text_input("Username")
             password = st.text_input("Password", type="password")
             
-            submitted = st.form_submit_button("Login")
+            submitted = st.form_submit_button("🔐 Login")
             
             if submitted:
-                if username and password:
-                    user = st.session_state.db.authenticate_user(username, password)
-                    if user:
-                        st.session_state.user = user
-                        st.session_state.authenticated = True
-                        st.success("✅ Login successful!")
-                        st.rerun()
-                    else:
-                        st.error("❌ Invalid username or password")
-                else:
+                # Security Check 1: Input Validation
+                if not username or not password:
                     st.error("❌ Please enter both username and password")
+                    return
+                
+                # Security Check 2: Validate username format
+                if not InputValidator.validate_username(username):
+                    st.warning(f"⚠️ Invalid username format")
+                    AuditLogger.log_suspicious_activity(username, "Invalid username format")
+                    return
+                
+                # Security Check 3: Check account lockout
+                if st.session_state.account_security.is_account_locked(username):
+                    st.error("❌ Account temporarily locked. Try again later.")
+                    AuditLogger.log_suspicious_activity(username, "Account locked - login attempt")
+                    return
+                
+                # Security Check 4: Rate limiting
+                if not st.session_state.rate_limiter.is_allowed(username):
+                    st.error("❌ Too many login attempts. Please try again later.")
+                    st.session_state.account_security.record_failed_attempt(username)
+                    AuditLogger.log_failed_login(username, "Rate limit exceeded")
+                    return
+                
+                # Security Check 5: SQL Injection Detection
+                if SQLInjectionProtection.detect_sql_injection(username):
+                    st.error("❌ Invalid input detected")
+                    AuditLogger.log_suspicious_activity(username, "SQL injection attempt")
+                    return
+                
+                # Authenticate user
+                user = st.session_state.db.authenticate_user(username, password)
+                
+                if user:
+                    # Successful authentication
+                    st.session_state.user = user
+                    st.session_state.authenticated = True
+                    st.session_state.account_security.record_successful_login(username)
+                    AuditLogger.log_successful_login(username)
+                    st.success("✅ Login successful!")
+                    st.balloons()
+                    st.rerun()
+                else:
+                    # Failed authentication
+                    st.session_state.account_security.record_failed_attempt(username)
+                    remaining = st.session_state.account_security.max_failed_attempts - len(
+                        st.session_state.account_security.failed_attempts.get(username, [])
+                    )
+                    st.error(f"❌ Invalid credentials. ({remaining} attempts remaining)")
+                    AuditLogger.log_failed_login(username, "Invalid credentials")
         
         st.markdown("---")
-        st.markdown("**Default Credentials:**")
-        st.info("Admin: admin / admin123\n\nUser: user / user123")
+        st.markdown("### ℹ️ Demo Credentials")
+        
+        # Create three columns for credentials
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.markdown("**Admin** 🔴")
+            st.code("admin\nadmin123")
+        
+        with col2:
+            st.markdown("**Operator** 🟡")
+            st.code("operator\noperator123")
+        
+        with col3:
+            st.markdown("**User** 🟢")
+            st.code("user\nuser123")
+        
+        st.markdown("---")
+        st.markdown("""
+        **Security Features Enabled:**
+        - ✅ Input validation & sanitization
+        - ✅ Rate limiting (5 attempts/5 min)
+        - ✅ Account lockout protection
+        - ✅ SQL injection prevention
+        - ✅ Audit logging
+        - ✅ Password hashing (bcrypt)
+        """)
 
 
 def show_logout():
