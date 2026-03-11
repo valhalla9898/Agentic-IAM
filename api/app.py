@@ -30,6 +30,9 @@ app.add_middleware(
 )
 
 
+from utils.cert_validation import validate_pem_certificate
+
+
 @app.middleware("http")
 async def mtls_middleware(request: Request, call_next):
     """Enforce mTLS for configured endpoints when enabled in settings.
@@ -52,30 +55,31 @@ async def mtls_middleware(request: Request, call_next):
                 if verify and verify.upper() == "SUCCESS":
                     return await call_next(request)
 
-                # If a client cert is forwarded, accept (optional additional checks could be applied)
+                # If a client cert is forwarded, validate its PEM when possible
                 if forwarded_cert:
-                    # Basic validation: ensure forwarded cert contains a CN (common name).
-                    # Many TLS terminators populate `x-forwarded-client-cert` with subject data.
                     try:
+                        # Some ingress controllers forward a PEM block, others forward subject string.
+                        # Try lightweight PEM validation first; fall back to CN regex.
+                        ok = validate_pem_certificate(forwarded_cert, require_cn=True)
+                        if ok:
+                            return await call_next(request)
+
+                        # Fallback: attempt to extract CN from forwarded subject string
                         import re
                         s = forwarded_cert
                         m = re.search(r'CN=([^,;/\n\r]+)', s)
                         if m and m.group(1).strip():
                             return await call_next(request)
-                        # fallback: look for subject= token containing CN
-                        m2 = re.search(r'subject=\"?([^\"]+)\"?', s, re.IGNORECASE)
-                        if m2 and 'CN=' in m2.group(1):
-                            m3 = re.search(r'CN=([^,;/]+)', m2.group(1))
-                            if m3 and m3.group(1).strip():
-                                return await call_next(request)
+
                     except Exception:
-                        # If parsing fails, deny to be conservative
                         return JSONResponse(status_code=403, content={"detail": "mTLS client certificate validation failed"})
 
                 if client_cert:
-                    # If a raw client cert header is provided (PEM), require non-empty content
-                    if client_cert.strip():
-                        return await call_next(request)
+                    try:
+                        if validate_pem_certificate(client_cert, require_cn=False):
+                            return await call_next(request)
+                    except Exception:
+                        return JSONResponse(status_code=403, content={"detail": "mTLS client certificate validation failed"})
 
                 return JSONResponse(status_code=403, content={"detail": "mTLS required for this endpoint"})
     return await call_next(request)
