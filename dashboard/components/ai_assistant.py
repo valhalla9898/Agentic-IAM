@@ -1,6 +1,7 @@
 import streamlit as st
 import os
 from typing import Optional
+from . import ai_kb
 
 
 def _call_openai(prompt: str, model: str = "gpt-3.5-turbo") -> str:
@@ -56,7 +57,7 @@ def show_ai_assistant():
     with col1:
         prompt = st.text_area("Ask a question or describe what you want help with", height=160)
     with col2:
-        model = st.selectbox("Model", ["local", "openai:gpt-3.5-turbo"], index=0)
+        model = st.selectbox("Model", ["local", "knowledge", "openai:gpt-3.5-turbo"], index=0)
         if st.button("Ask"):
             if not prompt or not prompt.strip():
                 st.warning("Please enter a question or prompt")
@@ -64,6 +65,20 @@ def show_ai_assistant():
                 with st.spinner("Generating answer..."):
                     if model == "local":
                         answer = _local_helper(prompt)
+                    elif model == "knowledge":
+                        # Query the local file-indexed KB (build it if missing)
+                        idx = ai_kb._load_index()
+                        if not idx:
+                            ok, msg = ai_kb.build_index()
+                            st.info(msg)
+                        results = ai_kb.query_kb(prompt, top_k=4)
+                        if not results:
+                            answer = "No relevant document snippets found in the KB. Try a different query or enable OpenAI integration."
+                        else:
+                            pieces = []
+                            for r in results:
+                                pieces.append(f"Source: {r['path']}\n---\n{r['snippet'][:1200]}\n")
+                            answer = "\n\n".join(pieces)
                     else:
                         # parse model token like openai:NAME
                         if model.startswith("openai:"):
@@ -77,3 +92,11 @@ def show_ai_assistant():
 
     st.markdown("---")
     st.markdown("**Tips:** Use concise prompts like 'How to enable mTLS' or 'Explain trust scoring' to get focused responses.")
+    st.markdown("---")
+    if st.button("(Re)build KB index now"):
+        with st.spinner("Building KB index (this may take a moment)..."):
+            ok, msg = ai_kb.build_index()
+            if ok:
+                st.success(msg)
+            else:
+                st.error(msg)

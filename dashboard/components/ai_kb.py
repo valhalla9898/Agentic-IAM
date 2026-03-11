@@ -1,0 +1,129 @@
+import os
+import json
+import hashlib
+from typing import List, Dict, Optional, Tuple
+
+INDEX_FILE = ".ai_index.json"
+
+
+def _iter_text_files(root: str = "."):
+    skip = {".git", "venv", "env", ".venv", "node_modules"}
+    for dirpath, dirnames, filenames in os.walk(root):
+        parts = set(dirpath.split(os.sep))
+        if parts & skip:
+            continue
+        for fn in filenames:
+            if fn.endswith(('.md', '.py', '.txt', '.rst', '.cfg', '.toml')):
+                yield os.path.join(dirpath, fn)
+
+
+def _chunk_text(text: str, size: int = 1000) -> List[str]:
+    chunks = []
+    i = 0
+    while i < len(text):
+        chunk = text[i:i+size]
+        chunks.append(chunk)
+        i += size
+    return chunks
+
+
+def build_index(root: str = ".", force: bool = False) -> Tuple[bool, str]:
+    """Build a simple file-index. If OPENAI_API_KEY is set, attempt to store embeddings.
+
+    Returns (ok, message).
+    """
+    files = list(_iter_text_files(root))
+    index = []
+    for path in files:
+        try:
+            with open(path, 'r', encoding='utf-8', errors='ignore') as f:
+                text = f.read()
+        except Exception:
+            continue
+        chunks = _chunk_text(text)
+        for j, c in enumerate(chunks):
+            item = {
+                'id': hashlib.sha256(f"{path}:{j}".encode()).hexdigest(),
+                'path': path.replace('\\', '/'),
+                'chunk': c[:2000]
+            }
+            index.append(item)
+
+    # Try to add embeddings if OpenAI key present
+    try:
+        import openai
+        api_key = os.getenv('OPENAI_API_KEY')
+        if api_key:
+            openai.api_key = api_key
+            # batch embeddings in small groups
+            for i in range(0, len(index), 50):
+                batch = [it['chunk'] for it in index[i:i+50]]
+                resp = openai.Embedding.create(model='text-embedding-3-small', input=batch)
+                for k, r in enumerate(resp.data):
+                    index[i+k]['embedding'] = r['embedding']
+    except Exception:
+        # embedding unavailable — proceed without embeddings
+        pass
+
+    with open(INDEX_FILE, 'w', encoding='utf-8') as f:
+        json.dump(index, f)
+
+    return True, f"Indexed {len(index)} chunks from {len(files)} files"
+
+
+def _load_index() -> List[Dict]:
+    if not os.path.exists(INDEX_FILE):
+        return []
+    try:
+        with open(INDEX_FILE, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except Exception:
+        return []
+
+
+def _cosine(a: List[float], b: List[float]) -> float:
+    sa = sum(x*x for x in a)
+    sb = sum(x*x for x in b)
+    if sa == 0 or sb == 0:
+        return 0.0
+    dot = sum(x*y for x, y in zip(a, b))
+    return dot / ((sa**0.5) * (sb**0.5))
+
+
+def query_kb(query: str, top_k: int = 3) -> List[Dict]:
+    """Query the KB. If embeddings exist, use semantic similarity; otherwise keyword search."""
+    index = _load_index()
+    if not index:
+        return []
+
+    # Semantic path
+    if 'embedding' in index[0]:
+        try:
+            import openai
+            api_key = os.getenv('OPENAI_API_KEY')
+            if not api_key:
+                raise Exception("OPENAI_API_KEY not set")
+            openai.api_key = api_key
+            q_emb = openai.Embedding.create(model='text-embedding-3-small', input=[query]).data[0]['embedding']
+            scored = []
+            for item in index:
+                if 'embedding' not in item:
+                    continue
+                score = _cosine(q_emb, item['embedding'])
+                scored.append((score, item))
+            scored.sort(key=lambda x: x[0], reverse=True)
+            return [{'score': s, 'path': it['path'], 'snippet': it['chunk']} for s, it in scored[:top_k]]
+        except Exception:
+            # fall through to keyword
+            pass
+
+    # Keyword fallback
+    q = query.lower().split()
+    scored = []
+    for item in index:
+        text = item['chunk'].lower()
+        cnt = sum(text.count(w) for w in q)
+        if cnt > 0:
+            scored.append((cnt, item))
+    scored.sort(key=lambda x: x[0], reverse=True)
+    return [{'score': s, 'path': it['path'], 'snippet': it['chunk']} for s, it in scored[:top_k]]
