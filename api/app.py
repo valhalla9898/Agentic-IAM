@@ -53,8 +53,29 @@ async def mtls_middleware(request: Request, call_next):
                     return await call_next(request)
 
                 # If a client cert is forwarded, accept (optional additional checks could be applied)
-                if forwarded_cert or client_cert:
-                    return await call_next(request)
+                if forwarded_cert:
+                    # Basic validation: ensure forwarded cert contains a CN (common name).
+                    # Many TLS terminators populate `x-forwarded-client-cert` with subject data.
+                    try:
+                        import re
+                        s = forwarded_cert
+                        m = re.search(r'CN=([^,;/\n\r]+)', s)
+                        if m and m.group(1).strip():
+                            return await call_next(request)
+                        # fallback: look for subject= token containing CN
+                        m2 = re.search(r'subject=\"?([^\"]+)\"?', s, re.IGNORECASE)
+                        if m2 and 'CN=' in m2.group(1):
+                            m3 = re.search(r'CN=([^,;/]+)', m2.group(1))
+                            if m3 and m3.group(1).strip():
+                                return await call_next(request)
+                    except Exception:
+                        # If parsing fails, deny to be conservative
+                        return JSONResponse(status_code=403, content={"detail": "mTLS client certificate validation failed"})
+
+                if client_cert:
+                    # If a raw client cert header is provided (PEM), require non-empty content
+                    if client_cert.strip():
+                        return await call_next(request)
 
                 return JSONResponse(status_code=403, content={"detail": "mTLS required for this endpoint"})
     return await call_next(request)

@@ -835,6 +835,13 @@ LOGLEVEL=DEBUG streamlit run app.py
 - Compliance & Auditing — integrated GDPR, HIPAA, SOX, PCI-DSS, and ISO-27001 checks with exportable reports (`audit_compliance.py`).
 - Performance & Hardening — applied async IO, Redis caching, DB pooling, and security best practices; performance validated in `FINAL_DELIVERY_SUMMARY.md`.
 - Documentation & Delivery — comprehensive technical documentation and a final delivery report; project marked production-ready in `FINAL_DELIVERY_SUMMARY.md`.
+- Documentation & Delivery — comprehensive technical documentation and a final delivery report; project marked production-ready in `FINAL_DELIVERY_SUMMARY.md`.
+
+- Secrets & Vault Integration — added a safe `SecretManager` scaffold (`secrets/key_vault.py`) and updated runtime configuration to prefer vault/env/local secrets for `SECRET_KEY`, `ENCRYPTION_KEY`, and OIDC secrets (see `config/settings.py`).
+
+- mTLS Hardening — improved mTLS enforcement middleware to validate forwarded client certificate common name (CN) when `enable_mtls` is active and endpoint prefixes require mTLS (`api/app.py`).
+
+- E2E Testing & CI — expanded Playwright CI scaffolding and tests; CI now contains Playwright E2E workflow and is prepared to upload artifacts (screenshots/logs) when enabled. Additions live under `.github/workflows/playwright-e2e.yml` and `tests/e2e/`.
 
 Key learnings (concise, actionable):
 

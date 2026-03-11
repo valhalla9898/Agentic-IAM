@@ -86,6 +86,26 @@ class Settings:
             if directory:
                 directory.mkdir(parents=True, exist_ok=True)
 
+        # Attempt to load sensitive secrets from a secret manager (vault/env/local file)
+        # This is a best-effort, non-fatal operation so tests/local runs are unaffected.
+        try:
+            from secrets.key_vault import secret_manager
+            sm = secret_manager
+            _sk = sm.get_secret("SECRET_KEY")
+            if _sk:
+                self.secret_key = _sk
+            _ek = sm.get_secret("ENCRYPTION_KEY")
+            if _ek:
+                self.encryption_key = _ek
+                self.credential_encryption_key = _ek
+            # Optional OIDC secret
+            _oidc = sm.get_secret("OIDC_CLIENT_SECRET")
+            if _oidc:
+                self.oidc_client_secret = _oidc
+        except Exception:
+            # Silent fallback to environment or defaults
+            pass
+
     @property
     def is_production(self) -> bool:
         return self.environment == "production"
