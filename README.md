@@ -1038,6 +1038,6 @@ Built with ❤️ and security-first principles for the AI agent ecosystem.
 
 ---
 
-**Last Updated**: February 13, 2026  
-**Version**: 2.0 Enterprise Edition  
+**Last Updated**: February 13, 2026
+**Version**: 2.0 Enterprise Edition
 **Status**: Production Ready ✅

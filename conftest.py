@@ -18,6 +18,7 @@ from fastapi.testclient import TestClient
 from core.agentic_iam import AgenticIAM
 from config.settings import Settings
 from api.main import app
+from secrets.key_vault import secret_manager
 
 
 @pytest.fixture(scope="session")
@@ -52,9 +53,9 @@ def test_settings(temp_dir):
         enable_trust_scoring=True,
         enable_federated_auth=False,  # Disable for tests
         enable_mfa=False,  # Disable for tests
-        secret_key="test-secret-key-32-characters-long",
-        encryption_key="test-encryption-key-32-chars!!",
-        credential_encryption_key="test-credential-key-32-chars!!"
+        secret_key=secret_manager.get_secret("SECRET_KEY") or "test-secret-key-32-characters-long",
+        encryption_key=secret_manager.get_secret("ENCRYPTION_KEY") or "test-encryption-key-32-chars!!",
+        credential_encryption_key=secret_manager.get_secret("CREDENTIAL_ENCRYPTION_KEY") or "test-credential-key-32-chars!!"
     )
 
 

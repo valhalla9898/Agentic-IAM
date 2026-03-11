@@ -31,12 +31,12 @@ jobs:
 
       - name: Run Playwright tests
         run: |
-          pytest tests/e2e/test_login_playwright.py -q || true
+          pytest tests/e2e -q || true
 
       - name: Collect E2E artifacts
         run: |
           mkdir -p e2e-artifacts || true
-          cp -r tests/e2e/artifacts/* e2e-artifacts/ || true
+          find tests/e2e -name "*.png" -o -name "*.html" -o -name "*.log" -print0 | xargs -0 -I{} cp --parents {} e2e-artifacts/ || true
 
       - name: Upload E2E artifacts
         uses: actions/upload-artifact@v4

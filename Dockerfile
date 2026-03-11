@@ -69,55 +69,38 @@ wait_for_db() {
     echo "Waiting for database connection..."
     until python -c "
 import sys
-sys.path.append('/app')
-from config.settings import Settings
-settings = Settings()
-if 'postgresql' in settings.database_url:
+import os
+from urllib.parse import urlparse
+database_url = os.getenv('AGENTIC_IAM_DATABASE_URL', 'sqlite:///agentic_iam.db')
+if 'postgresql' in database_url:
     import psycopg2
-    import urllib.parse as urlparse
-    url = urlparse.urlparse(settings.database_url)
-    conn = psycopg2.connect(
-        database=url.path[1:],
-        user=url.username,
-        password=url.password,
-        host=url.hostname,
-        port=url.port
-    )
-    conn.close()
-print('Database is ready!')
-"; do
+    url = urlparse(database_url)
+    try:
+        conn = psycopg2.connect(
+            database=url.path[1:] if url.path else 'agentic_iam',
+            user=url.username or 'agentic_user',
+            password=url.password or '',
+            host=url.hostname or 'localhost',
+            port=url.port or 5432
+        )
+        conn.close()
+        print('Database is ready!')
+    except Exception as e:
+        exit(1)
+else:
+    print('SQLite mode - database ready!')
+" 2>/dev/null; do
         echo "Database is unavailable - sleeping"
         sleep 2
     done
 }
 
-# Function to run database migrations
-run_migrations() {
-    echo "Running database migrations..."
-    python scripts/migrate.py
-}
-
-# Function to create default admin user
-create_admin_user() {
-    echo "Creating default admin user..."
-    python scripts/create_admin.py
-}
-
-# Wait for dependencies
-if [ "${AGENTIC_IAM_DATABASE_URL:-}" != "" ]; then
+# Wait for PostgreSQL if configured
+if echo "${AGENTIC_IAM_DATABASE_URL:-}" | grep -q "postgresql"; then
     wait_for_db
 fi
 
-# Run migrations if in production
-if [ "${AGENTIC_IAM_ENVIRONMENT}" = "production" ]; then
-    run_migrations
-fi
-
-# Create admin user if needed
-if [ "${CREATE_ADMIN_USER:-}" = "true" ]; then
-    create_admin_user
-fi
-
+echo "Starting Agentic-IAM application..."
 # Execute the main command
 exec "$@"
 EOF

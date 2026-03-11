@@ -186,22 +186,24 @@ class SecurityHardening:
         """Validate security configuration and return issues"""
         issues = []
         
-        # Check secret keys
-        if self.settings.secret_key == "your-secret-key-change-in-production":
-            issues.append("Default secret key in use - CRITICAL SECURITY RISK")
-        
-        if self.settings.encryption_key == "your-encryption-key-32-chars-long!":
-            issues.append("Default encryption key in use - CRITICAL SECURITY RISK")
-        
-        if self.settings.jwt_secret_key == "jwt-secret-key-change-in-production":
-            issues.append("Default JWT secret key in use - CRITICAL SECURITY RISK")
-        
-        # Check key lengths
-        if len(self.settings.secret_key) < 32:
-            issues.append("Secret key too short (minimum 32 characters)")
-        
-        if len(self.settings.encryption_key) != 32:
-            issues.append("Encryption key must be exactly 32 characters")
+        # Check secret keys using heuristics rather than fragile literal defaults
+        secret_key = getattr(self.settings, "secret_key", "") or ""
+        encryption_key = getattr(self.settings, "encryption_key", "") or ""
+        jwt_secret_key = getattr(self.settings, "jwt_secret_key", None)
+
+        # Detect placeholder or sentinel defaults by common substrings and simple entropy/length checks
+        if (not secret_key) or ("change-in-production" in secret_key) or secret_key.startswith("your-"):
+            issues.append("Default or placeholder secret key in use - CRITICAL SECURITY RISK")
+
+        if (not encryption_key) or ("your-encryption-key" in encryption_key) or len(encryption_key) != 32:
+            issues.append("Encryption key is missing, a placeholder, or wrong length (must be 32 characters)")
+
+        if jwt_secret_key is None or (isinstance(jwt_secret_key, str) and ("change-in-production" in jwt_secret_key or jwt_secret_key.startswith("jwt-"))):
+            issues.append("Default or placeholder JWT secret key in use - CRITICAL SECURITY RISK")
+
+        # Additional length-based recommendations
+        if isinstance(secret_key, str) and len(secret_key) < 32:
+            issues.append("Secret key too short (recommended minimum 32 characters)")
         
         # Check TLS configuration
         if not self.settings.require_tls and self.settings.environment == "production":
