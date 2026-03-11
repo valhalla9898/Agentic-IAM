@@ -38,6 +38,11 @@ class Settings:
         self.encryption_key: str = overrides.get("encryption_key", os.getenv("ENCRYPTION_KEY", "your-encryption-key-32-chars-long!"))
         # TLS / mTLS
         self.enable_mtls: bool = overrides.get("enable_mtls", False)
+        # mTLS configuration
+        self.mtls_cert_path: Optional[str] = overrides.get("mtls_cert_path", os.getenv("MTLS_CERT_PATH", None))
+        self.mtls_key_path: Optional[str] = overrides.get("mtls_key_path", os.getenv("MTLS_KEY_PATH", None))
+        # endpoints that require mTLS (path prefixes)
+        self.mtls_required_endpoints: List[str] = overrides.get("mtls_required_endpoints", ["/api/admin", "/api/operator"]) 
 
         # Session defaults
         self.session_ttl: int = int(overrides.get("session_ttl", 3600))
