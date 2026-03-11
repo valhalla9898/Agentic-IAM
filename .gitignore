@@ -50,6 +50,9 @@ logs/
 .coverage
 htmlcov/
 
+# AI index
+.ai_index.json
+
 # Jupyter
 .ipynb_checkpoints
 

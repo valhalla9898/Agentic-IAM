@@ -854,6 +854,8 @@ Below are the automated updates made and pushed to `main` to improve security, t
 - **Playwright E2E scaffolds + artifact capture:** added Playwright test scaffolds for critical UI flows and artifact saving for CI diagnostics. See [tests/e2e/test_login_playwright.py](tests/e2e/test_login_playwright.py), [tests/e2e/test_create_user_playwright.py](tests/e2e/test_create_user_playwright.py), and [tests/e2e/test_register_agent_playwright.py](tests/e2e/test_register_agent_playwright.py).
 - **Security hardening utilities:** production-oriented secrets, file-permissions, and certificate generation helpers added under [scripts/security_hardening.py](scripts/security_hardening.py).
 - **AI Assistant (Streamlit) added:** interactive assistant UI with local fallback and optional OpenAI integration. See [dashboard/components/ai_assistant.py](dashboard/components/ai_assistant.py) and the main dashboard navigation in [app.py](app.py).
+- **AI KB improvements:** excluded sensitive files from the file-index, improved chunking and HTML snippet highlighting, and added an OpenAI summarization action for KB query results. See [dashboard/components/ai_kb.py](dashboard/components/ai_kb.py) and [dashboard/components/ai_assistant.py](dashboard/components/ai_assistant.py).
+- **Risk assessment UI:** added a Risk Assessment page for operators/admins with a simple heuristic risk score and remediation task creation. See [dashboard/components/risk_assessment.py](dashboard/components/risk_assessment.py) and [app.py](app.py).
 - **Docs updated:** README now includes a `Future Roadmap` and this `Recent Automated Changes` summary reflecting the pushes to `main`.
 
 All changes were committed and pushed to `main` (commit messages include: `docs: add Future Roadmap & Possible Features to README`, `chore(security): add cert validation helper and wire into mTLS; test(e2e): scaffold create-user/register-agent Playwright tests`, and related commits for AI assistant and secrets wiring).
@@ -975,8 +977,9 @@ Medium priority (2-6 weeks):
 - Add export scheduler for compliance reports.
 
 Longer term (6+ weeks):
-- Federated learning and deep sequence modeling for behavior prediction.
-- Model A/B testing and dedicated inference microservice with GPU support.
+- Policy Simulator (visual): simulate RBAC/ABAC/PBAC decisions with example inputs and exportable test cases.
+- Agent Canary / Blue-Green Rollouts: operator-driven staged deployments with health checks and automatic rollback.
+ - Model A/B testing and dedicated inference microservice with GPU support.
 
 If you want, I can start implementing the high-priority items (1) add Key Vault integration scaffold, (2) add Playwright E2E tests for login/create-user flows, and (3) wire mTLS enforcement flags — tell me which to start with and I will create PRs and apply code changes.
 

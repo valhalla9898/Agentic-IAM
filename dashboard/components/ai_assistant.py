@@ -71,7 +71,7 @@ def show_ai_assistant():
                         if not idx:
                             ok, msg = ai_kb.build_index()
                             st.info(msg)
-                        results = ai_kb.query_kb(prompt, top_k=4)
+                        results = ai_kb.query_kb(prompt, top_k=6)
                         if not results:
                             answer = "No relevant document snippets found in the KB. Try a different query or enable OpenAI integration."
                         else:
@@ -79,6 +79,16 @@ def show_ai_assistant():
                             for r in results:
                                 pieces.append(f"Source: {r['path']}\n---\n{r['snippet'][:1200]}\n")
                             answer = "\n\n".join(pieces)
+                            # display highlighted snippets
+                            st.markdown("**Top KB snippets:**")
+                            for r in results:
+                                st.markdown(f"**{r['path']}**", unsafe_allow_html=True)
+                                st.markdown(r.get('html', r['snippet'])[:2000], unsafe_allow_html=True)
+                            if st.button("Summarize KB results (OpenAI)"):
+                                summ_prompt = "Summarize the following snippets and provide actionable recommendations:\n\n" + "\n\n".join(pieces)
+                                summary = _call_openai(summ_prompt, model="gpt-3.5-turbo")
+                                st.markdown("**Summary (OpenAI):**")
+                                st.info(summary)
                     else:
                         # parse model token like openai:NAME
                         if model.startswith("openai:"):

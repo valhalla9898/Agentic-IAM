@@ -1,9 +1,32 @@
 import os
 import json
 import hashlib
+import re
+import html
 from typing import List, Dict, Optional, Tuple
 
 INDEX_FILE = ".ai_index.json"
+
+
+SENSITIVE_PATTERNS = [
+    r"\.env$",
+    r"secret",
+    r"password",
+    r"key$",
+    r"\.pem$",
+    r"\.pfx$",
+    r"credentials",
+    r"data/agent_registry",
+    r"secrets/",
+]
+
+
+def _is_sensitive_path(path: str) -> bool:
+    low = path.replace('\\\\', '/').lower()
+    for p in SENSITIVE_PATTERNS:
+        if re.search(p, low):
+            return True
+    return False
 
 
 def _iter_text_files(root: str = "."):
@@ -13,18 +36,45 @@ def _iter_text_files(root: str = "."):
         if parts & skip:
             continue
         for fn in filenames:
-            if fn.endswith(('.md', '.py', '.txt', '.rst', '.cfg', '.toml')):
-                yield os.path.join(dirpath, fn)
+            path = os.path.join(dirpath, fn)
+            if _is_sensitive_path(path):
+                continue
+            if fn.endswith(('.md', '.py', '.txt', '.rst', '.cfg', '.toml', '.json')):
+                yield path
 
 
-def _chunk_text(text: str, size: int = 1000) -> List[str]:
+def _chunk_text(text: str, max_size: int = 1200, overlap: int = 200) -> List[str]:
+    # Split on sentence boundaries for better snippets
+    sents = re.split(r'(?<=[.!?])\\s+', text)
     chunks = []
-    i = 0
-    while i < len(text):
-        chunk = text[i:i+size]
-        chunks.append(chunk)
-        i += size
-    return chunks
+    cur = ""
+    for s in sents:
+        if len(cur) + len(s) + 1 <= max_size:
+            cur = (cur + " " + s).strip()
+        else:
+            if cur:
+                chunks.append(cur)
+            # start new chunk
+            cur = s
+    if cur:
+        chunks.append(cur)
+    out = []
+    for c in chunks:
+        out.append(c)
+    return out
+
+
+def _highlight(snippet: str, query: str) -> str:
+    # Naive term highlighting, return HTML-safe string
+    safe = html.escape(snippet)
+    terms = [t for t in re.split(r"\\s+", query) if t]
+    for t in sorted(terms, key=len, reverse=True):
+        try:
+            pattern = re.compile(re.escape(t), re.IGNORECASE)
+            safe = pattern.sub(r"<mark>\\g<0></mark>", safe)
+        except Exception:
+            continue
+    return safe
 
 
 def build_index(root: str = ".", force: bool = False) -> Tuple[bool, str]:
@@ -45,7 +95,7 @@ def build_index(root: str = ".", force: bool = False) -> Tuple[bool, str]:
             item = {
                 'id': hashlib.sha256(f"{path}:{j}".encode()).hexdigest(),
                 'path': path.replace('\\', '/'),
-                'chunk': c[:2000]
+                'chunk': c[:4000]
             }
             index.append(item)
 
@@ -112,7 +162,7 @@ def query_kb(query: str, top_k: int = 3) -> List[Dict]:
                 score = _cosine(q_emb, item['embedding'])
                 scored.append((score, item))
             scored.sort(key=lambda x: x[0], reverse=True)
-            return [{'score': s, 'path': it['path'], 'snippet': it['chunk']} for s, it in scored[:top_k]]
+            return [{'score': s, 'path': it['path'], 'snippet': it['chunk'], 'html': _highlight(it['chunk'], query)} for s, it in scored[:top_k]]
         except Exception:
             # fall through to keyword
             pass
@@ -126,4 +176,4 @@ def query_kb(query: str, top_k: int = 3) -> List[Dict]:
         if cnt > 0:
             scored.append((cnt, item))
     scored.sort(key=lambda x: x[0], reverse=True)
-    return [{'score': s, 'path': it['path'], 'snippet': it['chunk']} for s, it in scored[:top_k]]
+    return [{'score': s, 'path': it['path'], 'snippet': it['chunk'], 'html': _highlight(it['chunk'], query)} for s, it in scored[:top_k]]

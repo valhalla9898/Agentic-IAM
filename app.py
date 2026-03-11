@@ -17,6 +17,7 @@ from dashboard.utils import show_alert
 from database import get_database
 from dashboard.components.agent_selection import show_agent_registration, show_agent_selector, show_agent_list, show_agent_details
 from dashboard.components.ai_assistant import show_ai_assistant
+from dashboard.components.risk_assessment import show_risk_assessment
 from utils.rbac import (
     Permission, Role, check_permission, is_admin, is_operator, 
     get_current_user_role, get_current_user_permissions, get_rbac_manager
@@ -213,6 +214,10 @@ def get_navigation_pages():
 
     # AI Assistant available to all authenticated users
     pages.append("🤖 AI Assistant")
+
+    # Risk assessment page for operators/admins
+    if is_operator() or is_admin():
+        pages.append("⚠️ Risk Assessment")
     
     return pages
 
@@ -329,6 +334,8 @@ def main():
             show_page_analytics()
         else:
             st.error("❌ Access Denied: Operator or Admin only")
+    elif page == "⚠️ Risk Assessment":
+        show_risk_assessment(st.session_state.db)
     else:
         st.warning(f"Page '{page}' not implemented yet")
 
