@@ -845,6 +845,26 @@ LOGLEVEL=DEBUG streamlit run app.py
 
 - AI Assistant — added an interactive AI helper in the Streamlit dashboard (`🤖 AI Assistant`) to answer usage questions and provide quick how-to guidance. The assistant uses a small local rule-based fallback and can optionally call OpenAI if `OPENAI_API_KEY` is set. See `dashboard/components/ai_assistant.py`.
 
+## 🔄 Recent Automated Changes (pushed to GitHub)
+
+Below are the automated updates made and pushed to `main` to improve security, testing, and developer productivity. Each item includes the primary files changed so you can jump straight to the implementation.
+
+- **Secret manager & runtime wiring:** added a scaffold for secret backends (local/Azure/AWS) and wired runtime settings to prefer vault/env/local secrets. See [secrets/key_vault.py](secrets/key_vault.py) and [config/settings.py](config/settings.py).
+- **mTLS hardening & cert validation:** improved header-based mTLS middleware and added a lightweight PEM validation helper to validate forwarded client certificates. See [api/app.py](api/app.py) and [utils/cert_validation.py](utils/cert_validation.py).
+- **Playwright E2E scaffolds + artifact capture:** added Playwright test scaffolds for critical UI flows and artifact saving for CI diagnostics. See [tests/e2e/test_login_playwright.py](tests/e2e/test_login_playwright.py), [tests/e2e/test_create_user_playwright.py](tests/e2e/test_create_user_playwright.py), and [tests/e2e/test_register_agent_playwright.py](tests/e2e/test_register_agent_playwright.py).
+- **Security hardening utilities:** production-oriented secrets, file-permissions, and certificate generation helpers added under [scripts/security_hardening.py](scripts/security_hardening.py).
+- **AI Assistant (Streamlit) added:** interactive assistant UI with local fallback and optional OpenAI integration. See [dashboard/components/ai_assistant.py](dashboard/components/ai_assistant.py) and the main dashboard navigation in [app.py](app.py).
+- **Docs updated:** README now includes a `Future Roadmap` and this `Recent Automated Changes` summary reflecting the pushes to `main`.
+
+All changes were committed and pushed to `main` (commit messages include: `docs: add Future Roadmap & Possible Features to README`, `chore(security): add cert validation helper and wire into mTLS; test(e2e): scaffold create-user/register-agent Playwright tests`, and related commits for AI assistant and secrets wiring).
+
+If you want, I can (pick one):
+
+- replace remaining plaintext secrets across the repo automatically (high priority), or
+- implement SecretManager rotation CLI and wire it into `scripts/`, or
+- expand Playwright coverage to the full critical flows and update CI to run them.
+
+
 Key learnings (concise, actionable):
 
 - Adopt zero-trust by default: authenticate and authorize every request to reduce lateral risk.
