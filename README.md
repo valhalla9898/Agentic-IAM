@@ -825,6 +825,32 @@ LOGLEVEL=DEBUG streamlit run app.py
 
 ---
 
+## 📜 Project Timeline & Key Learnings
+
+- Project start — scaffolded the Streamlit dashboard and FastAPI backend to manage agent identities, credentials, and sessions.
+- Authentication & Login — secure login with role-based access (Admin / Operator / User), session lifecycle, password hashing, and automated tests (`IMPLEMENTATION_SUMMARY.md`).
+- API Expansion — added a production-ready GraphQL endpoint and dedicated mobile API routes for lightweight clients (`api/graphql.py`).
+- Kubernetes Operator — Kopf-based operator and CRD support to automate agent lifecycle, reconciliation, and metrics (`k8s/operator.py`).
+- Trust Scoring — deployed ML and heuristic engines to compute agent trust and risk levels in real time (`agent_intelligence.py`).
+- Compliance & Auditing — integrated GDPR, HIPAA, SOX, PCI-DSS, and ISO-27001 checks with exportable reports (`audit_compliance.py`).
+- Performance & Hardening — applied async IO, Redis caching, DB pooling, and security best practices; performance validated in `FINAL_DELIVERY_SUMMARY.md`.
+- Documentation & Delivery — comprehensive technical documentation and a final delivery report; project marked production-ready in `FINAL_DELIVERY_SUMMARY.md`.
+
+Key learnings (concise, actionable):
+
+- Adopt zero-trust by default: authenticate and authorize every request to reduce lateral risk.
+- Use hybrid authorization (RBAC + attribute/policy-based) for granular, context-aware decisions.
+- Implement trust scoring to make adaptive access decisions and reduce false positives/negatives.
+- Design for compliance early: audit trails and data handling requirements shape architecture.
+- Automate agent lifecycle with an operator to scale reliably and eliminate manual errors.
+- Prioritize async patterns and caching for high throughput and low latency.
+- Keep documentation authoritative and versioned to enable audits and fast onboarding.
+
+How to adjust or extend this timeline
+
+- For commit-level timeline entries or milestone dates, update `PROJECT_COMPLETION_STATUS.md` or submit a PR adding precise dates and changelog entries.
+
+
 ## 🤝 Contributing
 
 We welcome contributions! Here's how:
