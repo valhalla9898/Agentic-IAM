@@ -47,6 +47,7 @@ pytest-cov>=4.1.0
 pytest-mock>=3.11.0
 playwright>=1.37.0
 pytest-playwright>=0.4.0
+openai>=1.0.0
 
 # Code Quality
 black>=23.0.0

@@ -843,6 +843,8 @@ LOGLEVEL=DEBUG streamlit run app.py
 
 - E2E Testing & CI — expanded Playwright CI scaffolding and tests; CI now contains Playwright E2E workflow and is prepared to upload artifacts (screenshots/logs) when enabled. Additions live under `.github/workflows/playwright-e2e.yml` and `tests/e2e/`.
 
+- AI Assistant — added an interactive AI helper in the Streamlit dashboard (`🤖 AI Assistant`) to answer usage questions and provide quick how-to guidance. The assistant uses a small local rule-based fallback and can optionally call OpenAI if `OPENAI_API_KEY` is set. See `dashboard/components/ai_assistant.py`.
+
 Key learnings (concise, actionable):
 
 - Adopt zero-trust by default: authenticate and authorize every request to reduce lateral risk.

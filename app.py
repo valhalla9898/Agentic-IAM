@@ -16,6 +16,7 @@ from dashboard.components.agent_management import show_agent_management
 from dashboard.utils import show_alert
 from database import get_database
 from dashboard.components.agent_selection import show_agent_registration, show_agent_selector, show_agent_list, show_agent_details
+from dashboard.components.ai_assistant import show_ai_assistant
 from utils.rbac import (
     Permission, Role, check_permission, is_admin, is_operator, 
     get_current_user_role, get_current_user_permissions, get_rbac_manager
@@ -209,6 +210,9 @@ def get_navigation_pages():
     # Operator pages
     if is_operator():
         pages.append("📈 Analytics")
+
+    # AI Assistant available to all authenticated users
+    pages.append("🤖 AI Assistant")
     
     return pages
 
@@ -291,6 +295,8 @@ def main():
     # Main content - Route to correct page
     if page == "Home":
         show_home()
+    elif page == "🤖 AI Assistant":
+        show_ai_assistant()
     elif page == "🔍 Browse Agents":
         show_page_browse_agents()
     elif page == "➕ Register Agent":

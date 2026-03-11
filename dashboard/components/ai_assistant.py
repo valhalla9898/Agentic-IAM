@@ -1,0 +1,79 @@
+import streamlit as st
+import os
+from typing import Optional
+
+
+def _call_openai(prompt: str, model: str = "gpt-3.5-turbo") -> str:
+    try:
+        import openai
+    except Exception:
+        return "OpenAI SDK not installed. Set OPENAI_API_KEY and install `openai` to enable cloud assistant."
+
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        return "OPENAI_API_KEY not set. Provide the key to use OpenAI assistant."
+
+    openai.api_key = api_key
+    try:
+        resp = openai.ChatCompletion.create(
+            model=model,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.2,
+            max_tokens=512,
+        )
+        return resp.choices[0].message.content.strip()
+    except Exception as e:
+        return f"OpenAI request failed: {e}"
+
+
+def _local_helper(prompt: str) -> str:
+    # Minimal offline assistant: keyword-based help
+    p = prompt.lower()
+    if "login" in p or "auth" in p:
+        return (
+            "Login help:\n- Use the demo credentials on the login page (admin/operator/user).\n"
+            "- If you need to create a user, go to User Management (Admin).\n- For API login, POST /api/auth/login with username/password."
+        )
+    if "mtls" in p or "certificate" in p:
+        return (
+            "mTLS guidance:\n- Enable mTLS in `config/settings.py` by setting `enable_mtls=True`.\n"
+            "- Configure your TLS terminator (NGINX/Ingress) to forward `x-ssl-client-verify` and `x-forwarded-client-cert`."
+        )
+    if "secrets" in p or "vault" in p:
+        return (
+            "Secrets guidance:\n- Use the SecretManager scaffold at `secrets/key_vault.py`.\n"
+            "- Set AZURE_KEYVAULT_URL or put env vars like SECRET_KEY/ENCRYPTION_KEY."
+        )
+    # Fallback: echo with short tips
+    return "I can help with: login, mTLS, secrets, Playwright tests, and basic usage. Ask about one of those topics."
+
+
+def show_ai_assistant():
+    st.header("🤖 AI Assistant")
+    st.write("Ask the assistant to explain features, or get quick how-to steps.")
+
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        prompt = st.text_area("Ask a question or describe what you want help with", height=160)
+    with col2:
+        model = st.selectbox("Model", ["local", "openai:gpt-3.5-turbo"], index=0)
+        if st.button("Ask"):
+            if not prompt or not prompt.strip():
+                st.warning("Please enter a question or prompt")
+            else:
+                with st.spinner("Generating answer..."):
+                    if model == "local":
+                        answer = _local_helper(prompt)
+                    else:
+                        # parse model token like openai:NAME
+                        if model.startswith("openai:"):
+                            _, m = model.split(":", 1)
+                            answer = _call_openai(prompt, model=m)
+                        else:
+                            answer = _call_openai(prompt)
+
+                st.markdown("**Assistant response:**")
+                st.info(answer)
+
+    st.markdown("---")
+    st.markdown("**Tips:** Use concise prompts like 'How to enable mTLS' or 'Explain trust scoring' to get focused responses.")
