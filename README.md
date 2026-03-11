@@ -850,6 +850,88 @@ How to adjust or extend this timeline
 
 - For commit-level timeline entries or milestone dates, update `PROJECT_COMPLETION_STATUS.md` or submit a PR adding precise dates and changelog entries.
 
+## 🔧 Recommended Security Enhancements (to add / harden)
+
+- **Hardware Security Module (HSM) / Key Vault integration** — store private keys and signing keys in a managed HSM (Azure Key Vault, AWS KMS) to prevent key exfiltration.
+- **Secrets rotation & automated expiry** — implement scheduled rotation for service credentials, DB passwords, and tokens.
+- **WAF / Application Gateway** — place a Web Application Firewall in front of the API layer to block OWASP attacks early.
+- **Endpoint-level mTLS enforcement** — require mTLS for high-risk endpoints (admin, operator, audit export).
+- **Runtime integrity checks** — enable process/file integrity monitoring and alerting for production hosts.
+- **Adaptive rate-limiting & anomaly blocking** — integrate behavioral detection to block suspicious IPs or agent IDs automatically.
+- **Attack surface reduction** — remove unused endpoints, harden CORS, tighten HTTP headers, and minimize exposed metadata.
+- **Secrets management for CI/CD** — avoid secrets in pipelines; load secrets at runtime from a vault.
+- **Intrusion Detection + Honeypots** — log and feed suspicious activity to an IDS and use honey endpoints for early detection.
+- **Security testing automation** — schedule SAST/DAST scans in CI and integrate results in the repo status.
+
+## 🤖 Machine Learning & Deep Learning Features (proposal + where to put them)
+
+- **Anomaly detection (unsupervised)** — use autoencoders or isolation forest to detect anomalous agent behavior; implement in `intelligence/threat_ai.py` or `agent_intelligence.py`.
+- **Deep behavioral modeling** — LSTM/Transformer-based sequence models to predict agent action sequences and preempt risky patterns.
+- **Federated learning for on-edge agents** — allow edge/mobile agents to locally update models and aggregate gradients server-side to preserve privacy.
+- **Online learning & model drift detection** — continuous evaluation, metrics, and automatic retraining triggers when performance degrades.
+- **Explainable AI for trust scores** — SHAP/LIME summaries returned with trust-scoring decisions for auditors.
+- **Model serving & A/B testing** — expose model versions via an inference service and route traffic for experiments.
+- **Feature store & data pipelines** — centralized feature store for reproducible ML; provenance logged to audit system.
+
+Where to integrate:
+- Training pipelines: `scripts/performance_test.py` or a new `ml/` folder.
+- Inference: a new microservice `ml_inference/` or integrated endpoint under `api/` with GPU-enabled container images.
+
+## ✨ New (Non-Security) Feature Suggestions
+
+- **Policy Simulator** — visual tool to simulate RBAC/ABAC/PBAC decisions before applying policies.
+- **Policy Marketplace / Templates** — common policy templates for quick onboarding.
+- **Audit Report Scheduler** — automatic scheduled export of compliance reports (PDF/CSV) to secure storage.
+- **Delegated Operator Accounts** — session-scoped delegated privileges for limited admin tasks.
+- **Agent Canary Deployments** — canary rollout support via operator for safe agent updates.
+- **Plugin SDK** — allow third-party plugins for custom agent behaviours and connectors.
+- **Fine-grained Telemetry Dashboard** — per-agent metric explorers with drill-down and custom charts.
+
+## ✅ UI / Controls Implementation Status & Requirements
+
+Goal: every button and control functional end-to-end.
+
+- Add checklist items per page (Login, Users, Agents, Audit, Settings) that map UI controls to backend endpoints and tests.
+- Required fixes: ensure all `streamlit` callbacks validate input, return explicit success/failure messages, and update `st.session_state` atomically.
+- Testing: add E2E tests (Playwright or Selenium) for critical flows: login, create user, suspend user, register agent, run agent action, export audit.
+- Accessibility & keyboard navigation: ensure UI components have labels and focus order.
+
+Example mapping (to include in implementation tickets):
+- `Login` button → `POST /api/auth/login` → set `st.session_state.current_user` → redirect to dashboard.
+- `Create User` → `POST /api/users` (admin token) → refresh users table.
+- `Export Audit` → `GET /api/audit/export?format=pdf` → stream file download.
+
+## 🗄️ Server-Side & Database Integration (how links are handled)
+
+- Connection model:
+   - `api` (FastAPI) acts as the authoritative server-side layer exposing REST/GraphQL.
+   - `app.py` / Streamlit is a client to the API and should use service tokens or per-user JWTs for requests.
+   - Database access is centralized in `database.py` (use SQLAlchemy engine + connection pooling).
+
+- Best practices to implement now:
+   - Use connection pooling (SQLAlchemy pool) and async DB drivers (Databases or SQLAlchemy async) for API endpoints.
+   - Keep DB migrations under `scripts/migrate.py` and use a migrations tool (Alembic) for schema changes.
+   - Use a service account for Streamlit → API calls; avoid direct DB access from UI layer.
+   - Put heavy ML inference in a separate service to avoid blocking API worker threads.
+
+## 🛠️ Implementation Plan & Checklist (priority tasks)
+
+High priority (0-2 weeks):
+- Harden secrets: integrate Key Vault/HSM and remove plaintext secrets from repo.
+- Fix login/session E2E tests and add Playwright tests for core flows.
+- Add mTLS enforcement toggle and policy for admin endpoints.
+
+Medium priority (2-6 weeks):
+- Add anomaly detection pipeline and drift monitoring.
+- Implement scheduled secrets rotation and CI SAST scans.
+- Add export scheduler for compliance reports.
+
+Longer term (6+ weeks):
+- Federated learning and deep sequence modeling for behavior prediction.
+- Model A/B testing and dedicated inference microservice with GPU support.
+
+If you want, I can start implementing the high-priority items (1) add Key Vault integration scaffold, (2) add Playwright E2E tests for login/create-user flows, and (3) wire mTLS enforcement flags — tell me which to start with and I will create PRs and apply code changes.
+
 
 ## 🤝 Contributing
 
