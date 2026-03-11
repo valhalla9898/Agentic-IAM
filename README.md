@@ -896,6 +896,25 @@ Where to integrate:
 - **Plugin SDK** — allow third-party plugins for custom agent behaviours and connectors.
 - **Fine-grained Telemetry Dashboard** — per-agent metric explorers with drill-down and custom charts.
 
+## 🚧 Future Roadmap & Possible Features
+
+This project can be extended with the following high-impact features. Pick any of these for the next milestones and open a PR with a short spec, acceptance tests, and a CI plan.
+
+- **Policy Simulator (visual):** simulate RBAC/ABAC/PBAC decisions with example inputs and exportable test cases.
+- **Knowledge-base for AI Assistant:** file-indexed embeddings and semantic search so the `🤖 AI Assistant` can answer repo-specific questions and cite sources.
+- **HSM / Managed KMS Integration:** production-ready key storage and signing via Azure Key Vault, AWS KMS, or cloud HSMs.
+- **End-to-end mTLS (truststore + OCSP):** full certificate validation against a managed truststore with revocation (OCSP/CRL) support and automated cert rotation.
+- **Secrets Rotation & CI/CD Secrets Management:** automated rotation for service credentials, staged secrets for environments, and secure pipeline secret injection.
+- **Multi-tenant & Org Isolation:** per-tenant data separation, scoped policies, and tenant-aware RBAC with billing/usage labels.
+- **Plugin Marketplace & SDK:** enable third-party plugins for custom agent behaviours, connectors, and UI extensions with sandboxing.
+- **Distributed SQL + Migrations:** PostgreSQL/managed DB support with connection pooling, Alembic migrations, and automated backups.
+- **Model Serving & A/B Testing Service:** separate inference service with versioned models, routing, and per-model metrics.
+- **Real-time Drift Detection & Auto-Retraining:** monitor model quality, signal drift, and trigger retraining pipelines with canary evaluation.
+- **Agent Canary / Blue-Green Rollouts:** operator-driven staged deployments with health checks and automatic rollback.
+- **Expanded E2E Test Suite:** Playwright coverage for create-user, suspend-user, register-agent, audit-export, and recovery flows; CI artifact collection for failures.
+
+Each item should include a short spec, acceptance tests, and a CI plan when implemented.
+
 ## ✅ UI / Controls Implementation Status & Requirements
 
 Goal: every button and control functional end-to-end.
