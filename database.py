@@ -9,6 +9,13 @@ import json
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Any
+import os
+
+# Optional secret manager integration
+try:
+    from secrets.key_vault import secret_manager
+except Exception:
+    secret_manager = None
 import logging
 import bcrypt
 
@@ -538,5 +545,16 @@ def get_database(db_path: str = "data/agentic_iam.db") -> Database:
     """Get or create global database instance"""
     global _db_instance
     if _db_instance is None:
-        _db_instance = Database(db_path)
+        # Allow DB path override from environment or secret manager
+        resolved_path = os.getenv("DB_PATH")
+        if not resolved_path and secret_manager:
+            try:
+                resolved_path = secret_manager.get_secret("DB_PATH")
+            except Exception:
+                resolved_path = None
+
+        if not resolved_path:
+            resolved_path = db_path
+
+        _db_instance = Database(resolved_path)
     return _db_instance

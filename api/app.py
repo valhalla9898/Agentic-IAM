@@ -1,9 +1,15 @@
 """
 Simplified Agentic-IAM API Server - No circular imports
 """
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
+from starlette.responses import JSONResponse
+
+# settings
+from config.settings import get_settings
+
+settings = get_settings()
 
 # Create the FastAPI app
 app = FastAPI(
@@ -22,6 +28,36 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def mtls_middleware(request: Request, call_next):
+    """Enforce mTLS for configured endpoints when enabled in settings.
+
+    This middleware expects a TLS-terminating proxy to forward client
+    certificate verification status via headers like `x-ssl-client-verify`
+    or `x-forwarded-client-cert`. In environments without a proxy, this
+    will only act when `settings.enable_mtls` is True and headers are present.
+    """
+    if settings.enable_mtls:
+        path = request.url.path
+        for prefix in settings.mtls_required_endpoints:
+            if path.startswith(prefix):
+                # Check common headers set by proxies/ingress
+                verify = request.headers.get("x-ssl-client-verify")
+                forwarded_cert = request.headers.get("x-forwarded-client-cert")
+                client_cert = request.headers.get("x-client-cert")
+
+                # Consider verification successful if header indicates SUCCESS
+                if verify and verify.upper() == "SUCCESS":
+                    return await call_next(request)
+
+                # If a client cert is forwarded, accept (optional additional checks could be applied)
+                if forwarded_cert or client_cert:
+                    return await call_next(request)
+
+                return JSONResponse(status_code=403, content={"detail": "mTLS required for this endpoint"})
+    return await call_next(request)
 
 # Root endpoint
 @app.get("/")
