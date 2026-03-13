@@ -754,6 +754,30 @@ def show_page_user_management():
                 "Created": [u['created_at'] for u in users]
             }
             st.dataframe(pd.DataFrame(user_data), use_container_width=True, hide_index=True)
+
+            # Add per-user actions (delete / deactivate)
+            st.markdown("---")
+            st.subheader("User Actions")
+            for u in users:
+                cols = st.columns([3, 1, 1])
+                with cols[0]:
+                    st.write(f"**{u['username']}** — {u['email']} — role: {u['role']} — status: {u['status']}")
+                with cols[1]:
+                    if st.button("Deactivate", key=f"deact_{u['id']}"):
+                        ok = db.update_user_status(u['id'], 'suspended')
+                        if ok:
+                            st.success(f"User {u['username']} suspended")
+                            st.experimental_rerun()
+                        else:
+                            st.error(f"Failed to suspend user {u['username']}")
+                with cols[2]:
+                    if st.button("Delete", key=f"deluser_{u['id']}"):
+                        ok = db.delete_user(u['id'])
+                        if ok:
+                            st.success(f"User {u['username']} deleted")
+                            st.experimental_rerun()
+                        else:
+                            st.error(f"Failed to delete user {u['username']}")
         
         st.markdown("---")
         st.subheader("Add New User")
