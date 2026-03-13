@@ -30,6 +30,9 @@
 
 ---
 
+```
+
+## 🧰 Scan Integration (Reports)
 ## 🎯 Overview
 
 **Agentic-IAM** is an enterprise-grade Identity and Access Management (IAM) system specifically designed for AI agent ecosystems. It provides:
@@ -395,6 +398,78 @@ http://localhost:8501
 
 #### Admin Role 🔴
 ```
+
+## ✅ ما الذي قمتُ به عمليًا (تفصيلي)
+
+أضفت وتكاملت ميزة لسير عمل الفحص الأمني بحيث يمكن تشغيل فحوص آمنة على بيئة اختبار معزولة (مثال: OWASP Juice Shop)، استيراد نتائج الفحص إلى المشروع، وعرضها داخل واجهة بسيطة.
+
+التغييرات الرئيسية التي أُدخلت على المشروع:
+
+- `data/reports/` — مجلد جديد لتخزين نتائج الفحص المستوردة. بنية المجلد المتوقعة: `data/reports/<target>/<YYYYMMDD_HHMMSS>/` حيث تُوضع ملفات HTML، سجلات، ولقطات شاشة.
+- `scripts/import_scan.ps1` — سكربت PowerShell يساعدك على نسخ ملفات الفحص (مثلاً `zap-report.html`) وملفات اللوج/السكرينشوت إلى مجلد `data/reports/<target>/<timestamp>` ثم يحاول إعلام الـ API بنقطة النهاية `POST /reports/notify`.
+- `api/app.py` — أضفت ما يلي:
+   - تركيب (mount) مجلد التقارير كـ static files متاحة عبر `/reports/static/...`.
+   - واجهة `GET /reports/list` تُرجع JSON بفهرس التقارير المتاحة (target, timestamp, ملفات + روابط).
+   - واجهة `POST /reports/notify` نقطة إخطار بسيطة يمكن من خلالها إبلاغ النظام عن تقرير جديد.
+- `dashboard/reports_streamlit.py` — واجهة Streamlit خفيفة لعرض قائمة التقارير المستوردة وفتحها مباشرة (تقرأ `/reports/list`).
+- تحديث `README.md` ليوضح سير العمل خطوة بخطوة.
+
+ماذا يفعل هذا العمل عمليًا؟
+
+1. تقوم بتشغيل تطبيق الهدف الضعيف (مثال Juice Shop) على `127.0.0.1:3000` داخل Docker.
+2. تشغّل أداة المسح (مثلاً OWASP ZAP) وتصدّر تقرير HTML باسم `zap-report.html` في مجلد العمل.
+3. تشغيل `scripts\import_scan.ps1` لنسخ `zap-report.html` واللوجات واللقطات إلى `data/reports/juice-shop/<timestamp>/`.
+4. Streamlit أو أي واجهة يمكنها جلب `GET /reports/list` ثم عرض الروابط إلى الملفات المنشورة تحت `/reports/static/...`.
+
+ملاحظات أمنيّة: احتفظ بـمجلد `data/reports` محميًا؛ قد يحوي معلومات حساسة. لا تنشر هذه الملفات علنًا.
+
+## 📌 كيف أرفع التغييرات إلى GitHub (خطوات مفصّلة)
+
+ملاحظة مهمة: لا أستطيع دفع التغييرات إلى الريموت نيابةً عنك لأن ذلك يتطلب بيانات اعتمادك. سأضع لك سكربت جاهز لتشغيله محليًا.
+
+1) تأكد أن لديك remote صالح في git (`origin`) وتملك صلاحية الدفع إلى الفرع (مثلاً `main`):
+
+```powershell
+git remote -v
+```
+
+2) افحص التعديلات الجاهزة للالتزام:
+
+```powershell
+git status --porcelain
+git diff --staged
+```
+
+3) أوامر سريعة للـ commit و push (آمن):
+
+```powershell
+# اضف كل التغييرات
+git add .
+
+# التزام برسالة موصيّة
+git commit -m "Add scan reports integration, Streamlit viewer, and import script"
+
+# ادفع التغييرات إلى الفرع الرئيسي
+git push origin main
+```
+
+4) سكربت جاهز للتشغيل: `scripts/commit_and_push.ps1` — يقوم بعمل add/commit وتطلب منك رسالة، ثم يسألك إن أردت push.
+
+```powershell
+.\scripts\commit_and_push.ps1
+```
+
+إذا أردت، أستطيع تنفيذ `git commit` محليًا (إن سمحت) ولكن لا أستطيع إتمام `git push` نيابةً عنك بدون بيانات الاعتماد.
+
+## ✅ الخطوة التالية التي أقترحها الآن
+
+1. شغّل API محليًا: `uvicorn api.app:app --host 127.0.0.1 --port 8000 --reload`.
+2. شغّل Juice Shop و ZAP حسب التعليمات في README.
+3. شغّل `scripts\import_scan.ps1` لاستيراد النتائج.
+4. شغّل `streamlit run dashboard/reports_streamlit.py` لمشاهدة النتائج.
+
+هل أعمل commit محلي الآن (أقوم بتشغيل `git add` + `git commit` هنا داخل المشروع مع رسالة منك) أم تفضّل أن تشغّل السكربت بنفسك؟
+
 Agent Management:
   ✅ Create agents
   ✅ Read agents

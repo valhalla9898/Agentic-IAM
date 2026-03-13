@@ -32,6 +32,10 @@ app.add_middleware(
 
 from utils.cert_validation import validate_pem_certificate
 
+import os
+from fastapi.staticfiles import StaticFiles
+from fastapi import APIRouter, Body
+
 
 @app.middleware("http")
 async def mtls_middleware(request: Request, call_next):
@@ -83,6 +87,60 @@ async def mtls_middleware(request: Request, call_next):
 
                 return JSONResponse(status_code=403, content={"detail": "mTLS required for this endpoint"})
     return await call_next(request)
+
+
+# -- Reports static files + API -------------------------------------------------
+# Serve scan reports saved under project-root/data/reports at /reports/static/...
+reports_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", "reports"))
+os.makedirs(reports_dir, exist_ok=True)
+app.mount("/reports/static", StaticFiles(directory=reports_dir), name="reports_static")
+
+reports_router = APIRouter(prefix="/reports", tags=["reports"])
+
+
+@reports_router.get("/list")
+async def list_reports():
+    """Return JSON index of reports and files."""
+    result = []
+    for target in sorted(os.listdir(reports_dir)):
+        target_path = os.path.join(reports_dir, target)
+        if not os.path.isdir(target_path):
+            continue
+        for ts in sorted(os.listdir(target_path), reverse=True):
+            rep_path = os.path.join(target_path, ts)
+            if not os.path.isdir(rep_path):
+                continue
+            files = []
+            for root, _, filenames in os.walk(rep_path):
+                for f in filenames:
+                    rel = os.path.relpath(os.path.join(root, f), reports_dir)
+                    files.append({
+                        "name": f,
+                        "path": rel.replace(os.path.sep, "/"),
+                        "url": f"/reports/static/{rel.replace(os.path.sep, '/')}"
+                    })
+            result.append({
+                "target": target,
+                "timestamp": ts,
+                "files": files
+            })
+    return {"reports": result}
+
+
+@reports_router.post("/notify")
+async def notify_report(payload: dict = Body(...)):
+    """Lightweight notify endpoint called after importing a scan.
+
+    Payload: { "target": "juice-shop", "timestamp": "YYYYMMDD_HHMMSS" }
+    """
+    target = payload.get("target")
+    timestamp = payload.get("timestamp")
+    # For now this is a simple acknowledgement endpoint. Integration with
+    # WebSocket dashboard or additional processing can be added later.
+    return {"status": "notified", "target": target, "timestamp": timestamp}
+
+
+app.include_router(reports_router)
 
 # Root endpoint
 @app.get("/")
