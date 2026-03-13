@@ -478,6 +478,8 @@ uvicorn api.app:app --host 127.0.0.1 --port 8000 --reload
 streamlit run dashboard/reports_streamlit.py
 ```
 
+Run full demo (Windows PowerShell): `.\scripts\run_full_demo.ps1`
+
 Would you like me to perform a local commit now (I will run `git add` + `git commit` here with your provided message), or do you prefer to run the helper script yourself?
 
 ## 🚨 Attack Detection & Incident Reporting (Integration)
