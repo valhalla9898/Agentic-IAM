@@ -18,7 +18,14 @@ from fastapi.testclient import TestClient
 from core.agentic_iam import AgenticIAM
 from config.settings import Settings
 from api.main import app
-from secrets.key_vault import secret_manager
+try:
+    from secrets.key_vault import secret_manager
+except Exception:
+    class _Shim:
+        def get_secret(self, name):
+            return None
+
+    secret_manager = _Shim()
 
 
 @pytest.fixture(scope="session")

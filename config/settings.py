@@ -69,6 +69,14 @@ class Settings:
         # Feature flags
         self.enable_trust_scoring: bool = overrides.get("enable_trust_scoring", True)
 
+        # Admin / signing keys
+        # Optional admin API key for protecting admin endpoints and alerts.
+        self.admin_api_key: Optional[str] = overrides.get("admin_api_key", os.getenv("ADMIN_API_KEY", None))
+        # Key used to sign static report URLs. Defaults to the admin key when not provided.
+        self.static_url_signing_key: Optional[str] = overrides.get(
+            "static_url_signing_key", os.getenv("STATIC_URL_SIGNING_KEY", self.admin_api_key)
+        )
+
         # Misc defaults
         self.enable_prometheus: bool = overrides.get("enable_prometheus", False)
 

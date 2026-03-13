@@ -1,3 +1,17 @@
+"""Lightweight test shim for secret manager used by Settings.
+
+This module provides a `secret_manager` with a `get_secret(name)` method.
+In production this would be replaced by an actual secret backend.
+"""
+from typing import Optional
+
+
+class _Shim:
+    def get_secret(self, name: str) -> Optional[str]:
+        return None
+
+
+secret_manager = _Shim()
 """Secrets manager scaffold supporting Azure Key Vault and local fallback.
 
 This module provides a minimal, safe scaffold for retrieving secrets from

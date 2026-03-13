@@ -1,3 +1,37 @@
+# Agentic-IAM
+
+## Signed Report URLs
+
+This project can serve imported scan reports under `/reports/static/...`. For security
+you can require signed URLs so that only authorized viewers can access report files.
+
+How it works
+- A signing key is configured in `config/settings.py` as `static_url_signing_key` or via
+   the environment variable `STATIC_URL_SIGNING_KEY` (fallback to `ADMIN_API_KEY`).
+- When `static_url_signing_key` is set, the API enforces that requests to `/reports/static/*`
+   include two query parameters: `expires` (unix timestamp) and `sig` (HMAC-SHA256 hex).
+- The HMAC is computed over the string `path + '|' + expires` using the signing key.
+
+Generate a signed URL (CLI)
+Run the helper script which uses `STATIC_URL_SIGNING_KEY` or `ADMIN_API_KEY` from the environment:
+
+```bash
+python scripts/generate_signed_url.py --path /reports/static/juice-shop/20250101_report.html --expires 3600 --host http://127.0.0.1:8000
+```
+
+Generate a signed URL (API)
+If you have `ADMIN_API_KEY` configured, you can request a signed URL from the API:
+
+POST /reports/sign
+Payload: { "path": "/reports/static/juice-shop/20250101_report.html", "expires_in": 3600 }
+Header: `x-api-key: <ADMIN_API_KEY>`
+
+The endpoint returns JSON containing `signed_url`, `expires`, and `sig`.
+
+Security notes
+- Signed URLs are short-lived by design; keep signing keys secret and rotate regularly.
+- The API still protects management endpoints (`/reports`, `/alerts`) using `admin_api_key` when configured.
+
 # Agentic-IAM v2.0 Enterprise Edition
 
 [![GitHub License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)

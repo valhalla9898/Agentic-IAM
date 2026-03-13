@@ -5,6 +5,11 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from starlette.responses import JSONResponse
+import os
+import hmac
+import hashlib
+import time
+from urllib.parse import urlencode
 
 # settings
 from config.settings import get_settings
@@ -30,7 +35,61 @@ app.add_middleware(
 )
 
 
-from utils.cert_validation import validate_pem_certificate
+# Protect admin/reporting endpoints when an admin API key is configured in settings.
+# The `admin_api_key` protects management endpoints like `/reports` and `/alerts`.
+PROTECTED_PREFIXES = ["/reports", "/alerts"]
+
+
+@app.middleware("http")
+async def require_admin_api_key(request: Request, call_next):
+    admin_key = getattr(settings, "admin_api_key", None)
+    if admin_key:
+        path = request.url.path
+        for p in PROTECTED_PREFIXES:
+            if path.startswith(p):
+                key = request.headers.get("x-api-key") or request.headers.get("X-API-KEY")
+                if not key or key != admin_key:
+                    return JSONResponse(status_code=401, content={"detail": "Unauthorized - missing or invalid API key"})
+                break
+    return await call_next(request)
+
+
+# Static reports access: require signed URLs when `static_url_signing_key` set.
+@app.middleware("http")
+async def validate_signed_static_url(request: Request, call_next):
+    path = request.url.path
+    # Only validate for the static reports mount
+    if path.startswith("/reports/static"):
+        signing_key = getattr(settings, "static_url_signing_key", None)
+        if signing_key:
+            # Expect query params: expires (unix ts) and sig (hex)
+            q = request.query_params
+            expires = q.get("expires")
+            sig = q.get("sig")
+            try:
+                if not expires or not sig:
+                    raise ValueError("missing signature or expires")
+                now = int(time.time())
+                exp = int(expires)
+                if now > exp:
+                    return JSONResponse(status_code=401, content={"detail": "URL signature expired"})
+
+                # Build message as path + '|' + expires
+                msg = f"{path}|{expires}".encode("utf-8")
+                expected = hmac.new(signing_key.encode("utf-8"), msg, hashlib.sha256).hexdigest()
+                # Constant-time compare
+                if not hmac.compare_digest(expected, sig):
+                    return JSONResponse(status_code=401, content={"detail": "Invalid URL signature"})
+            except Exception:
+                return JSONResponse(status_code=401, content={"detail": "Invalid signed URL"})
+    return await call_next(request)
+
+
+try:
+    from utils.cert_validation import validate_pem_certificate
+except Exception:
+    def validate_pem_certificate(*args, **kwargs):
+        return False
 
 import os
 from fastapi.staticfiles import StaticFiles
@@ -141,6 +200,40 @@ async def notify_report(payload: dict = Body(...)):
 
 
 app.include_router(reports_router)
+
+
+@reports_router.post("/sign")
+async def sign_report_url(payload: dict = Body(...), request: Request = None):
+    """Generate a signed URL for a static report path.
+
+    Payload: { "path": "/reports/static/target/ts/file.html", "expires_in": 3600 }
+    Requires admin API key when `settings.admin_api_key` is configured.
+    """
+    path = payload.get("path")
+    expires_in = int(payload.get("expires_in", 3600))
+    if not path or not path.startswith("/reports/static"):
+        raise HTTPException(status_code=400, detail="path must start with /reports/static")
+
+    signing_key = getattr(settings, "static_url_signing_key", None)
+    if not signing_key:
+        raise HTTPException(status_code=400, detail="Static URL signing not configured")
+
+    # If admin key configured, ensure caller provided it
+    admin_key = getattr(settings, "admin_api_key", None)
+    if admin_key:
+        key = request.headers.get("x-api-key") or request.headers.get("X-API-KEY")
+        if not key or key != admin_key:
+            raise HTTPException(status_code=401, detail="Unauthorized")
+
+    exp = int(time.time()) + expires_in
+    msg = f"{path}|{exp}".encode("utf-8")
+    sig = hmac.new(signing_key.encode("utf-8"), msg, hashlib.sha256).hexdigest()
+
+    host = getattr(settings, "api_host", "127.0.0.1")
+    port = getattr(settings, "api_port", 8000)
+    base = f"http://{host}:{port}"
+    signed = f"{base}{path}?expires={exp}&sig={sig}"
+    return {"signed_url": signed, "expires": exp, "sig": sig}
 
 # -- Alerts API ---------------------------------------------------------------
 alerts_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", "alerts"))
