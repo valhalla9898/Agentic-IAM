@@ -142,6 +142,61 @@ async def notify_report(payload: dict = Body(...)):
 
 app.include_router(reports_router)
 
+# -- Alerts API ---------------------------------------------------------------
+alerts_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", "alerts"))
+os.makedirs(alerts_dir, exist_ok=True)
+
+alerts_router = APIRouter(prefix="/alerts", tags=["alerts"])
+
+
+@alerts_router.post("/")
+async def create_alert(payload: dict = Body(...)):
+    """Receive an alert about a possible compromise or incident.
+
+    Payload example: {"target": "juice-shop", "severity": "high", "message": "Suspicious activity detected", "details": { ... }}
+    """
+    import json, time
+    target = payload.get("target", "unknown")
+    severity = payload.get("severity", "info")
+    message = payload.get("message", "")
+    details = payload.get("details", {})
+
+    ts = time.strftime("%Y%m%d_%H%M%S")
+    filename = f"alert_{target}_{ts}.json"
+    path = os.path.join(alerts_dir, filename)
+    record = {
+        "target": target,
+        "severity": severity,
+        "message": message,
+        "details": details,
+        "timestamp": ts,
+        "evidence_urls": payload.get("evidence_urls", [])
+    }
+
+    with open(path, "w", encoding="utf-8") as fh:
+        json.dump(record, fh, indent=2)
+
+    return {"status": "ok", "file": os.path.relpath(path, start=os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))}
+
+
+@alerts_router.get("/list")
+async def list_alerts():
+    import json
+    items = []
+    for f in sorted(os.listdir(alerts_dir), reverse=True):
+        p = os.path.join(alerts_dir, f)
+        if not os.path.isfile(p):
+            continue
+        try:
+            with open(p, "r", encoding="utf-8") as fh:
+                items.append(json.load(fh))
+        except Exception:
+            continue
+    return {"alerts": items}
+
+
+app.include_router(alerts_router)
+
 # Root endpoint
 @app.get("/")
 async def root():

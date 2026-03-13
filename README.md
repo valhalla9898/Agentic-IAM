@@ -480,6 +480,52 @@ streamlit run dashboard/reports_streamlit.py
 
 Would you like me to perform a local commit now (I will run `git add` + `git commit` here with your provided message), or do you prefer to run the helper script yourself?
 
+## 🚨 Attack Detection & Incident Reporting (Integration)
+
+This repository now includes a minimal incident-detection and reporting integration designed for safe demo/testing on isolated targets. It is NOT a production IDS — it is a helper for university projects and demonstration purposes.
+
+What was added:
+
+- `scripts/attack_detector.ps1` — a simple detector that tails Docker container logs for suspicious keywords and sends alerts to the API when matches are found. It saves short evidence snippets under `data/reports/<target>/<timestamp>/` and posts an alert to `POST /alerts`.
+- `api` endpoints: `POST /alerts` to submit alerts, and `GET /alerts/list` to fetch recent alerts.
+- Streamlit UI now displays recent alerts at the top of the reports page.
+
+How to use (end-to-end):
+
+1. Start the Agentic-IAM API as described earlier.
+2. Start the vulnerable target container (Juice Shop):
+
+```powershell
+docker run -d --name juice-shop -p 127.0.0.1:3000:3000 bkimminich/juice-shop:latest
+```
+
+3. Start the detector (runs continuously; press Ctrl+C to stop):
+
+```powershell
+.\scripts\attack_detector.ps1 -ContainerName juice-shop -ApiBase http://127.0.0.1:8000
+```
+
+4. When the detector finds suspicious log patterns it will:
+   - Save a small evidence file under `data/reports/juice-shop/<timestamp>/`.
+   - POST an alert to `http://127.0.0.1:8000/alerts` with severity and message.
+   - The Streamlit UI shows recent alerts and links to evidence files.
+
+What to do when an alert arrives (basic incident triage):
+
+1. Open the Streamlit UI (`streamlit run dashboard/reports_streamlit.py`) and inspect the alert timestamp, target, and message.
+2. Click the evidence link to view saved logs/screenshots under `/reports/static/...`.
+3. Capture a snapshot of the vulnerable VM/container state (Docker checkpoint or VM snapshot) before further changes.
+4. Collect container logs and application logs for the time range in the alert.
+5. If you need a forensics report, copy the evidence folder from `data/reports/<target>/<timestamp>/` and attach it to your report.
+
+For your thesis deliverable: include the following in the GitHub repo (recommended):
+- The detector script (`scripts/attack_detector.ps1`).
+- Example alert JSON files stored under `data/alerts/` (the API saves them automatically when alerts are posted).
+- A sample evidence folder under `data/reports/<target>/<timestamp>/` showing logs + screenshots.
+- A short incident report file `docs/incident_report_sample.md` (I can scaffold this for you) describing detected activity and how to reproduce the detection in your lab environment.
+
+Security & Ethics reminder: run this only on systems you own or have written permission to test. Do not use detection scripts to attack other systems.
+
 Agent Management:
   ✅ Create agents
   ✅ Read agents

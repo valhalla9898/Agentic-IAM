@@ -27,6 +27,16 @@ def fetch_reports(base_url: str):
         st.error(f"Failed to fetch reports: {e}")
         return []
 
+
+def fetch_alerts(base_url: str):
+    try:
+        r = requests.get(urljoin(base_url, "/alerts/list"), timeout=5)
+        r.raise_for_status()
+        return r.json().get("alerts", [])
+    except Exception as e:
+        # Do not spam UI with errors for alerts
+        return []
+
 def render_report_block(rep):
     target = rep.get("target")
     ts = rep.get("timestamp")
@@ -59,13 +69,21 @@ def main():
     if poll:
         st.experimental_rerun()
 
+    alerts = fetch_alerts(api_base)
+    if alerts:
+        st.markdown("## Recent Alerts")
+        for a in alerts[:10]:
+            st.warning(f"{a.get('timestamp')} • {a.get('target')} • {a.get('severity').upper()} — {a.get('message')}")
+            for url in a.get('evidence_urls', []):
+                full = urljoin(api_base, url)
+                st.markdown(f"- Evidence: [{url}]({full})")
+
     reports = fetch_reports(api_base)
     if not reports:
         st.info("No imported reports found. Use `scripts/import_scan.ps1` after running a scan.")
-        return
-
-    for rep in reports:
-        render_report_block(rep)
+    else:
+        for rep in reports:
+            render_report_block(rep)
 
 if __name__ == "__main__":
     main()
