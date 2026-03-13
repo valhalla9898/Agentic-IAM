@@ -399,76 +399,86 @@ http://localhost:8501
 #### Admin Role 🔴
 ```
 
-## ✅ ما الذي قمتُ به عمليًا (تفصيلي)
+git diff --staged
+git add .
+git commit -m "Add scan reports integration, Streamlit viewer, and import script"
+git push origin main
+## ✅ What I implemented (detailed)
 
-أضفت وتكاملت ميزة لسير عمل الفحص الأمني بحيث يمكن تشغيل فحوص آمنة على بيئة اختبار معزولة (مثال: OWASP Juice Shop)، استيراد نتائج الفحص إلى المشروع، وعرضها داخل واجهة بسيطة.
+I added a scan-report workflow so you can run controlled security scans against an isolated target (for example, OWASP Juice Shop), import the scan outputs into the project, and browse the findings inside a simple UI.
 
-التغييرات الرئيسية التي أُدخلت على المشروع:
+Key changes added to the repository:
 
-- `data/reports/` — مجلد جديد لتخزين نتائج الفحص المستوردة. بنية المجلد المتوقعة: `data/reports/<target>/<YYYYMMDD_HHMMSS>/` حيث تُوضع ملفات HTML، سجلات، ولقطات شاشة.
-- `scripts/import_scan.ps1` — سكربت PowerShell يساعدك على نسخ ملفات الفحص (مثلاً `zap-report.html`) وملفات اللوج/السكرينشوت إلى مجلد `data/reports/<target>/<timestamp>` ثم يحاول إعلام الـ API بنقطة النهاية `POST /reports/notify`.
-- `api/app.py` — أضفت ما يلي:
-   - تركيب (mount) مجلد التقارير كـ static files متاحة عبر `/reports/static/...`.
-   - واجهة `GET /reports/list` تُرجع JSON بفهرس التقارير المتاحة (target, timestamp, ملفات + روابط).
-   - واجهة `POST /reports/notify` نقطة إخطار بسيطة يمكن من خلالها إبلاغ النظام عن تقرير جديد.
-- `dashboard/reports_streamlit.py` — واجهة Streamlit خفيفة لعرض قائمة التقارير المستوردة وفتحها مباشرة (تقرأ `/reports/list`).
-- تحديث `README.md` ليوضح سير العمل خطوة بخطوة.
+- `data/reports/` — new folder to store imported scan outputs. Expected layout: `data/reports/<target>/<YYYYMMDD_HHMMSS>/` containing HTML reports, logs, and screenshots.
+- `scripts/import_scan.ps1` — PowerShell helper that copies a scan output (for example `zap-report.html`) plus logs/screenshots into `data/reports/<target>/<timestamp>` and attempts to notify the API at `POST /reports/notify`.
+- `api/app.py` — added the following:
+   - mounted the reports folder as static files served at `/reports/static/...`.
+   - `GET /reports/list` returns a JSON index of available reports (target, timestamp, files + urls).
+   - `POST /reports/notify` is a simple notify hook for imported reports.
+- `dashboard/reports_streamlit.py` — lightweight Streamlit UI to list imported reports and open them directly (reads `/reports/list`).
+- Updated `README.md` with step-by-step instructions.
 
-ماذا يفعل هذا العمل عمليًا؟
+How it works (quick workflow):
 
-1. تقوم بتشغيل تطبيق الهدف الضعيف (مثال Juice Shop) على `127.0.0.1:3000` داخل Docker.
-2. تشغّل أداة المسح (مثلاً OWASP ZAP) وتصدّر تقرير HTML باسم `zap-report.html` في مجلد العمل.
-3. تشغيل `scripts\import_scan.ps1` لنسخ `zap-report.html` واللوجات واللقطات إلى `data/reports/juice-shop/<timestamp>/`.
-4. Streamlit أو أي واجهة يمكنها جلب `GET /reports/list` ثم عرض الروابط إلى الملفات المنشورة تحت `/reports/static/...`.
+1. Run the vulnerable target (e.g. Juice Shop) on `127.0.0.1:3000` in Docker.
+2. Run a scanner (for example OWASP ZAP) and export an HTML report named `zap-report.html` into your working directory.
+3. Run the import helper to copy outputs into the project:
 
-ملاحظات أمنيّة: احتفظ بـمجلد `data/reports` محميًا؛ قد يحوي معلومات حساسة. لا تنشر هذه الملفات علنًا.
+```powershell
+.\scripts\import_scan.ps1 -target "juice-shop" -scanFile "zap-report.html" -logsFile "juice-shop-logs.txt"
+```
 
-## 📌 كيف أرفع التغييرات إلى GitHub (خطوات مفصّلة)
+4. Browse results with Streamlit or any UI that calls `GET /reports/list` and opens the files at `/reports/static/...`.
 
-ملاحظة مهمة: لا أستطيع دفع التغييرات إلى الريموت نيابةً عنك لأن ذلك يتطلب بيانات اعتمادك. سأضع لك سكربت جاهز لتشغيله محليًا.
+Security notes: `data/reports` may contain sensitive information. Protect access to this folder and do not publish reports publicly.
 
-1) تأكد أن لديك remote صالح في git (`origin`) وتملك صلاحية الدفع إلى الفرع (مثلاً `main`):
+## 📌 How to push these changes to GitHub (detailed)
+
+Note: I cannot push to your remote on your behalf without credentials. A helper script is included to make this process interactive and simple.
+
+1) Confirm you have a valid remote (for example `origin`) and push permissions for the branch (e.g. `main`):
 
 ```powershell
 git remote -v
 ```
 
-2) افحص التعديلات الجاهزة للالتزام:
+2) Inspect changes ready to be committed:
 
 ```powershell
 git status --porcelain
 git diff --staged
 ```
 
-3) أوامر سريعة للـ commit و push (آمن):
+3) Quick commit and push commands:
 
 ```powershell
-# اضف كل التغييرات
 git add .
-
-# التزام برسالة موصيّة
 git commit -m "Add scan reports integration, Streamlit viewer, and import script"
-
-# ادفع التغييرات إلى الفرع الرئيسي
 git push origin main
 ```
 
-4) سكربت جاهز للتشغيل: `scripts/commit_and_push.ps1` — يقوم بعمل add/commit وتطلب منك رسالة، ثم يسألك إن أردت push.
+4) Interactive helper: run `scripts/commit_and_push.ps1` to stage, commit (it will ask for a message) and optionally push.
+
+If you prefer, I can run `git commit` locally here with the message you provide; I cannot complete `git push` without your credentials.
+
+## ✅ Recommended next steps
+
+1. Start the API locally:
 
 ```powershell
-.\scripts\commit_and_push.ps1
+pip install -r requirements.txt
+uvicorn api.app:app --host 127.0.0.1 --port 8000 --reload
 ```
 
-إذا أردت، أستطيع تنفيذ `git commit` محليًا (إن سمحت) ولكن لا أستطيع إتمام `git push` نيابةً عنك بدون بيانات الاعتماد.
+2. Start the vulnerable target and run a scan (Juice Shop + ZAP as described above).
+3. Import the scan results using `scripts\import_scan.ps1`.
+4. Run the Streamlit viewer:
 
-## ✅ الخطوة التالية التي أقترحها الآن
+```powershell
+streamlit run dashboard/reports_streamlit.py
+```
 
-1. شغّل API محليًا: `uvicorn api.app:app --host 127.0.0.1 --port 8000 --reload`.
-2. شغّل Juice Shop و ZAP حسب التعليمات في README.
-3. شغّل `scripts\import_scan.ps1` لاستيراد النتائج.
-4. شغّل `streamlit run dashboard/reports_streamlit.py` لمشاهدة النتائج.
-
-هل أعمل commit محلي الآن (أقوم بتشغيل `git add` + `git commit` هنا داخل المشروع مع رسالة منك) أم تفضّل أن تشغّل السكربت بنفسك؟
+Would you like me to perform a local commit now (I will run `git add` + `git commit` here with your provided message), or do you prefer to run the helper script yourself?
 
 Agent Management:
   ✅ Create agents
