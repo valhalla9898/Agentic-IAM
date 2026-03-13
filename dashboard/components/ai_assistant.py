@@ -53,6 +53,15 @@ def show_ai_assistant():
     st.header("🤖 AI Assistant")
     st.write("Ask the assistant to explain features, or get quick how-to steps.")
 
+    # Allow entering OPENAI API key at runtime for demos (stored in process only)
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        with st.expander("OpenAI API Key (optional, used only for runtime)"):
+            key_input = st.text_input("Paste OPENAI_API_KEY here", type="password")
+            if key_input:
+                os.environ["OPENAI_API_KEY"] = key_input
+                st.success("API key set for current session (process only)")
+
     col1, col2 = st.columns([3, 1])
     with col1:
         prompt = st.text_area("Ask a question or describe what you want help with", height=160)
