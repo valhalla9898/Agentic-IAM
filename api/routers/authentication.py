@@ -165,14 +165,32 @@ class MFAStartRequest(BaseModel):
 
 
 @router.post("/mfa/start")
-async def mfa_start(payload: MFAStartRequest, iam: AgenticIAM = Depends(get_iam)):
+async def mfa_start(agent_id: Optional[str] = Query(None), method: Optional[str] = Query(None), iam: AgenticIAM = Depends(get_iam), settings=Depends(get_settings)):
     try:
+        # Ensure MFA feature is enabled in settings
+        if not getattr(settings, "enable_mfa", False):
+            raise HTTPException(status_code=501, detail="Multi-factor authentication is not enabled")
+
         mgr = getattr(iam, "authentication_manager", None)
-        if not mgr or not hasattr(mgr, "start_mfa"):
+        if not mgr:
             raise HTTPException(status_code=501, detail="MFA not configured")
 
-        result = await mgr.start_mfa(payload.agent_id, method=payload.method)
-        return {"success": True, "data": result}
+        # Many authentication method implementations expose a per-method
+        # interface. Tests (and some implementations) provide a "mfa"
+        # method object with `start_authentication` available.
+        mfa_impl = getattr(mgr, "methods", {}).get("mfa")
+        if not mfa_impl or not hasattr(mfa_impl, "start_authentication"):
+            raise HTTPException(status_code=501, detail="MFA not configured")
+
+        result = mfa_impl.start_authentication(agent_id) if not callable(getattr(mfa_impl.start_authentication, '__await__', None)) else await mfa_impl.start_authentication(agent_id)
+
+        # Normalize response to match tests and API expectations
+        return {
+            "mfa_session_id": result.get("session_id") if isinstance(result, dict) else getattr(result, "session_id", None),
+            "required_factors": result.get("required_factors") if isinstance(result, dict) else getattr(result, "required_factors", None),
+            "available_methods": result.get("available_methods") if isinstance(result, dict) else getattr(result, "available_methods", None),
+            "expires_in": 600
+        }
     except HTTPException:
         raise
     except Exception as e:
@@ -180,19 +198,47 @@ async def mfa_start(payload: MFAStartRequest, iam: AgenticIAM = Depends(get_iam)
 
 
 class MFAVerifyRequest(BaseModel):
-    agent_id: str
-    code: str
+    mfa_session_id: str
+    method: str
+    credentials: Dict[str, Any]
 
 
 @router.post("/mfa/verify")
 async def mfa_verify(payload: MFAVerifyRequest, iam: AgenticIAM = Depends(get_iam)):
     try:
         mgr = getattr(iam, "authentication_manager", None)
-        if not mgr or not hasattr(mgr, "verify_mfa"):
+        if not mgr:
             raise HTTPException(status_code=501, detail="MFA not configured")
 
-        ok = await mgr.verify_mfa(payload.agent_id, payload.code)
-        return {"success": bool(ok)}
+        mfa_impl = getattr(mgr, "methods", {}).get("mfa")
+        if not mfa_impl or not hasattr(mfa_impl, "authenticate_factor"):
+            raise HTTPException(status_code=501, detail="MFA not configured")
+
+        # Call the per-method authenticate_factor(session_id, method, credentials)
+        result = mfa_impl.authenticate_factor(payload.mfa_session_id, payload.method, payload.credentials)
+        if callable(getattr(result, '__await__', None)):
+            result = await result
+
+        # Normalize response based on method result object
+        if getattr(result, "success", False):
+            auth_method = getattr(result, "auth_method", None)
+            if auth_method == "mfa":
+                return {
+                    "success": True,
+                    "mfa_complete": True,
+                    "agent_id": getattr(result, "agent_id", None),
+                    "trust_level": getattr(result, "trust_level", None)
+                }
+            else:
+                return {
+                    "success": True,
+                    "mfa_complete": False,
+                    "factors_completed": getattr(result, "trust_level", None),
+                    "message": getattr(result, "error_message", None)
+                }
+        else:
+            return {"success": False, "error": getattr(result, "error_message", "MFA verification failed")}
+
     except HTTPException:
         raise
     except Exception as e:
@@ -219,6 +265,7 @@ async def get_status(agent_id: str, iam: AgenticIAM = Depends(get_iam)):
             "agent_id": agent_id,
             "agent_status": getattr(agent_entry, "status", {}).value if getattr(agent_entry, "status", None) else "unknown",
             "is_active": active_count > 0,
+            "active_sessions": active_count,
             "sessions_count": len(sessions),
             "trust_score": getattr(trust, "overall_score", None),
             "risk_level": getattr(getattr(trust, "risk_level", None), "value", None),

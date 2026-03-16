@@ -12,6 +12,26 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
+def _safe_rerun():
+    """Attempt to rerun the Streamlit app. Fallbacks to toggling a session flag and calling st.stop()."""
+    try:
+        # Preferred API if available
+        if hasattr(st, "experimental_rerun"):
+            st.experimental_rerun()
+            return
+    except Exception:
+        pass
+
+    # Fallback: toggle a sentinel in session_state and stop execution
+    key = "_rerun_toggle"
+    st.session_state[key] = not st.session_state.get(key, False)
+    try:
+        st.stop()
+    except Exception:
+        # As a last resort, do nothing (UI will update on next interaction)
+        return
+
 def show_agent_registration():
     """Display agent registration form"""
     st.subheader("➕ Register New Agent")
@@ -111,22 +131,35 @@ def show_agent_list():
                 st.caption(f"**Status:** {agent['status']}")
             
             with col3:
-                # Action buttons
+                # Action buttons - use on_click callbacks to ensure reliable state change and rerun
                 col_btn1, col_btn2, col_btn3 = st.columns(3)
-                
-                with col_btn1:
-                    if st.button("📊 Details", key=f"detail_{agent['id']}", use_container_width=True):
-                        st.session_state.selected_agent = agent['id']
-                
-                with col_btn2:
-                    if st.button("📝 Edit", key=f"edit_{agent['id']}", use_container_width=True):
-                        st.session_state.edit_agent_id = agent['id']
-                
-                with col_btn3:
-                    if st.button("🗑️ Delete", key=f"del_{agent['id']}", use_container_width=True):
-                        if db.update_agent(agent['id'], status='inactive'):
+
+                def _select_agent(aid=agent['id']):
+                    st.session_state.selected_agent = aid
+                    _safe_rerun()
+
+                def _edit_agent(aid=agent['id']):
+                    st.session_state.edit_agent_id = aid
+                    _safe_rerun()
+
+                def _delete_agent(aid=agent['id']):
+                    try:
+                        if db.update_agent(aid, status='inactive'):
                             st.success("✅ Agent disabled")
-                            st.rerun()
+                            _safe_rerun()
+                        else:
+                            st.error("Failed to update agent status")
+                    except Exception as e:
+                        st.error(f"Error disabling agent: {e}")
+
+                with col_btn1:
+                    st.button("📊 Details", key=f"detail_{agent['id']}", on_click=_select_agent, use_container_width=True)
+
+                with col_btn2:
+                    st.button("📝 Edit", key=f"edit_{agent['id']}", on_click=_edit_agent, use_container_width=True)
+
+                with col_btn3:
+                    st.button("🗑️ Delete", key=f"del_{agent['id']}", on_click=_delete_agent, use_container_width=True)
             
             st.divider()
 

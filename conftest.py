@@ -28,6 +28,35 @@ except Exception:
     secret_manager = _Shim()
 
 
+    def pytest_collection_modifyitems(config, items):
+        """Deselect end-to-end Playwright tests by default.
+
+        Set the environment variable `RUN_E2E=1` to include `tests/e2e/*` tests.
+        This avoids requiring heavy browser deps during quick local runs.
+        """
+        import os
+        run_e2e = os.getenv("RUN_E2E")
+        if run_e2e:
+            return
+        remove = []
+        for item in list(items):
+            p = str(item.fspath).replace("\\", "/")
+            if "/tests/e2e/" in p or p.endswith("/tests/e2e"):
+                items.remove(item)
+
+
+    def pytest_ignore_collect(collection_path, config):
+        """Prevent pytest from importing files under tests/e2e unless RUN_E2E is set.
+
+        Uses the newer `collection_path` parameter name to avoid pytest deprecation warnings.
+        """
+        import os
+        p = str(collection_path).replace("\\", "/")
+        if "/tests/e2e/" in p or p.endswith("/tests/e2e"):
+            return not bool(os.getenv("RUN_E2E"))
+        return False
+
+
 @pytest.fixture(scope="session")
 def event_loop():
     """Create an instance of the default event loop for the test session."""
@@ -84,10 +113,15 @@ def mock_iam(test_settings):
     iam.audit_manager = MagicMock()
     iam.compliance_manager = MagicMock()
     iam.intelligence_engine = MagicMock()
+    iam.logger = MagicMock()
 
     # Mock async methods where tests expect them
     iam.initialize = AsyncMock()
-    iam.shutdown = AsyncMock()
+    # Bind the real shutdown implementation so tests that call
+    # `await mock_iam.shutdown()` execute the shutdown sequence on the
+    # mocked subcomponents (their `shutdown` AsyncMocks will be awaited).
+    from core.agentic_iam import AgenticIAM as _AgenticIAM
+    iam.shutdown = _AgenticIAM.shutdown.__get__(iam, _AgenticIAM)
     iam.authenticate = AsyncMock()
     iam.authorize = AsyncMock()
     iam.register_agent = AsyncMock()
