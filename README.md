@@ -38,6 +38,7 @@ Security notes
 [![Python Version](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://www.python.org/)
 [![Security](https://img.shields.io/badge/security-hardened-green.svg)](#security-features)
 [![Status](https://img.shields.io/badge/status-production--ready-brightgreen.svg)](#status)
+[![CI](https://github.com/valhalla9898/Agentic-IAM/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/valhalla9898/Agentic-IAM/actions/workflows/ci.yml)
 
 > **A comprehensive Python framework for managing agent identities, authentication, authorization, and trust in multi-agent systems with enterprise-grade security.**
 
