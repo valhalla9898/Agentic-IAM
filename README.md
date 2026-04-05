@@ -39,6 +39,7 @@ Security notes
 [![Security](https://img.shields.io/badge/security-hardened-green.svg)](#security-features)
 [![Status](https://img.shields.io/badge/status-production--ready-brightgreen.svg)](#status)
 [![CI](https://github.com/valhalla9898/Agentic-IAM/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/valhalla9898/Agentic-IAM/actions/workflows/ci.yml)
+[![E2E](https://github.com/valhalla9898/Agentic-IAM/actions/workflows/playwright-e2e.yml/badge.svg?branch=main)](https://github.com/valhalla9898/Agentic-IAM/actions/workflows/playwright-e2e.yml)
 
 > **A comprehensive Python framework for managing agent identities, authentication, authorization, and trust in multi-agent systems with enterprise-grade security.**
 
