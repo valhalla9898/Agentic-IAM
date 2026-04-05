@@ -730,6 +730,10 @@ streamlit run app.py
 - **Default Port**: 8501
 - **Browser**: Any modern browser (Chrome, Firefox, Safari, Edge)
 
+### GitHub Actions
+- Pushes and pull requests automatically run the CI and Playwright workflows.
+- The E2E workflow starts Streamlit automatically during tests, so no manual setup is required.
+
 ### Run Tests Automatically
 ```bash
 pytest -q

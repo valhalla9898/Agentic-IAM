@@ -29,6 +29,9 @@ jobs:
       run: |
         python -m pip install --upgrade pip setuptools wheel
         pip install -e ".[dev]"
+
+    - name: Install Playwright browsers
+      run: playwright install --with-deps
     
     - name: Lint with flake8
       run: |

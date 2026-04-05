@@ -23,15 +23,9 @@ jobs:
           pip install -r requirements.txt
           playwright install --with-deps
 
-      - name: Start Streamlit (background)
-        run: |
-          nohup streamlit run app.py --server.port 8501 &
-          # wait for server to be ready
-          sleep 6
-
       - name: Run Playwright tests
         run: |
-          pytest tests/e2e -q || true
+          pytest tests/e2e -q
 
       - name: Collect E2E artifacts
         run: |
@@ -44,6 +38,3 @@ jobs:
           name: playwright-e2e-artifacts
           path: e2e-artifacts/
 
-      - name: Stop Streamlit
-        run: |
-          pkill -f streamlit || true
