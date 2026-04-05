@@ -65,6 +65,7 @@ class Settings:
         self.credential_storage_path: str = overrides.get("credential_storage_path", "./data/credentials")
         self.credential_encryption_key: str = overrides.get("credential_encryption_key", self.encryption_key)
         self.audit_log_path: str = overrides.get("audit_log_path", "./logs/audit.log")
+        self.database_path: str = overrides.get("database_path", self._default_database_path())
 
         # Feature flags
         self.enable_trust_scoring: bool = overrides.get("enable_trust_scoring", True)
@@ -103,6 +104,7 @@ class Settings:
             Path(self.credential_storage_path),
             Path(self.audit_log_path).parent,
             Path(self.log_file).parent if self.log_file else None,
+            Path(self.database_path).parent if self.database_path else None,
         ]
         for directory in directories:
             if directory:
@@ -127,6 +129,17 @@ class Settings:
         except Exception:
             # Silent fallback to environment or defaults
             pass
+
+    def _default_database_path(self) -> str:
+        db_dir = os.getenv("AGENTIC_IAM_DATA_DIR")
+        if db_dir:
+            return str(Path(db_dir) / "agentic_iam.db")
+
+        local_app_data = os.getenv("LOCALAPPDATA") or os.getenv("APPDATA")
+        if local_app_data:
+            return str(Path(local_app_data) / "Agentic-IAM" / "agentic_iam.db")
+
+        return str(Path("data") / "agentic_iam.db")
 
     @property
     def is_production(self) -> bool:

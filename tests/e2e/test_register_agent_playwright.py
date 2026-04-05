@@ -1,7 +1,7 @@
 import os
-import pytest
-
 from playwright.sync_api import sync_playwright
+
+from tests.e2e.helpers import login_as_admin
 
 
 def save_artifacts(page, name_prefix="register_agent"):
@@ -20,8 +20,9 @@ def test_register_agent_flow():
         page = browser.new_page()
         try:
             page.goto("http://localhost:8501")
-            # TODO: implement navigation to agents -> register
-            assert "Agentic-IAM" in page.title()
+            login_as_admin(page)
+            page.locator('[data-testid="stSidebar"] p').filter(has_text='Register Agent').first.click()
+            page.wait_for_selector('text=Register New Agent', timeout=10000)
             save_artifacts(page, "register_agent_success")
         except Exception:
             save_artifacts(page, "register_agent_failure")

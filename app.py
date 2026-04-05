@@ -14,6 +14,7 @@ from datetime import datetime
 sys.path.insert(0, str(Path(__file__).parent))
 
 from database import get_database
+from config.settings import get_settings
 from dashboard.components.agent_selection import (
     show_agent_registration,
     show_agent_selector,
@@ -72,7 +73,7 @@ def initialize_session():
     if "agent_page" not in st.session_state:
         st.session_state.agent_page = 1
     if "db" not in st.session_state:
-        st.session_state.db = get_database()
+        st.session_state.db = get_database(get_settings().database_path)
     if "selected_agent" not in st.session_state:
         st.session_state.selected_agent = None
     if "user" not in st.session_state:
@@ -786,6 +787,7 @@ def show_page_user_management():
             st.subheader("User Actions")
             for u in users:
                 cols = st.columns([3, 1, 1])
+                pending_delete_key = f"pending_user_delete_{u['id']}"
                 with cols[0]:
                     st.write(
                         f"**{u['username']}** — {u['email']} — role: {u['role']} — status: {u['status']}"
@@ -800,15 +802,28 @@ def show_page_user_management():
                             st.error(f"Failed to suspend user {u['username']}")
                 with cols[2]:
                     if st.button(f"Delete {u['username']}", key=f"deluser_{u['id']}"):
-                        ok = db.delete_user(u["id"])
-                        still_exists = db.get_user_by_id(u["id"])
-                        if ok and not still_exists:
-                            st.success(f"User {u['username']} deleted")
+                        st.session_state[pending_delete_key] = True
+                        st.rerun()
+
+                if st.session_state.get(pending_delete_key):
+                    st.warning(f"Are you sure you want to delete user {u['username']}? This cannot be undone.")
+                    confirm_col, cancel_col = st.columns(2)
+                    with confirm_col:
+                        if st.button(f"✅ Confirm Delete {u['username']}", key=f"confirm_deluser_{u['id']}"):
+                            ok = db.delete_user(u["id"])
+                            still_exists = db.get_user_by_id(u["id"])
+                            if ok and not still_exists:
+                                st.success(f"User {u['username']} deleted")
+                                st.session_state[pending_delete_key] = False
+                                st.rerun()
+                            elif ok and still_exists:
+                                st.error(f"Delete reported success, but user {u['username']} still exists")
+                            else:
+                                st.error(f"Failed to delete user {u['username']}")
+                    with cancel_col:
+                        if st.button(f"✖ Cancel {u['username']}", key=f"cancel_deluser_{u['id']}"):
+                            st.session_state[pending_delete_key] = False
                             st.rerun()
-                        elif ok and still_exists:
-                            st.error(f"Delete reported success, but user {u['username']} still exists")
-                        else:
-                            st.error(f"Failed to delete user {u['username']}")
 
             st.markdown("---")
             st.subheader("Edit User")

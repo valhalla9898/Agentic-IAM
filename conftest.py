@@ -2,13 +2,19 @@
 Pytest configuration and shared fixtures for Agentic-IAM tests
 """
 import asyncio
-import pytest
+import os
+import socket
+import subprocess
 import tempfile
+import pytest
 import shutil
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
-from datetime import datetime, timedelta
+from datetime import datetime
+from urllib.error import URLError
+from urllib.request import urlopen
 import sys
+import time
 
 # Add project modules to path
 sys.path.insert(0, str(Path(__file__).parent))
@@ -28,33 +34,107 @@ except Exception:
     secret_manager = _Shim()
 
 
-    def pytest_collection_modifyitems(config, items):
-        """Deselect end-to-end Playwright tests by default.
-
-        Set the environment variable `RUN_E2E=1` to include `tests/e2e/*` tests.
-        This avoids requiring heavy browser deps during quick local runs.
-        """
-        import os
-        run_e2e = os.getenv("RUN_E2E")
-        if run_e2e:
-            return
-        remove = []
-        for item in list(items):
-            p = str(item.fspath).replace("\\", "/")
-            if "/tests/e2e/" in p or p.endswith("/tests/e2e"):
-                items.remove(item)
+def _has_e2e_tests(items):
+    return any("/tests/e2e/" in str(item.fspath).replace("\\", "/") for item in items)
 
 
-    def pytest_ignore_collect(collection_path, config):
-        """Prevent pytest from importing files under tests/e2e unless RUN_E2E is set.
+def _find_free_port():
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.bind(("127.0.0.1", 0))
+        return sock.getsockname()[1]
 
-        Uses the newer `collection_path` parameter name to avoid pytest deprecation warnings.
-        """
-        import os
-        p = str(collection_path).replace("\\", "/")
-        if "/tests/e2e/" in p or p.endswith("/tests/e2e"):
-            return not bool(os.getenv("RUN_E2E"))
+
+def _wait_for_streamlit(url, process, timeout=45):
+    end_time = time.time() + timeout
+    last_error = None
+    while time.time() < end_time:
+        try:
+            with urlopen(url, timeout=2):
+                return True
+        except URLError as exc:
+            last_error = exc
+            if process.poll() is not None:
+                break
+            time.sleep(1)
+    raise RuntimeError(f"Streamlit server did not become ready at {url}: {last_error}")
+
+
+def _url_is_reachable(url):
+    try:
+        with urlopen(url, timeout=2):
+            return True
+    except Exception:
         return False
+
+
+def _start_streamlit_for_e2e(config):
+    if getattr(config, "_agentic_iam_streamlit_process", None):
+        return
+
+    configured_url = os.getenv("STREAMLIT_URL")
+    if configured_url and _url_is_reachable(configured_url):
+        return
+
+    if configured_url and not _url_is_reachable(configured_url):
+        os.environ.pop("STREAMLIT_URL", None)
+
+    port = _find_free_port()
+    url = f"http://127.0.0.1:{port}"
+    env = os.environ.copy()
+    env["STREAMLIT_URL"] = url
+    env["STREAMLIT_SERVER_PORT"] = str(port)
+    log_file = tempfile.NamedTemporaryFile(prefix="agentic_iam_streamlit_", suffix=".log", delete=False)
+    log_path = Path(log_file.name)
+
+    process = subprocess.Popen(
+        [
+            sys.executable,
+            "-m",
+            "streamlit",
+            "run",
+            "app.py",
+            "--server.address",
+            "127.0.0.1",
+            "--server.port",
+            str(port),
+            "--server.headless",
+            "true",
+        ],
+        cwd=str(Path(__file__).parent),
+        env=env,
+        stdout=log_file,
+        stderr=subprocess.STDOUT,
+    )
+    config._agentic_iam_streamlit_process = process
+    config._agentic_iam_streamlit_url = url
+    config._agentic_iam_streamlit_log = log_path
+    os.environ["STREAMLIT_URL"] = url
+    try:
+        _wait_for_streamlit(url, process)
+    except Exception as exc:
+        log_text = log_path.read_text(encoding="utf-8", errors="ignore") if log_path.exists() else ""
+        raise RuntimeError(f"Failed to start Streamlit for E2E at {url}. Log:\n{log_text}") from exc
+
+
+def _stop_streamlit_for_e2e(config):
+    process = getattr(config, "_agentic_iam_streamlit_process", None)
+    if not process:
+        return
+
+    process.terminate()
+    try:
+        process.wait(timeout=10)
+    except Exception:
+        process.kill()
+    finally:
+        config._agentic_iam_streamlit_process = None
+        log_path = getattr(config, "_agentic_iam_streamlit_log", None)
+        if log_path and Path(log_path).exists():
+            try:
+                Path(log_path).unlink()
+            except Exception:
+                pass
+        config._agentic_iam_streamlit_log = None
 
 
 @pytest.fixture(scope="session")
@@ -144,6 +224,7 @@ def mock_iam(test_settings):
     iam.agent_registry.list_agents = MagicMock(return_value=[])
     iam.agent_registry.get_agent = MagicMock(return_value=None)
     iam.agent_registry.register_agent = MagicMock(return_value=MagicMock(registration_id="reg_default"))
+    iam.agent_registry.delete_agent = MagicMock(return_value=True)
     iam.credential_manager.store_agent_credentials = AsyncMock(return_value=True)
     iam.audit_manager.log_event = AsyncMock(return_value=True)
     iam.intelligence_engine.initialize_agent_score = AsyncMock(return_value=True)
@@ -156,6 +237,7 @@ def mock_iam(test_settings):
     iam.authenticate = _AgenticIAM.authenticate.__get__(iam, _AgenticIAM)
     iam.authorize = _AgenticIAM.authorize.__get__(iam, _AgenticIAM)
     iam.register_agent = _AgenticIAM.register_agent.__get__(iam, _AgenticIAM)
+    iam.delete_agent = _AgenticIAM.delete_agent.__get__(iam, _AgenticIAM)
     iam.create_session = _AgenticIAM.create_session.__get__(iam, _AgenticIAM)
     iam.calculate_trust_score = _AgenticIAM.calculate_trust_score.__get__(iam, _AgenticIAM)
     iam.get_platform_status = _AgenticIAM.get_platform_status.__get__(iam, _AgenticIAM)
@@ -244,7 +326,7 @@ def sample_agent_identity():
 @pytest.fixture
 def sample_trust_score():
     """Sample trust score for testing"""
-    from agent_intelligence import TrustScore, RiskLevel
+    from agent_intelligence import TrustScore
 
     trust_score = TrustScore(
         overall_score=0.85,
@@ -386,6 +468,9 @@ def pytest_configure(config):
 
 def pytest_collection_modifyitems(config, items):
     """Modify test collection"""
+    if _has_e2e_tests(items):
+        _start_streamlit_for_e2e(config)
+
     # Add markers based on file location
     for item in items:
         # Mark tests in specific directories
@@ -397,6 +482,10 @@ def pytest_collection_modifyitems(config, items):
             item.add_marker(pytest.mark.api)
         elif "test_security" in str(item.fspath):
             item.add_marker(pytest.mark.security)
+
+
+def pytest_sessionfinish(session, exitstatus):
+    _stop_streamlit_for_e2e(session.config)
 
 
 # Asyncio compatibility

@@ -715,6 +715,13 @@ streamlit run app.py
 
 ### Start the Application
 ```bash
+python run_gui.py
+```
+
+This command verifies the local setup and then starts Streamlit automatically.
+
+If you want to launch Streamlit directly, use:
+```bash
 streamlit run app.py
 ```
 
@@ -722,6 +729,13 @@ streamlit run app.py
 - **URL**: http://localhost:8501
 - **Default Port**: 8501
 - **Browser**: Any modern browser (Chrome, Firefox, Safari, Edge)
+
+### Run Tests Automatically
+```bash
+pytest -q
+```
+
+The E2E suite now starts its own temporary Streamlit server automatically when `STREAMLIT_URL` is not set, so no manual app startup is required for test runs.
 
 ### Dashboard Features by Role
 

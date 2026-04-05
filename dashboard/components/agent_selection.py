@@ -5,22 +5,14 @@ Provides functionality for registering new agents and selecting existing agents.
 """
 
 import streamlit as st
-from database import get_database
-from datetime import datetime
 import uuid
 import logging
 
 logger = logging.getLogger(__name__)
 
 
-def _safe_rerun():
-    """Rerun the Streamlit app using the current stable API."""
-    st.rerun()
-
 def show_agent_registration():
     """Display agent registration form"""
-    st.subheader("➕ Register New Agent")
-
     db = st.session_state.db
 
     with st.form("agent_registration_form"):
@@ -56,7 +48,7 @@ def show_agent_registration():
             )
 
             if success:
-                st.success(f"✅ Agent registered successfully!")
+                st.success("✅ Agent registered successfully!")
                 st.info(f"🆔 Agent ID: {agent_id}")
                 st.balloons()
             else:
@@ -93,8 +85,6 @@ def show_agent_selector():
 
 def show_agent_list():
     """Display list of all agents from database"""
-    st.subheader("📋 Agents List")
-
     db = st.session_state.db
     agents = db.list_agents()
 
@@ -116,26 +106,38 @@ def show_agent_list():
                 st.caption(f"**Status:** {agent['status']}")
 
             with col3:
-                # Action buttons - use on_click callbacks to ensure reliable state change and rerun
                 col_btn1, col_btn2, col_btn3 = st.columns(3)
 
                 def _select_agent(aid=agent['id']):
                     st.session_state.selected_agent = aid
-                    _safe_rerun()
 
                 def _edit_agent(aid=agent['id']):
                     st.session_state.edit_agent_id = aid
-                    _safe_rerun()
 
-                def _delete_agent(aid=agent['id']):
+                pending_delete_key = f"pending_delete_agent_{agent['id']}"
+
+                def _begin_delete(aid=agent['id']):
+                    st.session_state[pending_delete_key] = True
+
+                def _cancel_delete(aid=agent['id']):
+                    st.session_state[pending_delete_key] = False
+
+                def _confirm_delete(aid=agent['id']):
                     try:
-                        if db.update_agent(aid, status='inactive'):
-                            st.success("✅ Agent disabled")
-                            _safe_rerun()
+                        deleted = db.delete_agent(aid)
+                        still_exists = db.get_agent(aid)
+                        if deleted and still_exists is None:
+                            st.success(f"✅ Agent {aid} deleted successfully")
+                            if st.session_state.get("selected_agent") == aid:
+                                st.session_state.selected_agent = None
+                            st.session_state[pending_delete_key] = False
+                            st.rerun()
+                        elif deleted and still_exists is not None:
+                            st.error(f"Delete reported success, but agent {aid} still exists")
                         else:
-                            st.error("Failed to update agent status")
+                            st.error(f"Failed to delete agent {aid}")
                     except Exception as e:
-                        st.error(f"Error disabling agent: {e}")
+                        st.error(f"Error deleting agent: {e}")
 
                 with col_btn1:
                     st.button("📊 Details", key=f"detail_{agent['id']}", on_click=_select_agent, use_container_width=True)
@@ -144,7 +146,20 @@ def show_agent_list():
                     st.button("📝 Edit", key=f"edit_{agent['id']}", on_click=_edit_agent, use_container_width=True)
 
                 with col_btn3:
-                    st.button("🗑️ Delete", key=f"del_{agent['id']}", on_click=_delete_agent, use_container_width=True)
+                    if st.button("🗑️ Delete", key=f"del_{agent['id']}", use_container_width=True):
+                        _begin_delete()
+                        st.rerun()
+
+            if st.session_state.get(pending_delete_key):
+                st.warning(f"Are you sure you want to delete agent {agent['name']} ({agent['id']})? This cannot be undone.")
+                confirm_col, cancel_col = st.columns(2)
+                with confirm_col:
+                    if st.button("✅ Confirm Delete", key=f"confirm_del_{agent['id']}", use_container_width=True):
+                        _confirm_delete()
+                with cancel_col:
+                    if st.button("✖ Cancel", key=f"cancel_del_{agent['id']}", use_container_width=True):
+                        _cancel_delete()
+                        st.rerun()
 
             st.divider()
 

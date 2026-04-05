@@ -250,6 +250,28 @@ class AgenticIAM:
             self.logger.error(f"Failed to register agent {agent_identity.agent_id}: {str(e)}")
             raise
 
+    def delete_agent(self, agent_id: str) -> Dict[str, Any]:
+        """Delete an agent from the registry and terminate active sessions."""
+        if not self.is_initialized:
+            raise RuntimeError("IAM system not initialized")
+
+        if not self.agent_registry or not self.agent_registry.get_agent(agent_id):
+            raise ValueError(f"Agent not found: {agent_id}")
+
+        sessions_terminated = 0
+        if self.session_manager:
+            sessions_terminated = self.session_manager.terminate_agent_sessions(agent_id, "Agent deletion")
+
+        registry_deleted = False
+        if self.agent_registry:
+            registry_deleted = self.agent_registry.delete_agent(agent_id)
+
+        return {
+            "agent_id": agent_id,
+            "registry_deleted": registry_deleted,
+            "sessions_terminated": sessions_terminated,
+        }
+
     async def authenticate(self, agent_id: str, credentials: Dict[str, Any],
                           method: str = "auto", **kwargs) -> 'AuthenticationResult':
         """Authenticate an agent"""

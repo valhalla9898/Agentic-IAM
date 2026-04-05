@@ -8,7 +8,7 @@ import sqlite3
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional
 import os
 
 # Optional secret manager integration
@@ -21,12 +21,26 @@ import bcrypt
 
 logger = logging.getLogger(__name__)
 
+
+def _default_db_path() -> str:
+    """Return the default database path in a user-local application data folder."""
+    base_dir = os.getenv("AGENTIC_IAM_DATA_DIR")
+    if base_dir:
+        return str(Path(base_dir) / "agentic_iam.db")
+
+    local_app_data = os.getenv("LOCALAPPDATA") or os.getenv("APPDATA")
+    if local_app_data:
+        return str(Path(local_app_data) / "Agentic-IAM" / "agentic_iam.db")
+
+    return str(Path("data") / "agentic_iam.db")
+
+
 class Database:
     """SQLite database manager for Agentic-IAM"""
 
-    def __init__(self, db_path: str = "data/agentic_iam.db"):
+    def __init__(self, db_path: Optional[str] = None):
         """Initialize database connection"""
-        self.db_path = db_path
+        self.db_path = db_path or _default_db_path()
         self._ensure_db_path()
         self.init_tables()
 
@@ -537,11 +551,32 @@ class Database:
             logger.error(f"Error deleting user: {e}")
         return False
 
+    def delete_agent(self, agent_id: str) -> bool:
+        """Delete an agent and its dependent records while preserving audit history."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT 1 FROM agents WHERE id = ?", (agent_id,))
+                if not cursor.fetchone():
+                    return False
+
+                cursor.execute("UPDATE events SET agent_id = NULL WHERE agent_id = ?", (agent_id,))
+                cursor.execute("DELETE FROM sessions WHERE agent_id = ?", (agent_id,))
+                cursor.execute("DELETE FROM agent_permissions WHERE agent_id = ?", (agent_id,))
+                cursor.execute("DELETE FROM agent_capabilities WHERE agent_id = ?", (agent_id,))
+                cursor.execute("DELETE FROM agents WHERE id = ?", (agent_id,))
+                conn.commit()
+                return cursor.rowcount > 0
+        except Exception as e:
+            logger.error(f"Error deleting agent: {e}")
+        return False
+
 
 # Global database instance
 _db_instance = None
 
-def get_database(db_path: str = "data/agentic_iam.db") -> Database:
+
+def get_database(db_path: Optional[str] = None) -> Database:
     """Get or create global database instance"""
     global _db_instance
     if _db_instance is None:

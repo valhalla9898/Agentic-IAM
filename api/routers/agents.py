@@ -97,14 +97,19 @@ async def delete_agent(
 ) -> Dict[str, str]:
     """Delete an agent"""
     try:
-        # Terminate all agent sessions
-        session_count = iam.session_manager.terminate_agent_sessions(agent_id, "Agent deletion")
+        if not iam.agent_registry.get_agent(agent_id):
+            raise HTTPException(status_code=404, detail="Agent not found")
+
+        result = iam.delete_agent(agent_id)
 
         return {
             "status": "deleted",
             "agent_id": agent_id,
-            "sessions_terminated": str(session_count)
+            "sessions_terminated": str(result.get("sessions_terminated", 0)),
+            "registry_deleted": str(result.get("registry_deleted", False))
         }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -115,9 +120,9 @@ async def list_agents(
 ) -> Dict[str, Any]:
     """List all registered agents"""
     try:
-        agents = getattr(iam.agent_registry, 'agents', {})
+        agents = iam.agent_registry.list_agents()
         return {
-            "agents": list(agents.keys()),
+            "agents": [agent.agent_id for agent in agents],
             "count": len(agents)
         }
     except Exception as e:

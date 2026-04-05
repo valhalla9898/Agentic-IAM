@@ -108,6 +108,35 @@ class TestAgenticIAM:
 
     @pytest.mark.unit
     @pytest.mark.asyncio
+    async def test_delete_agent_success(self, mock_iam):
+        """Test deleting an agent removes it from the registry and terminates sessions."""
+        mock_agent_entry = MagicMock()
+        mock_iam.agent_registry.get_agent.return_value = mock_agent_entry
+        mock_iam.agent_registry.delete_agent.return_value = True
+        mock_iam.session_manager.terminate_agent_sessions.return_value = 3
+
+        result = mock_iam.delete_agent("agent:test-001")
+
+        assert result["agent_id"] == "agent:test-001"
+        assert result["registry_deleted"] is True
+        assert result["sessions_terminated"] == 3
+
+        mock_iam.session_manager.terminate_agent_sessions.assert_called_once_with(
+            "agent:test-001", "Agent deletion"
+        )
+        mock_iam.agent_registry.delete_agent.assert_called_once_with("agent:test-001")
+
+    @pytest.mark.unit
+    @pytest.mark.asyncio
+    async def test_delete_agent_missing(self, mock_iam):
+        """Test deleting a missing agent raises a clear error."""
+        mock_iam.agent_registry.get_agent.return_value = None
+
+        with pytest.raises(ValueError, match="Agent not found: agent:test-missing"):
+            mock_iam.delete_agent("agent:test-missing")
+
+    @pytest.mark.unit
+    @pytest.mark.asyncio
     async def test_authenticate_success(self, mock_iam):
         """Test successful authentication"""
         from authentication import AuthenticationResult

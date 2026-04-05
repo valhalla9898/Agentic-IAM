@@ -1,5 +1,6 @@
 """Shared helpers for Streamlit Playwright E2E tests."""
 
+import re
 import os
 from pathlib import Path
 
@@ -30,7 +31,12 @@ def login_as_admin(page):
 def choose_selectbox_option(page, label_fragment, option_text):
     combobox = page.locator(f'input[aria-label*="{label_fragment}"]')
     combobox.click()
-    page.get_by_role("option", name=option_text).click()
+    try:
+        page.locator('[role="option"]').first.wait_for(state="attached", timeout=1000)
+    except Exception:
+        combobox.press("Alt+ArrowDown")
+        page.locator('[role="option"]').first.wait_for(state="attached", timeout=5000)
+    page.get_by_role("option", name=re.compile(f"^{re.escape(option_text)}$", re.IGNORECASE)).click()
 
 
 def select_combobox_value(page, label_fragment, value):

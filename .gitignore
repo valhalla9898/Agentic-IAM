@@ -35,6 +35,10 @@ wheels/
 .streamlit/
 .streamlit/config.toml
 
+# Local virtual environments and browser artifacts
+.venv/
+tests/e2e/artifacts/
+
 # Data files
 data/
 logs/

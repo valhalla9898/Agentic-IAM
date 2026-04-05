@@ -6,6 +6,7 @@ from uuid import uuid4
 from playwright.sync_api import sync_playwright
 
 from database import Database
+from config.settings import get_settings
 
 from tests.e2e.helpers import (
     ensure_artifacts_dir,
@@ -21,7 +22,7 @@ def test_admin_user_crud_flow():
     artifacts = ensure_artifacts_dir()
     username = f"e2e_admin_{uuid4().hex[:8]}"
     email = f"{username}@example.com"
-    db = Database()
+    db = Database(get_settings().database_path)
 
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(headless=True)
@@ -30,7 +31,7 @@ def test_admin_user_crud_flow():
             page.goto(base_url)
             login_as_admin(page)
 
-            page.get_by_text("👥 User Management").click()
+            page.locator('[data-testid="stSidebar"] p').filter(has_text='User Management').first.click()
             page.wait_for_selector('text=Manage Users', timeout=10000)
 
             page.get_by_label("New username").fill(username)
@@ -38,6 +39,7 @@ def test_admin_user_crud_flow():
             page.get_by_label("New password").fill("TestPass123!")
             page.get_by_role("button", name="➕ Create User").click()
 
+            page.wait_for_selector("text=created successfully", timeout=10000)
             time.sleep(1)
             created_user = next((user for user in db.list_users() if user["username"] == username), None)
             assert created_user is not None
@@ -53,6 +55,9 @@ def test_admin_user_crud_flow():
             assert updated_user["status"] == "suspended"
 
             page.get_by_role("button", name=f"Delete {username}").click()
+            page.wait_for_selector(f"text=Are you sure you want to delete user {username}", timeout=10000)
+            page.get_by_role("button", name=f"✅ Confirm Delete {username}").click()
+            page.wait_for_selector(f"text=User {username} deleted", timeout=10000)
             time.sleep(1)
 
             deleted_user = db.get_user_by_id(created_user["id"])

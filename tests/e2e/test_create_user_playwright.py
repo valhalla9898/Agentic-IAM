@@ -4,6 +4,7 @@ from uuid import uuid4
 from playwright.sync_api import sync_playwright
 
 from database import Database
+from config.settings import get_settings
 
 from tests.e2e.helpers import (
     choose_selectbox_option,
@@ -18,7 +19,7 @@ def test_create_user_flow():
     base_url = streamlit_base_url()
     username = f"create_e2e_{uuid4().hex[:8]}"
     email = f"{username}@example.com"
-    db = Database()
+    db = Database(get_settings().database_path)
 
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(headless=True)
@@ -27,7 +28,7 @@ def test_create_user_flow():
             page.goto(base_url)
             login_as_admin(page)
 
-            page.get_by_text("👥 User Management").click()
+            page.locator('[data-testid="stSidebar"] p').filter(has_text='User Management').first.click()
             page.wait_for_selector('text=Manage Users', timeout=10000)
 
             page.get_by_label("New username").fill(username)
@@ -36,9 +37,13 @@ def test_create_user_flow():
             choose_selectbox_option(page, "New role", "operator")
             page.get_by_role("button", name="➕ Create User").click()
 
-            time.sleep(1)
+            created_user = None
+            for _ in range(20):
+                created_user = next((user for user in db.list_users() if user["username"] == username), None)
+                if created_user is not None:
+                    break
+                time.sleep(0.5)
 
-            created_user = next((user for user in db.list_users() if user["username"] == username), None)
             assert created_user is not None
             assert created_user["email"] == email
             assert created_user["role"] == "operator"

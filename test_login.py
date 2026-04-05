@@ -211,7 +211,7 @@ def test_authentication():
     print("\nDefault Credentials:")
     print("  Admin: admin / admin123")
     print("  User:  user / user123")
-    print("\nDatabase Location: data/agentic_iam.db")
+    print(f"\nDatabase Location: {db.db_path}")
     print("\nRun the application with: python run_gui.py")
     print("Or directly with: streamlit run app.py")
     print("\n" + "="*70 + "\n")

@@ -571,6 +571,7 @@ def show_agent_details(iam: AgenticIAM):
         st.write("### ⚙️ Agent Actions")
 
         col1, col2, col3, col4 = st.columns(4)
+        pending_delete_key = f"pending_agent_delete_{selected_agent_id}"
 
         with col1:
             if st.button("🔄 Refresh Agent"):
@@ -593,10 +594,35 @@ def show_agent_details(iam: AgenticIAM):
 
         with col4:
             if st.button("🗑️ Delete Agent"):
-                try:
-                    show_alert("Agent deletion would be implemented here", "error")
-                except Exception as e:
-                    handle_error(e, "deleting agent")
+                st.session_state[pending_delete_key] = True
+                st.rerun()
+
+        if st.session_state.get(pending_delete_key):
+            st.warning(
+                f"Are you sure you want to delete agent {selected_agent_id}? This cannot be undone."
+            )
+            confirm_col, cancel_col = st.columns(2)
+
+            with confirm_col:
+                if st.button("✅ Confirm Delete Agent", key=f"confirm_agent_delete_{selected_agent_id}"):
+                    try:
+                        result = iam.delete_agent(selected_agent_id)
+                        still_exists = iam.agent_registry.get_agent(selected_agent_id)
+                        if result.get("registry_deleted") and still_exists is None:
+                            st.success(f"Agent {selected_agent_id} deleted successfully")
+                            st.session_state[pending_delete_key] = False
+                            st.rerun()
+                        elif result.get("registry_deleted") and still_exists is not None:
+                            st.error(f"Delete reported success, but agent {selected_agent_id} still exists")
+                        else:
+                            st.error(f"Failed to delete agent {selected_agent_id}")
+                    except Exception as e:
+                        handle_error(e, "deleting agent")
+
+            with cancel_col:
+                if st.button("✖ Cancel Delete", key=f"cancel_agent_delete_{selected_agent_id}"):
+                    st.session_state[pending_delete_key] = False
+                    st.rerun()
 
     except Exception as e:
         handle_error(e, "loading agent details")
