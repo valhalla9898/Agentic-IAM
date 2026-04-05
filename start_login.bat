@@ -18,15 +18,19 @@ echo.
 echo ================================================================
 echo.
 
+REM Use venv Python directly (bypass Windows Store alias)
+set PYTHON="%~dp0.venv\Scripts\python.exe"
+set STREAMLIT="%~dp0.venv\Scripts\streamlit.exe"
+
 REM Run the application
-python run_gui.py
+%PYTHON% run_gui.py
 
 REM If run_gui.py doesn't work, try direct launch
 if errorlevel 1 (
     echo.
     echo run_gui.py failed, trying direct launch...
     echo.
-    streamlit run app.py
+    %STREAMLIT% run app.py
 )
 
 pause

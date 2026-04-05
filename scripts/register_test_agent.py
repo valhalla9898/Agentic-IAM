@@ -32,7 +32,7 @@ def main():
 
     # Generate identity and register
     agent_identity = AgentIdentity.generate(agent_id, metadata)
-    reg_id = iam.agent_registry.register_agent(agent_identity, endpoints=["https://payment.example.com"], capabilities=metadata["capabilities"]) 
+    reg_id = iam.agent_registry.register_agent(agent_identity, endpoints=["https://payment.example.com"], capabilities=metadata["capabilities"])
 
     print("Registered agent:", agent_id)
     print("Registration ID:", reg_id)

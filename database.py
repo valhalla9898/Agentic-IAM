@@ -23,27 +23,27 @@ logger = logging.getLogger(__name__)
 
 class Database:
     """SQLite database manager for Agentic-IAM"""
-    
+
     def __init__(self, db_path: str = "data/agentic_iam.db"):
         """Initialize database connection"""
         self.db_path = db_path
         self._ensure_db_path()
         self.init_tables()
-    
+
     def _ensure_db_path(self):
         """Ensure database directory exists"""
         db_dir = Path(self.db_path).parent
         db_dir.mkdir(parents=True, exist_ok=True)
-    
+
     def get_connection(self):
         """Get database connection"""
         return sqlite3.connect(self.db_path)
-    
+
     def init_tables(self):
         """Initialize database tables"""
         with self.get_connection() as conn:
             cursor = conn.cursor()
-            
+
             # Users table for dashboard authentication
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS users (
@@ -58,7 +58,7 @@ class Database:
                     last_login TIMESTAMP
                 )
             """)
-            
+
             # Agents table
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS agents (
@@ -71,7 +71,7 @@ class Database:
                     metadata TEXT
                 )
             """)
-            
+
             # Events/Audit log table
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS events (
@@ -85,7 +85,7 @@ class Database:
                     FOREIGN KEY (agent_id) REFERENCES agents(id)
                 )
             """)
-            
+
             # Sessions table
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS sessions (
@@ -98,7 +98,7 @@ class Database:
                     FOREIGN KEY (agent_id) REFERENCES agents(id)
                 )
             """)
-            
+
             # Agent permissions table
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS agent_permissions (
@@ -113,7 +113,7 @@ class Database:
                     FOREIGN KEY (granted_by) REFERENCES users(id)
                 )
             """)
-            
+
             # Agent capabilities tracking table
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS agent_capabilities (
@@ -125,7 +125,7 @@ class Database:
                     FOREIGN KEY (agent_id) REFERENCES agents(id)
                 )
             """)
-            
+
             # Create default admin and user if not exists
             # Ensure schema migrations for older DBs: add missing columns
             cursor.execute("PRAGMA table_info(users)")
@@ -148,17 +148,17 @@ class Database:
                     INSERT INTO users (username, password_hash, email, role, full_name, status)
                     VALUES (?, ?, ?, ?, ?, ?)
                 """, ("user", sqlite3.Binary(user_password), "user@agentic-iam.com", "user", "Default User", "active"))
-                
+
                 # Create operator user
                 operator_password = bcrypt.hashpw("operator123".encode('utf-8'), bcrypt.gensalt())
                 cursor.execute("""
                     INSERT INTO users (username, password_hash, email, role, full_name, status)
                     VALUES (?, ?, ?, ?, ?, ?)
                 """, ("operator", sqlite3.Binary(operator_password), "operator@agentic-iam.com", "operator", "System Operator", "active"))
-            
+
             conn.commit()
             logger.info("Database tables initialized successfully")
-    
+
     # Agent operations
     def add_agent(self, agent_id: str, name: str, agent_type: str = "standard", metadata: Dict = None) -> bool:
         """Add new agent to database"""
@@ -170,7 +170,7 @@ class Database:
                     VALUES (?, ?, ?, ?)
                 """, (agent_id, name, agent_type, json.dumps(metadata or {})))
                 conn.commit()
-                
+
                 # Log event
                 self.log_event("agent_created", agent_id, "create", f"Agent {name} created")
                 logger.info(f"Agent {agent_id} added to database")
@@ -181,7 +181,7 @@ class Database:
         except Exception as e:
             logger.error(f"Error adding agent: {e}")
             return False
-    
+
     def get_agent(self, agent_id: str) -> Optional[Dict]:
         """Get agent details"""
         try:
@@ -202,7 +202,7 @@ class Database:
         except Exception as e:
             logger.error(f"Error getting agent: {e}")
         return None
-    
+
     def list_agents(self) -> List[Dict]:
         """List all agents"""
         try:
@@ -225,7 +225,7 @@ class Database:
         except Exception as e:
             logger.error(f"Error listing agents: {e}")
         return []
-    
+
     def update_agent(self, agent_id: str, **kwargs) -> bool:
         """Update agent information"""
         try:
@@ -233,32 +233,32 @@ class Database:
                 cursor = conn.cursor()
                 updates = []
                 values = []
-                
+
                 for key, value in kwargs.items():
                     if key in ['name', 'type', 'status']:
                         updates.append(f"{key} = ?")
                         values.append(value)
-                
+
                 if not updates:
                     return False
-                
+
                 updates.append("updated_at = ?")
                 values.append(datetime.now().isoformat())
                 values.append(agent_id)
-                
+
                 query = f"UPDATE agents SET {', '.join(updates)} WHERE id = ?"
                 cursor.execute(query, values)
                 conn.commit()
-                
+
                 self.log_event("agent_updated", agent_id, "update", f"Agent {agent_id} updated")
                 return True
         except Exception as e:
             logger.error(f"Error updating agent: {e}")
             return False
-    
+
     # Event logging operations
-    def log_event(self, event_type: str, agent_id: Optional[str] = None, 
-                  action: Optional[str] = None, details: Optional[str] = None, 
+    def log_event(self, event_type: str, agent_id: Optional[str] = None,
+                  action: Optional[str] = None, details: Optional[str] = None,
                   status: str = "success") -> bool:
         """Log an event to database"""
         try:
@@ -274,7 +274,7 @@ class Database:
         except Exception as e:
             logger.error(f"Error logging event: {e}")
             return False
-    
+
     def get_events(self, agent_id: Optional[str] = None, limit: int = 100) -> List[Dict]:
         """Get events from database"""
         try:
@@ -282,18 +282,18 @@ class Database:
                 cursor = conn.cursor()
                 if agent_id:
                     cursor.execute("""
-                        SELECT * FROM events 
-                        WHERE agent_id = ? 
-                        ORDER BY created_at DESC 
+                        SELECT * FROM events
+                        WHERE agent_id = ?
+                        ORDER BY created_at DESC
                         LIMIT ?
                     """, (agent_id, limit))
                 else:
                     cursor.execute("""
-                        SELECT * FROM events 
-                        ORDER BY created_at DESC 
+                        SELECT * FROM events
+                        ORDER BY created_at DESC
                         LIMIT ?
                     """, (limit,))
-                
+
                 rows = cursor.fetchall()
                 events = []
                 for row in rows:
@@ -310,7 +310,7 @@ class Database:
         except Exception as e:
             logger.error(f"Error getting events: {e}")
         return []
-    
+
     # Session operations
     def create_session(self, session_id: str, agent_id: str, metadata: Dict = None) -> bool:
         """Create a session for an agent"""
@@ -327,41 +327,41 @@ class Database:
         except Exception as e:
             logger.error(f"Error creating session: {e}")
             return False
-    
+
     def end_session(self, session_id: str) -> bool:
         """End a session"""
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute("""
-                    UPDATE sessions 
-                    SET status = 'ended', ended_at = ? 
+                    UPDATE sessions
+                    SET status = 'ended', ended_at = ?
                     WHERE id = ?
                 """, (datetime.now().isoformat(), session_id))
                 conn.commit()
-                
+
                 # Get agent_id for logging
                 cursor.execute("SELECT agent_id FROM sessions WHERE id = ?", (session_id,))
                 result = cursor.fetchone()
                 if result:
                     self.log_event("session_ended", result[0], "session_end", f"Session {session_id} ended")
-                
+
                 return True
         except Exception as e:
             logger.error(f"Error ending session: {e}")
             return False
-    
+
     def get_agent_sessions(self, agent_id: str) -> List[Dict]:
         """Get all sessions for an agent"""
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute("""
-                    SELECT * FROM sessions 
-                    WHERE agent_id = ? 
+                    SELECT * FROM sessions
+                    WHERE agent_id = ?
                     ORDER BY started_at DESC
                 """, (agent_id,))
-                
+
                 rows = cursor.fetchall()
                 sessions = []
                 for row in rows:
@@ -408,7 +408,7 @@ class Database:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 cursor.execute("""
-                    SELECT id, username, email, role, password_hash, full_name, status, created_at, last_login 
+                    SELECT id, username, email, role, password_hash, full_name, status, created_at, last_login
                     FROM users WHERE username = ?
                 """, (username,))
                 row = cursor.fetchone()
@@ -478,7 +478,7 @@ class Database:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 cursor.execute("""
-                    SELECT id, username, email, role, full_name, status, created_at, last_login 
+                    SELECT id, username, email, role, full_name, status, created_at, last_login
                     FROM users WHERE id = ?
                 """, (user_id,))
                 row = cursor.fetchone()

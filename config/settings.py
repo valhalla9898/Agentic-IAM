@@ -3,7 +3,7 @@
 Lightweight settings object used by tests and application startup.
 """
 import os
-from typing import Optional, Dict, Any, List
+from typing import Optional, List
 from pathlib import Path
 
 
@@ -42,7 +42,7 @@ class Settings:
         self.mtls_cert_path: Optional[str] = overrides.get("mtls_cert_path", os.getenv("MTLS_CERT_PATH", None))
         self.mtls_key_path: Optional[str] = overrides.get("mtls_key_path", os.getenv("MTLS_KEY_PATH", None))
         # endpoints that require mTLS (path prefixes)
-        self.mtls_required_endpoints: List[str] = overrides.get("mtls_required_endpoints", ["/api/admin", "/api/operator"]) 
+        self.mtls_required_endpoints: List[str] = overrides.get("mtls_required_endpoints", ["/api/admin", "/api/operator"])
 
         # Session defaults
         self.session_ttl: int = int(overrides.get("session_ttl", 3600))
@@ -68,6 +68,7 @@ class Settings:
 
         # Feature flags
         self.enable_trust_scoring: bool = overrides.get("enable_trust_scoring", True)
+        self.enable_anomaly_detection: bool = overrides.get("enable_anomaly_detection", True)
 
         # Admin / signing keys
         # Optional admin API key for protecting admin endpoints and alerts.
@@ -82,6 +83,19 @@ class Settings:
 
         # Ensure directories exist
         self._create_directories()
+        self._validate()
+
+    def _validate(self):
+        allowed_envs = {"development", "testing", "staging", "production"}
+        if self.environment not in allowed_envs:
+            raise ValueError(f"Invalid environment: {self.environment}")
+
+        allowed_levels = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
+        if str(self.log_level).upper() not in allowed_levels:
+            raise ValueError(f"Invalid log level: {self.log_level}")
+
+        if not isinstance(self.encryption_key, str) or len(self.encryption_key) < 16:
+            raise ValueError("encryption_key must be at least 16 characters")
 
     def _create_directories(self):
         directories = [

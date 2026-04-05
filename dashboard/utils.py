@@ -67,15 +67,15 @@ def show_alert(message: str, alert_type: str = "info"):
 def paginate_data(data: List[Dict], page_size: int, page_number: int) -> Dict:
     """Paginate list data"""
     total_pages = (len(data) + page_size - 1) // page_size
-    
+
     if page_number < 1:
         page_number = 1
     if page_number > total_pages:
         page_number = total_pages
-    
+
     start_idx = (page_number - 1) * page_size
     end_idx = start_idx + page_size
-    
+
     return {
         "data": data[start_idx:end_idx],
         "page": page_number,
@@ -87,16 +87,16 @@ def paginate_data(data: List[Dict], page_size: int, page_number: int) -> Dict:
 def render_pagination(pagination: Dict, key: str = "page"):
     """Render pagination controls"""
     col1, col2, col3 = st.columns([1, 2, 1])
-    
+
     with col1:
         if pagination["page"] > 1:
             if st.button("← Previous", key=f"{key}_prev"):
                 st.session_state[f"{key}_page"] = pagination["page"] - 1
                 st.rerun()
-    
+
     with col2:
         st.markdown(f"**Page {pagination['page']} of {pagination['total_pages']}**", unsafe_allow_html=True)
-    
+
     with col3:
         if pagination["page"] < pagination["total_pages"]:
             if st.button("Next →", key=f"{key}_next"):

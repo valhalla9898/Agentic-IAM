@@ -1,22 +1,12 @@
-# Mobile SDK for Agent Registration and Management
+"""Mobile SDK support module.
 
-This SDK provides mobile application support for agent management.
+This module exposes a minimal Python SDK surface for integration tests and
+lightweight local development.
+"""
 
-## Features
-- Agent registration via mobile apps
-- Biometric authentication (voice-based)
-- Offline capability with sync
-- Push notifications for alerts
 
-## Platforms
-- iOS
-- Android
-- React Native
+class AgenticIAMSDK:
+	"""Minimal mobile SDK placeholder."""
 
-## Usage
-```javascript
-import { AgenticIAMSDK } from 'agentic-iam-mobile';
-
-const sdk = new AgenticIAMSDK();
-await sdk.registerAgent(agentData);
-```
+	async def register_agent(self, agent_data):
+		return {"success": True, "agent": agent_data}

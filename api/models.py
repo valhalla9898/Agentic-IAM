@@ -5,14 +5,14 @@ Pydantic models for request/response serialization and validation.
 """
 from datetime import datetime
 from typing import Optional, Dict, Any, List
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 
 
 # Base models
 class BaseResponse(BaseModel):
     """Base response model"""
     timestamp: datetime = Field(default_factory=datetime.utcnow)
-    
+
 
 class SuccessResponse(BaseResponse):
     """Success response model"""
@@ -37,8 +37,9 @@ class AuthenticationRequest(BaseModel):
     credentials: Dict[str, Any] = Field(..., description="Authentication credentials")
     source_ip: Optional[str] = Field(None, description="Source IP address")
     user_agent: Optional[str] = Field(None, description="User agent string")
-    
-    @validator('agent_id')
+
+    @field_validator('agent_id')
+    @classmethod
     def validate_agent_id(cls, v):
         if not v.startswith('agent:'):
             raise ValueError('Agent ID must start with "agent:"')
@@ -72,8 +73,9 @@ class AgentCreateRequest(BaseModel):
     capabilities: List[str] = Field(default_factory=list, description="Agent capabilities")
     metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
     initial_permissions: List[str] = Field(default_factory=list, description="Initial permissions")
-    
-    @validator('agent_id')
+
+    @field_validator('agent_id')
+    @classmethod
     def validate_agent_id(cls, v):
         if not v.startswith('agent:'):
             raise ValueError('Agent ID must start with "agent:"')
@@ -85,8 +87,9 @@ class AgentUpdateRequest(BaseModel):
     description: Optional[str] = None
     metadata: Optional[Dict[str, Any]] = None
     status: Optional[str] = None
-    
-    @validator('status')
+
+    @field_validator('status')
+    @classmethod
     def validate_status(cls, v):
         if v and v not in ['active', 'inactive', 'suspended', 'deactivated']:
             raise ValueError('Invalid status')
@@ -212,8 +215,9 @@ class ComplianceReportRequest(BaseModel):
     end_date: datetime
     include_violations: bool = True
     include_recommendations: bool = True
-    
-    @validator('framework')
+
+    @field_validator('framework')
+    @classmethod
     def validate_framework(cls, v):
         allowed = ['gdpr', 'hipaa', 'sox', 'pci_dss']
         if v.lower() not in allowed:
@@ -240,8 +244,9 @@ class AnalyticsRequest(BaseModel):
     time_range: str = Field(default="24h", description="Time range")
     agent_id: Optional[str] = None
     granularity: str = Field(default="hour", description="Data granularity")
-    
-    @validator('time_range')
+
+    @field_validator('time_range')
+    @classmethod
     def validate_time_range(cls, v):
         allowed = ['1h', '6h', '24h', '7d', '30d']
         if v not in allowed:
@@ -275,8 +280,9 @@ class PaginationRequest(BaseModel):
     page_size: int = Field(default=100, ge=1, le=1000, description="Items per page")
     sort_by: Optional[str] = Field(None, description="Sort field")
     sort_order: str = Field(default="asc", description="Sort order")
-    
-    @validator('sort_order')
+
+    @field_validator('sort_order')
+    @classmethod
     def validate_sort_order(cls, v):
         if v not in ['asc', 'desc']:
             raise ValueError('Sort order must be "asc" or "desc"')
@@ -299,8 +305,9 @@ class ConfigurationUpdateRequest(BaseModel):
     """Configuration update request"""
     section: str = Field(..., description="Configuration section")
     settings: Dict[str, Any] = Field(..., description="Settings to update")
-    
-    @validator('section')
+
+    @field_validator('section')
+    @classmethod
     def validate_section(cls, v):
         allowed = ['auth', 'session', 'trust', 'audit', 'compliance']
         if v not in allowed:
@@ -331,8 +338,9 @@ class NotificationRequest(BaseModel):
     message: str = Field(..., description="Notification message")
     priority: str = Field(default="normal", description="Notification priority")
     channel: str = Field(default="email", description="Notification channel")
-    
-    @validator('priority')
+
+    @field_validator('priority')
+    @classmethod
     def validate_priority(cls, v):
         if v not in ['low', 'normal', 'high', 'critical']:
             raise ValueError('Priority must be low, normal, high, or critical')

@@ -22,7 +22,7 @@ class Permission(Enum):
     AGENT_UPDATE = "agent:update"
     AGENT_DELETE = "agent:delete"
     AGENT_LIST = "agent:list"
-    
+
     # User management permissions (admin only)
     USER_CREATE = "user:create"
     USER_READ = "user:read"
@@ -30,25 +30,25 @@ class Permission(Enum):
     USER_DELETE = "user:delete"
     USER_LIST = "user:list"
     USER_ROLE = "user:role"
-    
+
     # Session permissions
     SESSION_CREATE = "session:create"
     SESSION_READ = "session:read"
     SESSION_TERMINATE = "session:terminate"
-    
+
     # Audit/Compliance permissions
     AUDIT_READ = "audit:read"
     AUDIT_EXPORT = "audit:export"
-    
+
     # System permissions (admin only)
     SYSTEM_CONFIG = "system:config"
     SYSTEM_BACKUP = "system:backup"
     SYSTEM_RESTORE = "system:restore"
-    
+
     # Reporting permissions
     REPORT_VIEW = "report:view"
     REPORT_GENERATE = "report:generate"
-    
+
     # Settings permissions
     SETTINGS_VIEW = "settings:view"
     SETTINGS_MODIFY = "settings:modify"
@@ -123,42 +123,42 @@ ROLE_PERMISSIONS: Dict[Role, Set[Permission]] = {
 
 class RBACManager:
     """Manages role-based access control"""
-    
+
     def __init__(self):
         """Initialize RBAC manager"""
         self.role_permissions = ROLE_PERMISSIONS
-    
+
     def get_user_role(self, user: Optional[Dict]) -> Role:
         """Get user role from session"""
         if not user:
             return Role.GUEST
-        
+
         role_str = user.get('role', 'user').lower()
         try:
             return Role[role_str.upper()]
         except KeyError:
             return Role.USER
-    
+
     def get_user_permissions(self, user: Optional[Dict]) -> Set[Permission]:
         """Get all permissions for a user"""
         role = self.get_user_role(user)
         return self.role_permissions.get(role, set())
-    
+
     def has_permission(self, user: Optional[Dict], permission: Permission) -> bool:
         """Check if user has specific permission"""
         permissions = self.get_user_permissions(user)
         return permission in permissions
-    
+
     def has_any_permission(self, user: Optional[Dict], permissions: List[Permission]) -> bool:
         """Check if user has any of the given permissions"""
         user_permissions = self.get_user_permissions(user)
         return any(p in user_permissions for p in permissions)
-    
+
     def has_all_permissions(self, user: Optional[Dict], permissions: List[Permission]) -> bool:
         """Check if user has all of the given permissions"""
         user_permissions = self.get_user_permissions(user)
         return all(p in user_permissions for p in permissions)
-    
+
     def require_permission(self, permission: Permission):
         """Decorator to require specific permission for a function"""
         def decorator(func):
@@ -172,7 +172,7 @@ class RBACManager:
                 return func(*args, **kwargs)
             return wrapper
         return decorator
-    
+
     def require_any_permission(self, *permissions: Permission):
         """Decorator to require any of the given permissions"""
         def decorator(func):
@@ -186,7 +186,7 @@ class RBACManager:
                 return func(*args, **kwargs)
             return wrapper
         return decorator
-    
+
     def require_all_permissions(self, *permissions: Permission):
         """Decorator to require all of the given permissions"""
         def decorator(func):
@@ -200,7 +200,7 @@ class RBACManager:
                 return func(*args, **kwargs)
             return wrapper
         return decorator
-    
+
     def require_role(self, *roles: Role):
         """Decorator to require specific role(s)"""
         def decorator(func):

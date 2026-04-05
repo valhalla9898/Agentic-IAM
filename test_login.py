@@ -5,6 +5,7 @@ Run this script to test the authentication system without starting the GUI.
 """
 import sys
 from pathlib import Path
+from uuid import uuid4
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent))
@@ -17,19 +18,19 @@ def test_authentication():
     print("\n" + "="*70)
     print("AGENTIC-IAM AUTHENTICATION SYSTEM TEST")
     print("="*70 + "\n")
-    
+
     db = get_database()
-    
+
     # Test 1: List all users
     print("Test 1: List All Users")
     print("-" * 50)
     users = db.list_users()
     print(f"Total users in database: {len(users)}\n")
-    
+
     for user in users:
         role_icon = "👨‍💼" if user['role'] == 'admin' else "👤"
         print(f"{role_icon} {user['username']:<15} | {user['full_name']:<25} | Role: {user['role']:<10} | Status: {user['status']}")
-    
+
     # Test 2: Authenticate admin
     print("\n" + "="*70)
     print("Test 2: Admin Login")
@@ -44,7 +45,7 @@ def test_authentication():
         print(f"   Email: {admin_user['email']}")
     else:
         print("❌ Admin authentication failed!")
-    
+
     # Test 3: Authenticate regular user
     print("\n" + "="*70)
     print("Test 3: User Login")
@@ -59,7 +60,7 @@ def test_authentication():
         print(f"   Email: {regular_user['email']}")
     else:
         print("❌ User authentication failed!")
-    
+
     # Test 4: Test wrong password
     print("\n" + "="*70)
     print("Test 4: Invalid Password")
@@ -69,7 +70,7 @@ def test_authentication():
         print("❌ Security issue: Invalid password accepted!")
     else:
         print("✅ Invalid password correctly rejected")
-    
+
     # Test 5: Test wrong username
     print("\n" + "="*70)
     print("Test 5: Invalid Username")
@@ -79,96 +80,129 @@ def test_authentication():
         print("❌ Security issue: Invalid username accepted!")
     else:
         print("✅ Invalid username correctly rejected")
-    
+
     # Test 6: Create new user
     print("\n" + "="*70)
     print("Test 6: Create New User")
     print("-" * 50)
+    test_username = f"testuser_{uuid4().hex[:8]}"
     new_user_created = db.create_user(
-        username="testuser",
+        username=test_username,
+        email=f"{test_username}@example.com",
         password="testpass123",
         role="user",
-        full_name="Test User",
-        email="test@example.com"
     )
     if new_user_created:
         print("✅ New user created successfully")
-        
+
         # Try to authenticate with new user
-        test_auth = db.authenticate_user("testuser", "testpass123")
+        test_auth = db.authenticate_user(test_username, "testpass123")
         if test_auth:
             print("✅ New user can authenticate successfully")
             print(f"   Username: {test_auth['username']}")
-            print(f"   Full Name: {test_auth['full_name']}")
         else:
             print("❌ New user authentication failed")
     else:
         print("⚠️  User may already exist (expected if test was run before)")
-    
+
+    # Re-read the user so the admin CRUD checks use the persisted record
+    test_user = next((user for user in db.list_users() if user["username"] == test_username), None)
+
     # Test 7: Test password change
     print("\n" + "="*70)
     print("Test 7: Password Change")
     print("-" * 50)
-    test_user = db.authenticate_user("testuser", "testpass123")
+    test_user = db.authenticate_user(test_username, "testpass123")
     if test_user:
         # Change password
         changed = db.change_password(test_user['id'], "newpassword456")
         if changed:
             print("✅ Password changed successfully")
-            
+
             # Try old password (should fail)
-            old_auth = db.authenticate_user("testuser", "testpass123")
+            old_auth = db.authenticate_user(test_username, "testpass123")
             if old_auth:
                 print("❌ Old password still works - security issue!")
             else:
                 print("✅ Old password correctly rejected")
-            
+
             # Try new password (should work)
-            new_auth = db.authenticate_user("testuser", "newpassword456")
+            new_auth = db.authenticate_user(test_username, "newpassword456")
             if new_auth:
                 print("✅ New password works correctly")
             else:
                 print("❌ New password doesn't work")
         else:
             print("❌ Password change failed")
-    
-    # Test 8: Test user status management
+
+    # Test 8: Test user edit management
     print("\n" + "="*70)
-    print("Test 8: User Status Management")
+    print("Test 8: User Edit Management")
     print("-" * 50)
     if test_user:
+        # Update role
+        role_updated = db.update_user_role(test_user['id'], 'operator')
+        if role_updated:
+            print("✅ User role updated to 'operator'")
+        else:
+            print("❌ User role update failed")
+
         # Suspend user
         suspended = db.update_user_status(test_user['id'], 'suspended')
         if suspended:
             print("✅ User status updated to 'suspended'")
-            
+
             # Try to login with suspended account
-            suspended_auth = db.authenticate_user("testuser", "newpassword456")
+            suspended_auth = db.authenticate_user(test_username, "newpassword456")
             if suspended_auth:
                 print("❌ Suspended user can still login - security issue!")
             else:
                 print("✅ Suspended user correctly blocked from login")
-            
+
             # Reactivate user
             activated = db.update_user_status(test_user['id'], 'active')
             if activated:
                 print("✅ User reactivated successfully")
-    
-    # Test 9: Database statistics
+
+        refreshed = db.get_user_by_id(test_user['id'])
+        if refreshed:
+            print(f"✅ Verified persisted user role: {refreshed['role']}")
+            print(f"✅ Verified persisted user status: {refreshed['status']}")
+        else:
+            print("❌ Could not reload updated user from database")
+
+    # Test 9: Test user deletion
     print("\n" + "="*70)
-    print("Test 9: Database Statistics")
+    print("Test 9: User Deletion")
+    print("-" * 50)
+    if test_user:
+        deleted = db.delete_user(test_user['id'])
+        if deleted:
+            print("✅ User deleted successfully")
+        else:
+            print("❌ User deletion failed")
+
+        deleted_user = db.get_user_by_id(test_user['id'])
+        if deleted_user is None:
+            print("✅ Verified user is no longer in the database")
+        else:
+            print("❌ Delete reported success but user still exists")
+
+    # Test 10: Database statistics
+    print("\n" + "="*70)
+    print("Test 10: Database Statistics")
     print("-" * 50)
     all_users = db.list_users()
     total = len(all_users)
     active = len([u for u in all_users if u['status'] == 'active'])
     admins = len([u for u in all_users if u['role'] == 'admin'])
     regular = len([u for u in all_users if u['role'] == 'user'])
-    
+
     print(f"Total Users: {total}")
     print(f"Active Users: {active}")
     print(f"Administrators: {admins}")
     print(f"Regular Users: {regular}")
-    
+
     # Final summary
     print("\n" + "="*70)
     print("TEST SUMMARY")

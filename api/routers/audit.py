@@ -79,7 +79,7 @@ async def list_audit_events(
 ):
     """
     List audit events
-    
+
     Returns paginated audit events with optional filtering.
     """
     try:
@@ -88,10 +88,10 @@ async def list_audit_events(
                 status_code=status.HTTP_501_NOT_IMPLEMENTED,
                 detail="Audit logging not initialized"
             )
-        
+
         # Build query
         from audit_compliance import AuditQuery, AuditEventType
-        
+
         # Parse event types
         event_types = None
         if event_type:
@@ -102,13 +102,13 @@ async def list_audit_events(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"Invalid event type: {event_type}"
                 )
-        
+
         # Set default time range if not provided
         if not start_time:
             start_time = datetime.utcnow() - timedelta(days=7)
         if not end_time:
             end_time = datetime.utcnow()
-        
+
         query = AuditQuery(
             event_types=event_types,
             agent_id=agent_id,
@@ -118,10 +118,10 @@ async def list_audit_events(
             limit=limit,
             offset=offset
         )
-        
+
         # Execute query
         events = iam.audit_manager.query_events(query)
-        
+
         # Convert to response format
         event_responses = []
         for event in events:
@@ -137,7 +137,7 @@ async def list_audit_events(
                 user_agent=event.user_agent,
                 details=event.details
             ))
-        
+
         return {
             "events": event_responses,
             "total": len(event_responses),
@@ -151,7 +151,7 @@ async def list_audit_events(
                 "offset": offset
             }
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -168,7 +168,7 @@ async def query_audit_events(
 ):
     """
     Advanced audit event query
-    
+
     Performs complex queries on audit events with multiple filters.
     """
     try:
@@ -177,10 +177,10 @@ async def query_audit_events(
                 status_code=status.HTTP_501_NOT_IMPLEMENTED,
                 detail="Audit logging not initialized"
             )
-        
+
         # Build query
         from audit_compliance import AuditQuery, AuditEventType
-        
+
         # Parse event types
         event_types = None
         if request.event_types:
@@ -191,7 +191,7 @@ async def query_audit_events(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"Invalid event type: {str(e)}"
                 )
-        
+
         query = AuditQuery(
             event_types=event_types,
             agent_id=request.agent_id,
@@ -202,10 +202,10 @@ async def query_audit_events(
             limit=request.limit,
             offset=request.offset
         )
-        
+
         # Execute query
         events = iam.audit_manager.query_events(query)
-        
+
         # Convert to response format
         event_responses = []
         for event in events:
@@ -221,13 +221,13 @@ async def query_audit_events(
                 user_agent=event.user_agent,
                 details=event.details
             ))
-        
+
         return {
             "events": event_responses,
             "total": len(event_responses),
             "query": request.dict()
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -244,7 +244,7 @@ async def get_audit_event(
 ):
     """
     Get specific audit event
-    
+
     Returns detailed information about a specific audit event.
     """
     try:
@@ -253,7 +253,7 @@ async def get_audit_event(
                 status_code=status.HTTP_501_NOT_IMPLEMENTED,
                 detail="Audit logging not initialized"
             )
-        
+
         # Get event
         event = iam.audit_manager.get_event(event_id)
         if not event:
@@ -261,7 +261,7 @@ async def get_audit_event(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Audit event {event_id} not found"
             )
-        
+
         return AuditEventResponse(
             event_id=event.event_id,
             event_type=event.event_type.value,
@@ -274,7 +274,7 @@ async def get_audit_event(
             user_agent=event.user_agent,
             details=event.details
         )
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -291,7 +291,7 @@ async def get_audit_statistics(
 ):
     """
     Get audit statistics
-    
+
     Returns aggregated statistics about audit events and system activity.
     """
     try:
@@ -300,17 +300,17 @@ async def get_audit_statistics(
                 status_code=status.HTTP_501_NOT_IMPLEMENTED,
                 detail="Audit logging not initialized"
             )
-        
+
         # Get statistics
         start_time = datetime.utcnow() - timedelta(hours=time_window)
         stats = await iam.audit_manager.get_statistics(start_time)
-        
+
         return {
             "statistics": stats,
             "time_window_hours": time_window,
             "generated_at": datetime.utcnow().isoformat()
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -329,7 +329,7 @@ async def verify_audit_integrity(
 ):
     """
     Verify audit log integrity
-    
+
     Verifies the integrity of audit logs using cryptographic signatures.
     """
     try:
@@ -338,22 +338,22 @@ async def verify_audit_integrity(
                 status_code=status.HTTP_501_NOT_IMPLEMENTED,
                 detail="Audit logging not initialized"
             )
-        
+
         if not settings.enable_audit_integrity:
             raise HTTPException(
                 status_code=status.HTTP_501_NOT_IMPLEMENTED,
                 detail="Audit integrity verification not enabled"
             )
-        
+
         # Set default time range
         if not start_time:
             start_time = datetime.utcnow() - timedelta(days=1)
         if not end_time:
             end_time = datetime.utcnow()
-        
+
         # Verify integrity
         result = await iam.audit_manager.verify_integrity(start_time, end_time)
-        
+
         return {
             "integrity_check": result,
             "time_range": {
@@ -362,7 +362,7 @@ async def verify_audit_integrity(
             },
             "verified_at": datetime.utcnow().isoformat()
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -378,7 +378,7 @@ async def list_compliance_frameworks(
 ):
     """
     List available compliance frameworks
-    
+
     Returns supported compliance frameworks and their configurations.
     """
     try:
@@ -387,15 +387,15 @@ async def list_compliance_frameworks(
                 status_code=status.HTTP_501_NOT_IMPLEMENTED,
                 detail="Compliance management not initialized"
             )
-        
+
         # Get available frameworks
         frameworks = iam.compliance_manager.get_available_frameworks()
-        
+
         return {
             "frameworks": frameworks,
             "total": len(frameworks)
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -412,7 +412,7 @@ async def generate_compliance_report(
 ):
     """
     Generate compliance report
-    
+
     Generates a comprehensive compliance report for the specified framework.
     """
     try:
@@ -421,7 +421,7 @@ async def generate_compliance_report(
                 status_code=status.HTTP_501_NOT_IMPLEMENTED,
                 detail="Compliance management not initialized"
             )
-        
+
         # Generate report
         report = await iam.compliance_manager.generate_report(
             framework=request.framework,
@@ -430,7 +430,7 @@ async def generate_compliance_report(
             include_violations=request.include_violations,
             include_recommendations=request.include_recommendations
         )
-        
+
         # Log report generation
         if iam.audit_manager:
             from audit_compliance import AuditEventType
@@ -443,7 +443,7 @@ async def generate_compliance_report(
                     "violations_found": report.violations_found
                 }
             )
-        
+
         return ComplianceReportResponse(
             report_id=report.report_id,
             framework=report.framework,
@@ -458,7 +458,7 @@ async def generate_compliance_report(
             generated_at=report.generated_at,
             generated_by="system"
         )
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -476,7 +476,7 @@ async def list_compliance_reports(
 ):
     """
     List compliance reports
-    
+
     Returns previously generated compliance reports.
     """
     try:
@@ -485,13 +485,13 @@ async def list_compliance_reports(
                 status_code=status.HTTP_501_NOT_IMPLEMENTED,
                 detail="Compliance management not initialized"
             )
-        
+
         # Get reports
         reports = await iam.compliance_manager.list_reports(
             framework=framework,
             limit=limit
         )
-        
+
         report_responses = []
         for report in reports:
             report_responses.append({
@@ -505,13 +505,13 @@ async def list_compliance_reports(
                     "end": report.end_date.isoformat()
                 }
             })
-        
+
         return {
             "reports": report_responses,
             "total": len(report_responses),
             "framework_filter": framework
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -528,7 +528,7 @@ async def get_compliance_report(
 ):
     """
     Get detailed compliance report
-    
+
     Returns complete compliance report with all sections and details.
     """
     try:
@@ -537,7 +537,7 @@ async def get_compliance_report(
                 status_code=status.HTTP_501_NOT_IMPLEMENTED,
                 detail="Compliance management not initialized"
             )
-        
+
         # Get report
         report = await iam.compliance_manager.get_report(report_id)
         if not report:
@@ -545,12 +545,12 @@ async def get_compliance_report(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Compliance report {report_id} not found"
             )
-        
+
         return {
             "report": report,
             "retrieved_at": datetime.utcnow().isoformat()
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -567,7 +567,7 @@ async def assess_compliance(
 ):
     """
     Perform real-time compliance assessment
-    
+
     Evaluates current system state against compliance requirements.
     """
     try:
@@ -576,10 +576,10 @@ async def assess_compliance(
                 status_code=status.HTTP_501_NOT_IMPLEMENTED,
                 detail="Compliance management not initialized"
             )
-        
+
         # Perform assessment
         assessment = await iam.compliance_manager.assess_compliance(framework)
-        
+
         # Log assessment
         if iam.audit_manager:
             from audit_compliance import AuditEventType
@@ -591,13 +591,13 @@ async def assess_compliance(
                     "violations_found": len(assessment.violations)
                 }
             )
-        
+
         return {
             "assessment": assessment,
             "framework": framework,
             "assessed_at": datetime.utcnow().isoformat()
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -616,7 +616,7 @@ async def export_audit_events(
 ):
     """
     Export audit events
-    
+
     Exports audit events in various formats for external analysis.
     """
     try:
@@ -625,20 +625,20 @@ async def export_audit_events(
                 status_code=status.HTTP_501_NOT_IMPLEMENTED,
                 detail="Audit logging not initialized"
             )
-        
+
         # Set default time range
         if not start_time:
             start_time = datetime.utcnow() - timedelta(days=7)
         if not end_time:
             end_time = datetime.utcnow()
-        
+
         # Export events
         export_data = await iam.audit_manager.export_events(
             format=format,
             start_time=start_time,
             end_time=end_time
         )
-        
+
         # Log export operation
         if iam.audit_manager:
             from audit_compliance import AuditEventType
@@ -653,7 +653,7 @@ async def export_audit_events(
                     }
                 }
             )
-        
+
         return {
             "export_data": export_data,
             "format": format,
@@ -663,7 +663,7 @@ async def export_audit_events(
             },
             "exported_at": datetime.utcnow().isoformat()
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:

@@ -1,17 +1,11 @@
-# Blockchain-Based Audit Trails
+"""Blockchain-Based Audit Trails.
 
-This module provides immutable audit trails using blockchain technology.
+This module provides immutable audit trail primitives.
+"""
 
-## Features
-- Cryptographic audit log integrity
-- Decentralized audit storage
-- Zero-knowledge proofs for verification
-- Integration with Ethereum or Hyperledger
 
-## Usage
-```python
-from audit.blockchain import BlockchainAuditor
+class BlockchainAuditor:
+	"""Minimal blockchain auditor placeholder."""
 
-auditor = BlockchainAuditor()
-auditor.log_event(event_data)
-```
+	def log_event(self, event_data):
+		return {"status": "logged", "event": event_data}

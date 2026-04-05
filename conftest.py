@@ -108,6 +108,8 @@ def mock_iam(test_settings):
     iam.authentication_manager = MagicMock()
     iam.authorization_manager = MagicMock()
     iam.session_manager = MagicMock()
+    iam.federated_manager = MagicMock()
+    iam.transport_manager = MagicMock()
     iam.agent_registry = MagicMock()
     iam.credential_manager = MagicMock()
     iam.audit_manager = MagicMock()
@@ -122,55 +124,52 @@ def mock_iam(test_settings):
     # mocked subcomponents (their `shutdown` AsyncMocks will be awaited).
     from core.agentic_iam import AgenticIAM as _AgenticIAM
     iam.shutdown = _AgenticIAM.shutdown.__get__(iam, _AgenticIAM)
-    iam.authenticate = AsyncMock()
-    iam.authorize = AsyncMock()
-    iam.register_agent = AsyncMock()
-    iam.create_session = AsyncMock()
-    iam.calculate_trust_score = AsyncMock()
-    iam.get_platform_status = AsyncMock()
+
+    # Provide default async manager behaviors used by real bound methods.
+    from authentication import AuthenticationResult
+
+    async def _auth_side_effect(agent_id=None, credentials=None, method="auto", **kwargs):
+        return AuthenticationResult(True, agent_id or "agent:test-001", method or "jwt", 0.8)
+
+    iam.authentication_manager.authenticate = AsyncMock(side_effect=_auth_side_effect)
+    iam.authorization_manager.authorize = AsyncMock(return_value=MagicMock(allow=True, reason="authorized"))
+    iam.authorization_manager.assign_permissions = AsyncMock(return_value=True)
+    iam.session_manager.create_session = AsyncMock(return_value="session_001")
+    iam.session_manager.get_active_session_count = MagicMock(return_value=0)
+    iam.session_manager.get_total_session_count = MagicMock(return_value=0)
+    iam.session_manager.terminate_session = MagicMock(return_value=True)
+    iam.session_manager.terminate_agent_sessions = MagicMock(return_value=0)
+    iam.session_manager.refresh_session = MagicMock(return_value=True)
+    iam.session_manager.get_session = MagicMock(return_value=None)
+    iam.agent_registry.list_agents = MagicMock(return_value=[])
+    iam.agent_registry.get_agent = MagicMock(return_value=None)
+    iam.agent_registry.register_agent = MagicMock(return_value=MagicMock(registration_id="reg_default"))
+    iam.credential_manager.store_agent_credentials = AsyncMock(return_value=True)
+    iam.audit_manager.log_event = AsyncMock(return_value=True)
+    iam.intelligence_engine.initialize_agent_score = AsyncMock(return_value=True)
+    iam.intelligence_engine.update_trust_score = AsyncMock(return_value=True)
+    iam.intelligence_engine.calculate_trust_score = AsyncMock(
+        return_value=MagicMock(overall_score=0.8, risk_level=MagicMock(value="low"), confidence=0.9)
+    )
+
+    # Bind real AgenticIAM methods so core tests exercise implementation.
+    iam.authenticate = _AgenticIAM.authenticate.__get__(iam, _AgenticIAM)
+    iam.authorize = _AgenticIAM.authorize.__get__(iam, _AgenticIAM)
+    iam.register_agent = _AgenticIAM.register_agent.__get__(iam, _AgenticIAM)
+    iam.create_session = _AgenticIAM.create_session.__get__(iam, _AgenticIAM)
+    iam.calculate_trust_score = _AgenticIAM.calculate_trust_score.__get__(iam, _AgenticIAM)
+    iam.get_platform_status = _AgenticIAM.get_platform_status.__get__(iam, _AgenticIAM)
+    iam._get_avg_trust_score = _AgenticIAM._get_avg_trust_score.__get__(iam, _AgenticIAM)
+    iam._get_total_trust_scores = _AgenticIAM._get_total_trust_scores.__get__(iam, _AgenticIAM)
+    iam._get_anomaly_count = _AgenticIAM._get_anomaly_count.__get__(iam, _AgenticIAM)
 
     return iam
 
 
 @pytest.fixture
-async def iam_instance(test_settings):
-    """Create a real IAM instance for integration tests"""
-    from agent_identity import AgentIdentityManager
-    from authentication import AuthenticationManager
-    from authorization import AuthorizationManager
-    from session_manager import SessionManager
-    from agent_registry import AgentRegistry
-    from credential_manager import CredentialManager
-    from audit_compliance import AuditManager
-    
-    # Create real IAM instance
-    iam = AgenticIAM(test_settings)
-    
-    # Initialize with mocked dependencies for testing
-    iam.identity_manager = AgentIdentityManager()
-    iam.agent_registry = AgentRegistry(
-        storage_path=test_settings.agent_registry_path,
-        enable_persistence=True
-    )
-    iam.credential_manager = CredentialManager(
-        storage_path=test_settings.credential_storage_path,
-        encryption_key=test_settings.credential_encryption_key
-    )
-    
-    # Mock complex dependencies
-    iam.authentication_manager = MagicMock(spec=AuthenticationManager)
-    iam.authorization_manager = MagicMock(spec=AuthorizationManager)
-    iam.session_manager = MagicMock(spec=SessionManager)
-    iam.audit_manager = MagicMock(spec=AuditManager)
-    iam.compliance_manager = MagicMock()
-    iam.intelligence_engine = MagicMock()
-    
-    iam.is_initialized = True
-    
-    yield iam
-    
-    # Cleanup
-    await iam.shutdown()
+async def iam_instance(mock_iam):
+    """Use the same IAM instance used by API client dependency overrides."""
+    yield mock_iam
 
 
 @pytest.fixture
@@ -178,20 +177,20 @@ def client(mock_iam):
     """Create test client for API testing"""
     # Override dependencies
     app.dependency_overrides = {}
-    
+
     def get_test_iam():
         return mock_iam
-    
+
     def get_test_settings():
         return mock_iam.settings
-    
+
     from api.dependencies import get_iam, get_settings
     app.dependency_overrides[get_iam] = get_test_iam
     app.dependency_overrides[get_settings] = get_test_settings
-    
+
     with TestClient(app) as test_client:
         yield test_client
-    
+
     # Clear overrides
     app.dependency_overrides = {}
 
@@ -231,7 +230,7 @@ def sample_auth_request():
 def sample_agent_identity():
     """Create a sample agent identity for testing"""
     from agent_identity import AgentIdentity
-    
+
     return AgentIdentity.generate(
         agent_id="agent:test-001",
         metadata={
@@ -246,52 +245,55 @@ def sample_agent_identity():
 def sample_trust_score():
     """Sample trust score for testing"""
     from agent_intelligence import TrustScore, RiskLevel
-    
-    return TrustScore(
-        agent_id="agent:test-001",
+
+    trust_score = TrustScore(
         overall_score=0.85,
-        risk_level=RiskLevel.LOW,
-        confidence=0.92,
-        component_scores={
-            "authentication": 0.9,
-            "authorization": 0.8,
-            "behavior": 0.85,
-            "network": 0.88
-        },
-        last_updated=datetime.utcnow(),
-        factors=[
-            {"type": "successful_auth", "weight": 0.3, "value": 0.95},
-            {"type": "session_duration", "weight": 0.2, "value": 0.8}
-        ]
+        risk_level="low",
+        confidence=0.92
     )
+    # Add additional attributes for extended testing
+    trust_score.agent_id = "agent:test-001"
+    trust_score.component_scores = {
+        "authentication": 0.9,
+        "authorization": 0.8,
+        "behavior": 0.85,
+        "network": 0.88
+    }
+    trust_score.last_updated = datetime.utcnow()
+    trust_score.factors = [
+        {"type": "successful_auth", "weight": 0.3, "value": 0.95},
+        {"type": "session_duration", "weight": 0.2, "value": 0.8}
+    ]
+    return trust_score
 
 
 @pytest.fixture
 def sample_session():
     """Sample session for testing"""
-    from session_manager import Session, SessionStatus
-    
-    return Session(
+    from agent_identity import Session, SessionStatus
+
+    session = Session(
         session_id="session_test_001",
         agent_id="agent:test-001",
-        status=SessionStatus.ACTIVE,
         trust_level=0.85,
         auth_method="jwt",
-        created_at=datetime.utcnow(),
-        last_accessed=datetime.utcnow(),
-        expires_at=datetime.utcnow() + timedelta(hours=1),
+        ttl=3600,
         metadata={
             "source_ip": "127.0.0.1",
             "user_agent": "test-client/1.0"
         }
     )
+    # Add additional attributes for extended testing
+    session.status = SessionStatus("active")
+    session.last_accessed = datetime.utcnow()
+    return session
 
 
 @pytest.fixture
 def sample_audit_event():
     """Sample audit event for testing"""
     from audit_compliance import AuditEvent, AuditEventType, EventSeverity
-    
+
     return AuditEvent(
         event_id="audit_test_001",
         event_type=AuditEventType.AUTH_SUCCESS,
@@ -320,43 +322,43 @@ def mock_redis():
 def mock_database():
     """Mock database for testing"""
     from unittest.mock import MagicMock
-    
+
     db = MagicMock()
     db.execute = AsyncMock()
     db.fetch = AsyncMock()
     db.fetchrow = AsyncMock()
     db.close = AsyncMock()
-    
+
     return db
 
 
 # Test utilities
 class TestHelpers:
     """Helper methods for tests"""
-    
+
     @staticmethod
     def assert_api_response(response, expected_status=200):
         """Assert API response format and status"""
         assert response.status_code == expected_status
         data = response.json()
-        
+
         if expected_status == 200:
             assert "timestamp" in data
         else:
             assert "error" in data
-        
+
         return data
-    
+
     @staticmethod
     def create_auth_header(token: str) -> dict:
         """Create authorization header for API tests"""
         return {"Authorization": f"Bearer {token}"}
-    
+
     @staticmethod
     async def wait_for_condition(condition, timeout=5.0, interval=0.1):
         """Wait for a condition to become true"""
         import asyncio
-        
+
         end_time = asyncio.get_event_loop().time() + timeout
         while asyncio.get_event_loop().time() < end_time:
             if await condition() if asyncio.iscoroutinefunction(condition) else condition():

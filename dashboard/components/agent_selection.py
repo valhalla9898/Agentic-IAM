@@ -14,54 +14,39 @@ logger = logging.getLogger(__name__)
 
 
 def _safe_rerun():
-    """Attempt to rerun the Streamlit app. Fallbacks to toggling a session flag and calling st.stop()."""
-    try:
-        # Preferred API if available
-        if hasattr(st, "experimental_rerun"):
-            st.experimental_rerun()
-            return
-    except Exception:
-        pass
-
-    # Fallback: toggle a sentinel in session_state and stop execution
-    key = "_rerun_toggle"
-    st.session_state[key] = not st.session_state.get(key, False)
-    try:
-        st.stop()
-    except Exception:
-        # As a last resort, do nothing (UI will update on next interaction)
-        return
+    """Rerun the Streamlit app using the current stable API."""
+    st.rerun()
 
 def show_agent_registration():
     """Display agent registration form"""
     st.subheader("➕ Register New Agent")
-    
+
     db = st.session_state.db
-    
+
     with st.form("agent_registration_form"):
         col1, col2 = st.columns(2)
-        
+
         with col1:
             agent_name = st.text_input("🏷️ Agent Name", placeholder="e.g., AI Assistant 1")
-        
+
         with col2:
             agent_type = st.selectbox(
                 "🔧 Agent Type",
                 ["Standard", "Intelligent", "Processor", "Monitor"],
             )
-        
+
         description = st.text_area("📝 Description", placeholder="Optional: Agent description")
-        
+
         submitted = st.form_submit_button("✅ Register Agent", use_container_width=True)
-        
+
         if submitted:
             if not agent_name:
                 st.error("❌ Please enter agent name")
                 return
-            
+
             # Generate unique agent ID
             agent_id = f"agent_{uuid.uuid4().hex[:8]}"
-            
+
             # Add agent to database
             success = db.add_agent(
                 agent_id=agent_id,
@@ -69,7 +54,7 @@ def show_agent_registration():
                 agent_type=agent_type,
                 metadata={"description": description, "created_by": "dashboard"}
             )
-            
+
             if success:
                 st.success(f"✅ Agent registered successfully!")
                 st.info(f"🆔 Agent ID: {agent_id}")
@@ -81,55 +66,55 @@ def show_agent_registration():
 def show_agent_selector():
     """Display agent selector dropdown"""
     db = st.session_state.db
-    
+
     # Get all agents from database
     agents = db.list_agents()
-    
+
     if not agents:
         st.info("📋 No agents registered yet")
         return None
-    
+
     # Create selectbox with agent names and IDs
     agent_options = {f"{agent['name']} (ID: {agent['id']})": agent['id'] for agent in agents}
-    
+
     selected = st.selectbox(
         "👥 Select Agent",
         options=list(agent_options.keys()),
         key="agent_selector"
     )
-    
+
     if selected:
         agent_id = agent_options[selected]
         st.session_state.selected_agent = agent_id
         return agent_id
-    
+
     return None
 
 
 def show_agent_list():
     """Display list of all agents from database"""
     st.subheader("📋 Agents List")
-    
+
     db = st.session_state.db
     agents = db.list_agents()
-    
+
     if not agents:
         st.info("📭 لا توجد وكلاء مسجلون (No agents registered)")
         return
-    
+
     # Display agents as cards
     for agent in agents:
         with st.container():
             col1, col2, col3 = st.columns([2, 2, 1])
-            
+
             with col1:
                 st.write(f"**🤖 {agent['name']}**")
                 st.caption(f"ID: `{agent['id']}`")
-            
+
             with col2:
                 st.write(f"**Type:** {agent['type']}")
                 st.caption(f"**Status:** {agent['status']}")
-            
+
             with col3:
                 # Action buttons - use on_click callbacks to ensure reliable state change and rerun
                 col_btn1, col_btn2, col_btn3 = st.columns(3)
@@ -160,7 +145,7 @@ def show_agent_list():
 
                 with col_btn3:
                     st.button("🗑️ Delete", key=f"del_{agent['id']}", on_click=_delete_agent, use_container_width=True)
-            
+
             st.divider()
 
 
@@ -168,13 +153,13 @@ def show_agent_details(agent_id: str):
     """Show detailed information about an agent"""
     db = st.session_state.db
     agent = db.get_agent(agent_id)
-    
+
     if not agent:
         st.error("❌ Agent not found")
         return
 
     st.subheader(f"📊 Agent Details: {agent['name']}")
-    
+
     # Agent info
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -183,21 +168,21 @@ def show_agent_details(agent_id: str):
         st.metric("🔧 Type", agent['type'])
     with col3:
         st.metric("✅ Status", agent['status'])
-    
+
     st.divider()
-    
+
     # Metadata
     if agent['metadata']:
         st.write("**📝 Additional Metadata:**")
         for key, value in agent['metadata'].items():
             st.write(f"- **{key}:** {value}")
-    
+
     st.divider()
-    
+
     # Agent events/logs
     st.write("**📋 Event Log:**")
     events = db.get_events(agent_id=agent_id, limit=20)
-    
+
     if events:
         import pandas as pd
         df = pd.DataFrame(events)
@@ -205,13 +190,13 @@ def show_agent_details(agent_id: str):
         st.dataframe(df[['event_type', 'action', 'details', 'created_at', 'status']], use_container_width=True)
     else:
         st.info("No events yet")
-    
+
     st.divider()
-    
+
     # Agent sessions
     st.write("**🔐 Agent Sessions:**")
     sessions = db.get_agent_sessions(agent_id)
-    
+
     if sessions:
         import pandas as pd
         df = pd.DataFrame(sessions)

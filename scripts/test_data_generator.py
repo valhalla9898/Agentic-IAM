@@ -11,7 +11,7 @@ from typing import List, Dict, Any
 
 def generate_test_agents() -> List[Dict[str, Any]]:
     """Generate 10 test agents with different configurations"""
-    
+
     agents = [
         {
             "agent_id": "agent_nlp_001",
@@ -144,7 +144,7 @@ def generate_test_agents() -> List[Dict[str, Any]]:
             }
         }
     ]
-    
+
     return agents
 
 
@@ -152,7 +152,7 @@ def add_test_agents_to_db(db_instance):
     """Add test agents to database"""
     agents = generate_test_agents()
     added_count = 0
-    
+
     for agent in agents:
         try:
             success = db_instance.add_agent(
@@ -174,7 +174,7 @@ def add_test_agents_to_db(db_instance):
                 print(f"⚠️ Agent already exists: {agent['agent_id']}")
         except Exception as e:
             print(f"❌ Error adding agent {agent['agent_id']}: {e}")
-    
+
     return added_count
 
 

@@ -1,5 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any
 
 from core.agentic_iam import AgenticIAM
@@ -9,8 +9,8 @@ router = APIRouter()
 
 
 class LoginRequest(BaseModel):
-    agent_id: str
-    method: str
+    agent_id: str = Field(..., min_length=1)
+    method: str = Field(..., min_length=1)
     credentials: Dict[str, Any]
     source_ip: Optional[str] = None
     user_agent: Optional[str] = None
@@ -19,7 +19,13 @@ class LoginRequest(BaseModel):
 @router.post("/login")
 async def login(payload: LoginRequest, iam: AgenticIAM = Depends(get_iam)):
     try:
-        auth_result = await iam.authenticate(payload.dict(), payload.method)
+        auth_result = await iam.authenticate(
+            agent_id=payload.agent_id,
+            credentials=payload.credentials,
+            method=payload.method,
+            source_ip=payload.source_ip,
+            user_agent=payload.user_agent,
+        )
 
         if not auth_result.success:
             return {"success": False, "error_message": auth_result.error_message}
@@ -39,10 +45,22 @@ async def login(payload: LoginRequest, iam: AgenticIAM = Depends(get_iam)):
         if hasattr(iam, "create_session"):
             session_id = await iam.create_session(
                 agent_id=auth_result.agent_id,
-                trust_level=getattr(auth_result, "trust_level", 1.0),
-                auth_method=auth_result.auth_method or payload.method,
-                ttl=getattr(iam, "session_ttl", None) or 3600,
-                metadata={"source_ip": payload.source_ip, "user_agent": payload.user_agent}
+                auth_result=auth_result,
+                source_ip=payload.source_ip,
+                user_agent=payload.user_agent,
+            )
+
+        if getattr(iam, "audit_manager", None):
+            from audit_compliance import AuditEventType
+
+            await iam.audit_manager.log_event(
+                event_type=AuditEventType.AUTH_SUCCESS,
+                agent_id=auth_result.agent_id,
+                details={
+                    "method": auth_result.auth_method or payload.method,
+                    "source_ip": payload.source_ip,
+                    "user_agent": payload.user_agent,
+                },
             )
 
         return {

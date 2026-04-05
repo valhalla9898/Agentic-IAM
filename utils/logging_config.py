@@ -16,7 +16,7 @@ import traceback
 
 class JSONFormatter(logging.Formatter):
     """Custom JSON formatter for structured logging"""
-    
+
     def format(self, record: logging.LogRecord) -> str:
         """Format log record as JSON"""
         log_data = {
@@ -28,11 +28,11 @@ class JSONFormatter(logging.Formatter):
             "function": record.funcName,
             "line": record.lineno,
         }
-        
+
         # Add extra fields if present
         if hasattr(record, 'extra'):
             log_data.update(record.extra)
-        
+
         # Add exception info if present
         if record.exc_info:
             log_data["exception"] = {
@@ -40,25 +40,25 @@ class JSONFormatter(logging.Formatter):
                 "message": str(record.exc_info[1]),
                 "traceback": traceback.format_exception(*record.exc_info)
             }
-        
+
         return json.dumps(log_data)
 
 
 class PlainFormatter(logging.Formatter):
     """Plain text formatter for human-readable logs"""
-    
+
     def format(self, record: logging.LogRecord) -> str:
         """Format log record as plain text"""
         timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
         level = record.levelname
         logger = record.name
         message = record.getMessage()
-        
+
         base_format = f"[{timestamp}] [{level:8}] {logger}: {message}"
-        
+
         if record.exc_info:
             base_format += f"\n{traceback.format_exc()}"
-        
+
         return base_format
 
 
@@ -72,7 +72,7 @@ def setup_logging(
 ) -> None:
     """
     Configure logging for the application
-    
+
     Args:
         log_level: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
         log_file: Path to log file (None = no file logging)
@@ -84,28 +84,28 @@ def setup_logging(
     # Get root logger
     root_logger = logging.getLogger()
     root_logger.setLevel(getattr(logging, log_level.upper()))
-    
+
     # Clear existing handlers
     root_logger.handlers.clear()
-    
+
     # Create formatter
     if log_format.lower() == "json":
         formatter = JSONFormatter()
     else:
         formatter = PlainFormatter()
-    
+
     # Console handler
     if enable_console:
         console_handler = logging.StreamHandler(sys.stdout)
         console_handler.setLevel(getattr(logging, log_level.upper()))
         console_handler.setFormatter(formatter)
         root_logger.addHandler(console_handler)
-    
+
     # File handler
     if log_file:
         log_path = Path(log_file)
         log_path.parent.mkdir(parents=True, exist_ok=True)
-        
+
         file_handler = logging.handlers.RotatingFileHandler(
             log_file,
             maxBytes=max_file_size,
@@ -119,10 +119,10 @@ def setup_logging(
 def get_logger(name: str) -> logging.LoggerAdapter:
     """
     Get a logger instance with context support
-    
+
     Args:
         name: Logger name (typically __name__)
-    
+
     Returns:
         LoggerAdapter instance
     """
@@ -132,41 +132,41 @@ def get_logger(name: str) -> logging.LoggerAdapter:
 
 class StructuredLogger:
     """Wrapper for structured logging with context"""
-    
+
     def __init__(self, logger: logging.Logger):
         """Initialize with a logger instance"""
         self.logger = logger
         self.context = {}
-    
+
     def set_context(self, **kwargs) -> None:
         """Set logging context"""
         self.context.update(kwargs)
-    
+
     def clear_context(self) -> None:
         """Clear logging context"""
         self.context.clear()
-    
+
     def _log(self, level: int, message: str, **extra) -> None:
         """Internal logging method"""
         extra.update(self.context)
         self.logger.log(level, message, extra=extra)
-    
+
     def debug(self, message: str, **extra) -> None:
         """Log debug message"""
         self._log(logging.DEBUG, message, **extra)
-    
+
     def info(self, message: str, **extra) -> None:
         """Log info message"""
         self._log(logging.INFO, message, **extra)
-    
+
     def warning(self, message: str, **extra) -> None:
         """Log warning message"""
         self._log(logging.WARNING, message, **extra)
-    
+
     def error(self, message: str, **extra) -> None:
         """Log error message"""
         self._log(logging.ERROR, message, **extra)
-    
+
     def critical(self, message: str, **extra) -> None:
         """Log critical message"""
         self._log(logging.CRITICAL, message, **extra)
@@ -181,7 +181,7 @@ if __name__ == "__main__":
         log_format="json",
         enable_console=True
     )
-    
+
     logger = get_logger(__name__)
     logger.info("Logging configured successfully")
     logger.debug("Debug message", extra={"key": "value"})

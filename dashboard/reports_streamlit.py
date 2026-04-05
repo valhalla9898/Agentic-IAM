@@ -63,11 +63,11 @@ def render_report_block(rep):
 def main():
     st.sidebar.markdown("---")
     if st.sidebar.button("Refresh"):
-        st.experimental_rerun()
+        st.rerun()
 
     # Auto refresh
     if poll:
-        st.experimental_rerun()
+        st.rerun()
 
     alerts = fetch_alerts(api_base)
     if alerts:
