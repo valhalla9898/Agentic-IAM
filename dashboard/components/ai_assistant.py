@@ -1,30 +1,47 @@
 import streamlit as st
 import os
-from typing import Optional
 from . import ai_kb
 
 
 def _call_openai(prompt: str, model: str = "gpt-3.5-turbo") -> str:
-    try:
-        import openai
-    except Exception:
-        return "OpenAI SDK not installed. Set OPENAI_API_KEY and install `openai` to enable cloud assistant."
-
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         return "OPENAI_API_KEY not set. Provide the key to use OpenAI assistant."
 
-    openai.api_key = api_key
     try:
-        resp = openai.ChatCompletion.create(
+        from openai import OpenAI
+
+        client = OpenAI(api_key=api_key)
+        resp = client.chat.completions.create(
             model=model,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.2,
             max_tokens=512,
         )
-        return resp.choices[0].message.content.strip()
-    except Exception as e:
-        return f"OpenAI request failed: {e}"
+        content = resp.choices[0].message.content
+        if isinstance(content, str) and content.strip():
+            return content.strip()
+        return "OpenAI returned an empty response."
+    except Exception:
+        # Fallback for legacy OpenAI SDK versions.
+        try:
+            import openai
+        except Exception:
+            return "OpenAI SDK not installed. Set OPENAI_API_KEY and install `openai` to enable cloud assistant."
+
+        openai.api_key = api_key
+        try:
+            resp = openai.ChatCompletion.create(
+                model=model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.2,
+                max_tokens=512,
+            )
+            return resp.choices[0].message.content.strip()
+        except Exception as e:
+            return f"OpenAI request failed: {e}"
+
+    return "OpenAI request failed: unsupported response format."
 
 
 def _local_helper(prompt: str) -> str:

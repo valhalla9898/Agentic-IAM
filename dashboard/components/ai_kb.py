@@ -3,7 +3,7 @@ import json
 import hashlib
 import re
 import html
-from typing import List, Dict, Optional, Tuple
+from typing import List, Dict, Tuple
 
 INDEX_FILE = ".ai_index.json"
 
@@ -132,16 +132,27 @@ def build_index(root: str = ".", force: bool = False) -> Tuple[bool, str]:
 
     # Try to add embeddings if OpenAI key present
     try:
-        import openai
         api_key = os.getenv('OPENAI_API_KEY')
         if api_key:
-            openai.api_key = api_key
-            # batch embeddings in small groups
-            for i in range(0, len(index), 50):
-                batch = [it['chunk'] for it in index[i:i+50]]
-                resp = openai.Embedding.create(model='text-embedding-3-small', input=batch)
-                for k, r in enumerate(resp.data):
-                    index[i+k]['embedding'] = r['embedding']
+            # Prefer modern OpenAI client, fallback to legacy SDK.
+            try:
+                from openai import OpenAI
+
+                client = OpenAI(api_key=api_key)
+                for i in range(0, len(index), 50):
+                    batch = [it['chunk'] for it in index[i:i + 50]]
+                    resp = client.embeddings.create(model='text-embedding-3-small', input=batch)
+                    for k, r in enumerate(resp.data):
+                        index[i + k]['embedding'] = r.embedding
+            except Exception:
+                import openai
+
+                openai.api_key = api_key
+                for i in range(0, len(index), 50):
+                    batch = [it['chunk'] for it in index[i:i + 50]]
+                    resp = openai.Embedding.create(model='text-embedding-3-small', input=batch)
+                    for k, r in enumerate(resp.data):
+                        index[i + k]['embedding'] = r['embedding']
     except Exception:
         # embedding unavailable — proceed without embeddings
         pass
@@ -180,12 +191,19 @@ def query_kb(query: str, top_k: int = 3) -> List[Dict]:
     # Semantic path
     if 'embedding' in index[0]:
         try:
-            import openai
             api_key = os.getenv('OPENAI_API_KEY')
             if not api_key:
                 raise Exception("OPENAI_API_KEY not set")
-            openai.api_key = api_key
-            q_emb = openai.Embedding.create(model='text-embedding-3-small', input=[query]).data[0]['embedding']
+            try:
+                from openai import OpenAI
+
+                client = OpenAI(api_key=api_key)
+                q_emb = client.embeddings.create(model='text-embedding-3-small', input=[query]).data[0].embedding
+            except Exception:
+                import openai
+
+                openai.api_key = api_key
+                q_emb = openai.Embedding.create(model='text-embedding-3-small', input=[query]).data[0]['embedding']
             scored = []
             for item in index:
                 if 'embedding' not in item:

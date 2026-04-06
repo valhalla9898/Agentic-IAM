@@ -14,26 +14,44 @@ if str(ROOT) not in sys.path:
 
 
 def _call_openai(prompt: str, model: str = "gpt-3.5-turbo") -> str:
-    try:
-        import openai
-    except Exception:
-        return "OpenAI SDK not installed. Install `openai` and set OPENAI_API_KEY to use cloud mode."
-
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         return "OPENAI_API_KEY not set. Provide the key to use cloud mode."
 
-    openai.api_key = api_key
     try:
-        response = openai.ChatCompletion.create(
+        from openai import OpenAI
+
+        client = OpenAI(api_key=api_key)
+        response = client.chat.completions.create(
             model=model,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.2,
             max_tokens=512,
         )
-        return response.choices[0].message.content.strip()
-    except Exception as exc:
-        return f"OpenAI request failed: {exc}"
+        content = response.choices[0].message.content
+        if isinstance(content, str) and content.strip():
+            return content.strip()
+        return "OpenAI returned an empty response."
+    except Exception:
+        # Fallback for legacy OpenAI SDK versions.
+        try:
+            import openai
+        except Exception:
+            return "OpenAI SDK not installed. Install `openai` and set OPENAI_API_KEY to use cloud mode."
+
+        openai.api_key = api_key
+        try:
+            response = openai.ChatCompletion.create(
+                model=model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.2,
+                max_tokens=512,
+            )
+            return response.choices[0].message.content.strip()
+        except Exception as exc:
+            return f"OpenAI request failed: {exc}"
+
+    return "OpenAI request failed: unsupported response format."
 
 
 def _local_helper(prompt: str) -> str:
