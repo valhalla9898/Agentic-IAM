@@ -168,20 +168,18 @@ def show_agent_list():
                     st.button("📝 Edit", key=f"edit_{agent['id']}", on_click=_edit_agent, use_container_width=True)
 
                 with col_btn3:
-                    if st.button("🗑️ Delete", key=f"del_{agent['id']}", use_container_width=True):
-                        _begin_delete()
-                        st.rerun()
+                    st.button("🗑️ Delete", key=f"del_{agent['id']}", on_click=_begin_delete, use_container_width=True)
 
             if st.session_state.get(pending_delete_key):
-                st.warning(f"Are you sure you want to delete agent {agent['name']} ({agent['id']})? This cannot be undone.")
+                st.warning(f"⚠️ **Are you sure you want to delete agent '{agent['name']}' (ID: {agent['id']})?**\n\nThis action **cannot be undone**. All agent data and sessions will be permanently removed.")
                 confirm_col, cancel_col = st.columns(2)
                 with confirm_col:
                     if st.button("✅ Confirm Delete", key=f"confirm_del_{agent['id']}", use_container_width=True):
                         _confirm_delete()
+                        st.rerun()
                 with cancel_col:
                     if st.button("✖ Cancel", key=f"cancel_del_{agent['id']}", use_container_width=True):
                         _cancel_delete()
-                        st.rerun()
 
             st.divider()
 
