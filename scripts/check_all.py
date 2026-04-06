@@ -36,6 +36,11 @@ def main() -> int:
         action="store_true",
         help="Skip E2E checks and run only lint + smoke tests.",
     )
+    parser.add_argument(
+        "--refresh-lock",
+        action="store_true",
+        help="Regenerate requirements-lock.txt before running checks.",
+    )
     args = parser.parse_args()
 
     checks: List[tuple[str, List[str]]] = [
@@ -78,7 +83,16 @@ def main() -> int:
             )
         )
 
-    results = [_run_check(name, command) for name, command in checks]
+    results: List[CheckResult] = []
+
+    if args.refresh_lock:
+        lock_result = _run_check("refresh-lockfile", [sys.executable, "scripts/update_lockfile.py"])
+        results.append(lock_result)
+        if lock_result.exit_code != 0:
+            print("\nLockfile refresh failed. Stopping checks.")
+            return 1
+
+    results.extend(_run_check(name, command) for name, command in checks)
 
     failed = [r for r in results if r.exit_code != 0]
     print("\n=== Summary ===")
