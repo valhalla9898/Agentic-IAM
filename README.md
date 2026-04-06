@@ -58,6 +58,7 @@ Security notes
 - [Pre-Loaded Agents](#-pre-loaded-agents)
 - [Installation](#-installation)
 - [Running the Dashboard](#-running-the-dashboard)
+- [AI Quick Start](#ai-quick-start)
 - [API Documentation](#-api-documentation)
 - [Security Best Practices](#-security-best-practices)
 - [Compliance & Standards](#-compliance--standards)
@@ -744,7 +745,7 @@ pytest -q
 
 The E2E suite now starts its own temporary Streamlit server automatically when `STREAMLIT_URL` is not set, so no manual app startup is required for test runs.
 
-### Ask The AI From Terminal
+### AI Quick Start
 ```bash
 agentic-iam-ai "How to enable mTLS?"
 ```
