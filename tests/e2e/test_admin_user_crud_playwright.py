@@ -57,7 +57,11 @@ def test_admin_user_crud_flow():
             page.get_by_role("button", name=f"Delete {username}").click()
             page.wait_for_selector(f"text=Are you sure you want to delete user {username}", timeout=10000)
             page.get_by_role("button", name=f"✅ Confirm Delete {username}").click()
-            page.wait_for_selector(f"text=User {username} deleted", timeout=10000)
+            # Wait for success message - may appear as part of st.success message
+            page.wait_for_function(
+                f"document.body.innerText.includes('User {username} deleted')",
+                timeout=15000
+            )
             time.sleep(1)
 
             deleted_user = db.get_user_by_id(created_user["id"])

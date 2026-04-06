@@ -110,17 +110,21 @@ def show_agent_list():
 
                 def _select_agent(aid=agent['id']):
                     st.session_state.selected_agent = aid
+                    st.rerun()
 
                 def _edit_agent(aid=agent['id']):
                     st.session_state.edit_agent_id = aid
+                    st.rerun()
 
                 pending_delete_key = f"pending_delete_agent_{agent['id']}"
 
                 def _begin_delete(aid=agent['id']):
                     st.session_state[pending_delete_key] = True
+                    st.rerun()
 
                 def _cancel_delete(aid=agent['id']):
                     st.session_state[pending_delete_key] = False
+                    st.rerun()
 
                 def _confirm_delete(aid=agent['id']):
                     try:

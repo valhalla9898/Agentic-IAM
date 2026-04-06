@@ -28,6 +28,7 @@ def show_risk_assessment(db):
             for a in agents:
                 a['risk_score'] = compute_risk_score(a)
             st.success("Assessed risk for all agents")
+            st.rerun()
 
     # show details for selected
     if sel:
@@ -54,3 +55,4 @@ def show_risk_assessment(db):
         if st.button("Create remediation task"):
             st.session_state.db.create_task(agent_id=aid, task_type='remediation', details='Auto-generated remediation')
             st.success("Remediation task created")
+            st.rerun()
