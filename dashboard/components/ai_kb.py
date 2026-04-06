@@ -7,6 +7,37 @@ from typing import List, Dict, Optional, Tuple
 
 INDEX_FILE = ".ai_index.json"
 
+STOPWORDS = {
+    "a",
+    "an",
+    "and",
+    "are",
+    "can",
+    "do",
+    "does",
+    "for",
+    "from",
+    "get",
+    "guide",
+    "help",
+    "how",
+    "i",
+    "is",
+    "it",
+    "me",
+    "of",
+    "or",
+    "please",
+    "show",
+    "the",
+    "to",
+    "use",
+    "what",
+    "why",
+    "with",
+    "you",
+}
+
 
 SENSITIVE_PATTERNS = [
     r"\.env$",
@@ -30,7 +61,7 @@ def _is_sensitive_path(path: str) -> bool:
 
 
 def _iter_text_files(root: str = "."):
-    skip = {".git", "venv", "env", ".venv", "node_modules"}
+    skip = {".git", "venv", "env", ".venv", "node_modules", ".mypy_cache", ".pytest_cache", "__pycache__", ".ruff_cache"}
     for dirpath, dirnames, filenames in os.walk(root):
         parts = set(dirpath.split(os.sep))
         if parts & skip:
@@ -168,7 +199,9 @@ def query_kb(query: str, top_k: int = 3) -> List[Dict]:
             pass
 
     # Keyword fallback
-    q = query.lower().split()
+    q = [token for token in re.findall(r"[a-z0-9_]+", query.lower()) if len(token) >= 4 and token not in STOPWORDS]
+    if not q:
+        q = [token for token in re.findall(r"[a-z0-9_]+", query.lower()) if token not in STOPWORDS]
     scored = []
     for item in index:
         text = item['chunk'].lower()
