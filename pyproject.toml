@@ -140,6 +140,7 @@ agentic-iam = "main:main"
 agentic-iam-migrate = "scripts.migrate:main"
 agentic-iam-admin = "scripts.admin:main"
 agentic-iam-ai = "scripts.ask_ai:main"
+agentic-iam-lock = "scripts.update_lockfile:main"
 
 [tool.setuptools]
 package-dir = {"" = "."}
