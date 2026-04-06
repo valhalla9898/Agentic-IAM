@@ -680,12 +680,20 @@ def show_agent_details(iam: AgenticIAM):
                             st.error(
                                 f"Agent {selected_agent_id} deleted from registry, but DB cleanup failed"
                             )
+                            st.session_state[pending_delete_key] = False
+                            st.rerun()
                         elif result.get("registry_deleted") and still_exists is not None:
                             st.error(f"Delete reported success, but agent {selected_agent_id} still exists")
+                            st.session_state[pending_delete_key] = False
+                            st.rerun()
                         else:
                             st.error(f"Failed to delete agent {selected_agent_id}")
+                            st.session_state[pending_delete_key] = False
+                            st.rerun()
                     except Exception as e:
                         handle_error(e, "deleting agent")
+                        st.session_state[pending_delete_key] = False
+                        st.rerun()
 
             with cancel_col:
                 if st.button("✖ Cancel Delete", key=f"cancel_agent_delete_{selected_agent_id}"):

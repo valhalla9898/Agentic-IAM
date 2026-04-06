@@ -154,12 +154,20 @@ def show_agent_list():
                             st.rerun()
                         elif deleted and still_exists is None and registry_exists_before:
                             st.error(f"Agent {aid} deleted from DB, but registry cleanup failed")
+                            st.session_state[pending_delete_key] = False
+                            st.rerun()
                         elif deleted and still_exists is not None:
                             st.error(f"Delete reported success, but agent {aid} still exists")
+                            st.session_state[pending_delete_key] = False
+                            st.rerun()
                         else:
                             st.error(f"Failed to delete agent {aid}")
+                            st.session_state[pending_delete_key] = False
+                            st.rerun()
                     except Exception as e:
                         st.error(f"Error deleting agent: {e}")
+                        st.session_state[pending_delete_key] = False
+                        st.rerun()
 
                 with col_btn1:
                     st.button("📊 Details", key=f"detail_{agent['id']}", on_click=_select_agent, use_container_width=True)
@@ -175,11 +183,12 @@ def show_agent_list():
                 confirm_col, cancel_col = st.columns(2)
                 with confirm_col:
                     if st.button("✅ Confirm Delete", key=f"confirm_del_{agent['id']}", use_container_width=True):
-                        _confirm_delete()
-                        st.rerun()
+                        # Call _confirm_delete with the agent ID
+                        _confirm_delete(agent['id'])
                 with cancel_col:
                     if st.button("✖ Cancel", key=f"cancel_del_{agent['id']}", use_container_width=True):
-                        _cancel_delete()
+                        _cancel_delete(agent['id'])
+                        st.rerun()
 
             st.divider()
 
