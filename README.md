@@ -756,6 +756,11 @@ On Windows PowerShell, you can also run:
 .\ask_ai.ps1 "How to enable mTLS?"
 ```
 
+From Command Prompt or File Explorer, you can run:
+```bat
+ask_ai.bat "How to enable mTLS?"
+```
+
 ### Dashboard Features by Role
 
 #### Admin Dashboard 🔴
