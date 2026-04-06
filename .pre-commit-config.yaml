@@ -1,0 +1,21 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+
+  - repo: https://github.com/pycqa/flake8
+    rev: 7.1.1
+    hooks:
+      - id: flake8
+        args: ["app.py", "run_gui.py", "dashboard/components/ai_assistant.py", "dashboard/components/ai_kb.py", "scripts/ask_ai.py", "tests/test_unit/test_ai_cli.py"]
+
+  - repo: local
+    hooks:
+      - id: ai-cli-smoke
+        name: AI CLI smoke tests
+        entry: python -m pytest tests/test_unit/test_ai_cli.py -q -o addopts=
+        language: system
+        pass_filenames: false

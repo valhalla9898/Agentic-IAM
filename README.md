@@ -41,6 +41,7 @@ Security notes
 [![CI](https://github.com/valhalla9898/Agentic-IAM/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/valhalla9898/Agentic-IAM/actions/workflows/ci.yml)
 [![E2E](https://github.com/valhalla9898/Agentic-IAM/actions/workflows/playwright-e2e.yml/badge.svg?branch=main)](https://github.com/valhalla9898/Agentic-IAM/actions/workflows/playwright-e2e.yml)
 [![Security Scan](https://github.com/valhalla9898/Agentic-IAM/actions/workflows/security.yml/badge.svg?branch=main)](https://github.com/valhalla9898/Agentic-IAM/actions/workflows/security.yml)
+[![AI CLI Smoke](https://github.com/valhalla9898/Agentic-IAM/actions/workflows/ai-cli-smoke.yml/badge.svg?branch=main)](https://github.com/valhalla9898/Agentic-IAM/actions/workflows/ai-cli-smoke.yml)
 
 > **A comprehensive Python framework for managing agent identities, authentication, authorization, and trust in multi-agent systems with enterprise-grade security.**
 
@@ -59,6 +60,9 @@ Security notes
 - [Installation](#-installation)
 - [Running the Dashboard](#-running-the-dashboard)
 - [AI Quick Start](#ai-quick-start)
+- [Quality Checks](#quality-checks)
+- [Pre-commit Setup](#pre-commit-setup)
+- [Delivery Runbook](#delivery-runbook)
 - [API Documentation](#-api-documentation)
 - [Security Best Practices](#-security-best-practices)
 - [Compliance & Standards](#-compliance--standards)
@@ -706,6 +710,9 @@ source .venv/bin/activate
 # 4. Install dependencies
 pip install -r requirements.txt
 
+# Optional: reproducible installs with pinned versions
+pip install -r requirements-lock.txt
+
 # 5. Initialize database (optional - auto-initialized)
 python -c "from database import get_database; get_database()"
 
@@ -770,6 +777,38 @@ From Command Prompt or File Explorer, you can run:
 ```bat
 ask_ai.bat "How to enable mTLS?"
 ```
+
+### Quality Checks
+Run all key checks in one command:
+
+```bash
+python scripts/check_all.py
+```
+
+Quick mode (skip E2E):
+
+```bash
+python scripts/check_all.py --quick
+```
+
+Windows PowerShell wrapper:
+
+```powershell
+.\check_all.ps1
+```
+
+### Pre-commit Setup
+Enable local commit-time checks:
+
+```bash
+pre-commit install
+pre-commit run --all-files
+```
+
+Configuration file: `.pre-commit-config.yaml`
+
+### Delivery Runbook
+Operational handoff steps are documented in `RUNBOOK.md`.
 
 ### Dashboard Features by Role
 
