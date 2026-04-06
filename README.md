@@ -72,8 +72,6 @@ Security notes
 
 ---
 
-```
-
 ## 🧰 Scan Integration (Reports)
 ## 🎯 Overview
 
