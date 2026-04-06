@@ -744,6 +744,13 @@ pytest -q
 
 The E2E suite now starts its own temporary Streamlit server automatically when `STREAMLIT_URL` is not set, so no manual app startup is required for test runs.
 
+### Ask The AI From Terminal
+```bash
+agentic-iam-ai "How to enable mTLS?"
+```
+
+Use `--model knowledge` to query the project knowledge base, or `--model openai:gpt-3.5-turbo` if you have `OPENAI_API_KEY` configured.
+
 ### Dashboard Features by Role
 
 #### Admin Dashboard 🔴

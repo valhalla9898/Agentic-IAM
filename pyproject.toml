@@ -139,6 +139,7 @@ Changelog = "https://github.com/your-org/agentic-iam-python/blob/main/CHANGELOG.
 agentic-iam = "main:main"
 agentic-iam-migrate = "scripts.migrate:main"
 agentic-iam-admin = "scripts.admin:main"
+agentic-iam-ai = "scripts.ask_ai:main"
 
 [tool.setuptools]
 package-dir = {"" = "."}
