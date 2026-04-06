@@ -751,6 +751,11 @@ agentic-iam-ai "How to enable mTLS?"
 
 Use `--model knowledge` to query the project knowledge base, or `--model openai:gpt-3.5-turbo` if you have `OPENAI_API_KEY` configured.
 
+On Windows PowerShell, you can also run:
+```powershell
+.\ask_ai.ps1 "How to enable mTLS?"
+```
+
 ### Dashboard Features by Role
 
 #### Admin Dashboard 🔴
