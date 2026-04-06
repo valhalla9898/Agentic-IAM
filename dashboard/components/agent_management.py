@@ -277,7 +277,49 @@ def show_agent_overview(iam: AgenticIAM):
 
         with col4:
             if st.button("🧹 Cleanup Inactive"):
-                show_alert("Inactive agent cleanup would be implemented here", "warning")
+                try:
+                    db = st.session_state.get("db")
+                    if db is None:
+                        st.error("Database connection not available")
+                        return
+                    
+                    # Find all inactive agents
+                    all_agents = db.list_agents()
+                    inactive_agents = [a for a in all_agents if a['status'] == 'inactive']
+                    
+                    if not inactive_agents:
+                        st.info("No inactive agents to cleanup")
+                    else:
+                        st.warning(f"⚠️ Found {len(inactive_agents)} inactive agent(s). Delete them?")
+                        col_yes, col_no = st.columns(2)
+                        
+                        with col_yes:
+                            if st.button("✅ Yes, Delete Inactive", key="cleanup_confirm"):
+                                deleted_count = 0
+                                failed_agents = []
+                                
+                                with st.spinner(f"Deleting {len(inactive_agents)} inactive agent(s)..."):
+                                    for agent in inactive_agents:
+                                        ok = db.delete_agent(agent['id'])
+                                        if ok:
+                                            deleted_count += 1
+                                        else:
+                                            failed_agents.append(agent['id'])
+                                
+                                if deleted_count > 0:
+                                    st.success(f"✅ Deleted {deleted_count} inactive agent(s)")
+                                
+                                if failed_agents:
+                                    st.error(f"❌ Failed to delete {len(failed_agents)} agent(s)")
+                                
+                                st.rerun()
+                        
+                        with col_no:
+                            if st.button("✖ Cancel", key="cleanup_cancel"):
+                                st.info("Cleanup cancelled")
+                                st.rerun()
+                except Exception as e:
+                    handle_error(e, "cleaning up inactive agents")
 
     except Exception as e:
         handle_error(e, "loading agent overview")
@@ -580,15 +622,24 @@ def show_agent_details(iam: AgenticIAM):
         with col2:
             if st.button("⏸️ Suspend Agent"):
                 try:
-                    show_alert("Agent suspension would be implemented here", "warning")
+                    ok = db.update_agent_status(selected_agent_id, "suspended")
+                    if ok:
+                        st.success(f"✅ Agent {selected_agent_id} suspended successfully")
+                        st.rerun()
+                    else:
+                        st.error(f"Failed to suspend agent {selected_agent_id}")
                 except Exception as e:
                     handle_error(e, "suspending agent")
 
         with col3:
             if st.button("🔄 Reactivate Agent"):
                 try:
-                    # Reactivate agent (implementation would be added)
-                    show_alert("Agent reactivation would be implemented here", "info")
+                    ok = db.update_agent_status(selected_agent_id, "active")
+                    if ok:
+                        st.success(f"✅ Agent {selected_agent_id} reactivated successfully")
+                        st.rerun()
+                    else:
+                        st.error(f"Failed to reactivate agent {selected_agent_id}")
                 except Exception as e:
                     handle_error(e, "reactivating agent")
 
@@ -693,8 +744,30 @@ def show_bulk_operations(iam: AgenticIAM):
         if st.button("Update Status"):
             with st.spinner("Updating agent statuses..."):
                 try:
-                    # Implementation would update statuses
-                    show_alert(f"Status update for {len(selected_agents)} agents would be implemented here", "info")
+                    db = st.session_state.get("db")
+                    if db is None:
+                        st.error("Database connection not available")
+                        return
+                    
+                    success_count = 0
+                    failed_agents = []
+                    
+                    for agent_id in selected_agents:
+                        ok = db.update_agent_status(agent_id, new_status)
+                        if ok:
+                            success_count += 1
+                        else:
+                            failed_agents.append(agent_id)
+                    
+                    if success_count > 0:
+                        st.success(f"✅ Updated {success_count} agent(s) to '{new_status}' status")
+                        if reason:
+                            st.info(f"📝 Reason: {reason}")
+                    
+                    if failed_agents:
+                        st.error(f"❌ Failed to update {len(failed_agents)} agent(s): {', '.join(failed_agents)}")
+                    
+                    st.rerun()
                 except Exception as e:
                     handle_error(e, "updating agent statuses")
 

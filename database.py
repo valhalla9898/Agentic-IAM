@@ -571,6 +571,21 @@ class Database:
             logger.error(f"Error deleting agent: {e}")
         return False
 
+    def update_agent_status(self, agent_id: str, new_status: str) -> bool:
+        """Update agent status (active/inactive/suspended)."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    "UPDATE agents SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                    (new_status, agent_id)
+                )
+                conn.commit()
+                return cursor.rowcount > 0
+        except Exception as e:
+            logger.error(f"Error updating agent status: {e}")
+        return False
+
 
 # Global database instance
 _db_instance = None
