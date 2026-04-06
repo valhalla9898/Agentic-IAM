@@ -137,6 +137,27 @@ class TestAgenticIAM:
 
     @pytest.mark.unit
     @pytest.mark.asyncio
+    async def test_delete_agent_syncs_database_when_present(self, mock_iam):
+        """Test delete path removes the agent from DB when a DB record exists."""
+        mock_agent_entry = MagicMock()
+        mock_iam.agent_registry.get_agent.return_value = mock_agent_entry
+        mock_iam.agent_registry.delete_agent.return_value = True
+        mock_iam.session_manager.terminate_agent_sessions.return_value = 1
+
+        mock_db = MagicMock()
+        mock_db.get_agent.side_effect = [{"id": "agent:test-001"}, None]
+        mock_db.delete_agent.return_value = True
+
+        with patch("database.get_database", return_value=mock_db):
+            result = mock_iam.delete_agent("agent:test-001")
+
+        assert result["registry_deleted"] is True
+        assert result["db_preexisting"] is True
+        assert result["db_deleted"] is True
+        mock_db.delete_agent.assert_called_once_with("agent:test-001")
+
+    @pytest.mark.unit
+    @pytest.mark.asyncio
     async def test_authenticate_success(self, mock_iam):
         """Test successful authentication"""
         from authentication import AuthenticationResult

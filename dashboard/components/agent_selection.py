@@ -126,12 +126,30 @@ def show_agent_list():
                     try:
                         deleted = db.delete_agent(aid)
                         still_exists = db.get_agent(aid)
-                        if deleted and still_exists is None:
+
+                        # Keep registry-backed views in sync when IAM exists in session.
+                        registry_exists_before = False
+                        registry_deleted = True
+                        registry_still_exists = None
+                        iam = st.session_state.get("iam")
+                        if iam and getattr(iam, "agent_registry", None):
+                            registry_exists_before = iam.agent_registry.get_agent(aid) is not None
+                            if registry_exists_before:
+                                registry_deleted = iam.agent_registry.delete_agent(aid)
+                                registry_still_exists = iam.agent_registry.get_agent(aid)
+
+                        if (
+                            deleted
+                            and still_exists is None
+                            and (not registry_exists_before or (registry_deleted and registry_still_exists is None))
+                        ):
                             st.success(f"✅ Agent {aid} deleted successfully")
                             if st.session_state.get("selected_agent") == aid:
                                 st.session_state.selected_agent = None
                             st.session_state[pending_delete_key] = False
                             st.rerun()
+                        elif deleted and still_exists is None and registry_exists_before:
+                            st.error(f"Agent {aid} deleted from DB, but registry cleanup failed")
                         elif deleted and still_exists is not None:
                             st.error(f"Delete reported success, but agent {aid} still exists")
                         else:

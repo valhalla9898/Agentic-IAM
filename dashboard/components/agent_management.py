@@ -608,10 +608,27 @@ def show_agent_details(iam: AgenticIAM):
                     try:
                         result = iam.delete_agent(selected_agent_id)
                         still_exists = iam.agent_registry.get_agent(selected_agent_id)
-                        if result.get("registry_deleted") and still_exists is None:
+
+                        db_deleted = True
+                        db_still_exists = None
+                        db = st.session_state.get("db")
+                        if db is not None and db.get_agent(selected_agent_id) is not None:
+                            db_deleted = db.delete_agent(selected_agent_id)
+                            db_still_exists = db.get_agent(selected_agent_id)
+
+                        if (
+                            result.get("registry_deleted")
+                            and still_exists is None
+                            and db_deleted
+                            and db_still_exists is None
+                        ):
                             st.success(f"Agent {selected_agent_id} deleted successfully")
                             st.session_state[pending_delete_key] = False
                             st.rerun()
+                        elif result.get("registry_deleted") and still_exists is None and db_still_exists is not None:
+                            st.error(
+                                f"Agent {selected_agent_id} deleted from registry, but DB cleanup failed"
+                            )
                         elif result.get("registry_deleted") and still_exists is not None:
                             st.error(f"Delete reported success, but agent {selected_agent_id} still exists")
                         else:

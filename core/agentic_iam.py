@@ -266,10 +266,26 @@ class AgenticIAM:
         if self.agent_registry:
             registry_deleted = self.agent_registry.delete_agent(agent_id)
 
+        # Keep DB-backed dashboard views in sync with registry-backed operations.
+        db_deleted = True
+        db_preexisting = False
+        try:
+            from database import get_database
+
+            db = get_database(getattr(self.settings, "database_path", None))
+            db_preexisting = db.get_agent(agent_id) is not None
+            if db_preexisting:
+                db_deleted = db.delete_agent(agent_id)
+        except Exception:
+            # DB sync is best-effort for non-dashboard runtimes.
+            db_deleted = True
+
         return {
             "agent_id": agent_id,
             "registry_deleted": registry_deleted,
             "sessions_terminated": sessions_terminated,
+            "db_preexisting": db_preexisting,
+            "db_deleted": db_deleted,
         }
 
     async def authenticate(self, agent_id: str, credentials: Dict[str, Any],
