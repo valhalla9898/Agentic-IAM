@@ -1,617 +1,655 @@
-# 🏗️ البنية المعمارية المفصلة - Agentic-IAM
+# 🏗️ System Architecture - Agentic-IAM
 
-## المحتويات
+## Table of Contents
 
-1. [نظرة عامة على الطبقات](#نظرة-عامة-على-الطبقات)
-2. [تدفق البيانات](#تدفق-البيانات)
-3. [التفاعلات بين المكونات](#التفاعلات-بين-المكونات)
-4. [أمثلة عملية](#أمثلة-عملية)
+1. [Architecture Overview](#architecture-overview)
+2. [System Layers](#system-layers)
+3. [Core Components](#core-components)
+4. [Data Flow](#data-flow)
+5. [Component Interactions](#component-interactions)
+6. [Performance Characteristics](#performance-characteristics)
 
 ---
 
-## نظرة عامة على الطبقات
+## Architecture Overview
 
-### الطبقة الأولى: الواجهات (Presentation Layer)
+Agentic-IAM implements a **layered, modular architecture** optimized for security, scalability, and high performance:
+
+```
+┌────────────────────────────────────────────────────────────┐
+│ Application Layer (UI, REST API, GraphQL)                  │
+├────────────────────────────────────────────────────────────┤
+│ Business Logic Layer (Auth, Authz, Sessions, Audit)        │
+├────────────────────────────────────────────────────────────┤
+│ Data Persistence Layer (PostgreSQL, Redis Cache)           │
+├────────────────────────────────────────────────────────────┤
+│ Security Layer (mTLS, Encryption, Zero-Trust)              │
+└────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## System Layers
+
+### Layer 1: Presentation (User Interfaces & APIs)
+
+Three presentation options serve different use cases:
 
 ```
 ┌─────────────────────────────────────────────┐
 │         Presentation Layer                   │
 ├─────────────────────────────────────────────┤
-│  [Streamlit Dashboard] → http://localhost:8501
-│  [REST API]            → http://localhost:8000
-│  [GraphQL API]         → http://localhost:8000/graphql
+│  [Web Dashboard]  → http://localhost:8501   │
+│  [REST API]       → http://localhost:8000   │
+│  [GraphQL]        → /graphql                │
 └─────────────────────────────────────────────┘
 ```
 
 #### Streamlit Dashboard (`app.py`)
-**الهدف**: واجهة رسومية سهلة الاستخدام للإدارة
 
-**المميزات**:
-- 🔐 نظام دخول آمن (Login System)
-- 📊 لوحة تحكم تفاعلية
-- 👥 إدارة الوكلاء والمستخدمين
-- 📋 عرض سجل الأحداث
-- ⚙️ إعدادات النظام
+**Purpose**: Intuitive web interface for non-technical administrators
 
-**الملفات المرتبطة**:
-- `app.py` - التطبيق الرئيسي
-- `dashboard/components/` - مكونات الواجهة
-- `dashboard/realtime.py` - تحديثات فوري
+**Capabilities**:
+- 🔐 Secure authentication with multi-factor support
+- 📊 Real-time monitoring dashboard
+- 👥 agent and user management interface
+- 📋 Searchable audit log viewer
+- ⚙️ System configuration management
+
+**Supporting Components**:
+- `app.py` - Entry point
+- `dashboard/components/` - Reusable UI elements
+- `dashboard/realtime.py` - WebSocket-based updates
 
 #### REST API (`api/main.py`)
 
-**الهدف**: API تقليدي لتكامل البرامج
+**Purpose**: Standard HTTP API for system integrations
 
-**نقاط النهاية الرئيسية**:
+**Key Endpoints**:
 ```
-GET    /health              - فحص صحة النظام
-POST   /api/agents          - إنشاء وكيل جديد
-GET    /api/agents          - الحصول على قائمة الوكلاء
-GET    /api/agents/{id}     - الحصول على بيانات وكيل
-POST   /api/authenticate    - التحقق من الوكيل
-POST   /api/authorize       - التحقق من الصلاحيات
-GET    /api/events          - سجل الأحداث
+GET    /health                  - Health status
+POST   /api/v1/agents           - Create agent
+GET    /api/v1/agents           - List agents
+GET    /api/v1/agents/{id}      - Get agent details
+POST   /api/v1/authenticate     - Validate credentials
+POST   /api/v1/authorize        - Check permissions
+GET    /api/v1/events/audit     - Audit trail
 ```
 
 #### GraphQL API (`api/graphql.py`)
 
-**الهدف**: API حديث بمميزات متقدمة
+**Purpose**: Query language for complex data requirements
 
-**الاستعلامات المتاحة**:
+**Example Operations**:
 ```graphql
 query {
-  agents { id name status }
-  events(agentId: "123") { type action status }
-  agent(id: "123") { permissions }
+  agents(status: ACTIVE) { 
+    id name permissions roles
+  }
+  auditEvents(limit: 100) { 
+    timestamp agentId action result
+  }
 }
 
 mutation {
-  registerAgent(input: {...}) { id status }
-  updateAgentStatus(id: "123", status: "suspended")
+  registerAgent(name: "DataWorker") { 
+    id certPath status
+  }
 }
 ```
 
 ---
 
-### الطبقة الثانية: منطق الأعمال (Business Logic)
+### Layer 2: Business Logic (Core IAM Engine)
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│                   Business Logic Layer                        │
+│           Business Logic & IAM Services                      │
 ├──────────────────────────────────────────────────────────────┤
 │                                                               │
-│  ┌──────────────────┐      ┌──────────────────┐              │
-│  │ Authentication   │◄────►│ Authorization    │              │
-│  │ Manager          │      │ Manager          │              │
-│  └──────────────────┘      └──────────────────┘              │
-│           ▲                         ▲                        │
-│           │                         │                        │
-│  ┌────────┴─────────────────────────┴──────────┐             │
-│  │                                             │             │
-│  ▼                                             ▼             │
-│  ┌──────────────────┐      ┌──────────────────┐             │
-│  │ Session          │      │ Credential       │             │
-│  │ Manager          │      │ Manager          │             │
-│  └──────────────────┘      └──────────────────┘             │
-│                                                               │
-│  ┌──────────────────┐      ┌──────────────────┐             │
-│  │ Federated        │      │ Transport        │             │
-│  │ Identity         │      │ Security         │             │
-│  │ Manager          │      │ Manager          │             │
-│  └──────────────────┘      └──────────────────┘             │
-│                                                               │
-│  ┌──────────────────────────────────────────┐               │
-│  │ Audit & Compliance Manager               │               │
-│  └──────────────────────────────────────────┘               │
-│                                                               │
+│  ┌──────────────────┐    ┌──────────────────┐               │
+│  │ Authentication   │◄──►│ Authorization    │               │
+│  │ Manager          │    │ Manager          │               │
+│  └──────────────────┘    └──────────────────┘               │
+│         ▲                        ▲                          │
+│         │ credential data       │ permission rules         │
+│  ┌──────┴────────────────────────┴──────────┐              │
+│  │                                          │              │
+│  ▼               ▼                          ▼              │
+│  ┌──────────┐ ┌────────────┐ ┌────────────────┐           │
+│  │ Session  │ │Credential  │ │ Transport      │           │
+│  │ Manager  │ │ Manager    │ │ Security       │           │
+│  └──────────┘ └────────────┘ └────────────────┘           │
+│                                                             │
+│  ┌──────────────────┐    ┌──────────────────┐             │
+│  │ Federated        │    │ Risk & Anomaly   │             │
+│  │ Identity         │    │ Detection        │             │
+│  └──────────────────┘    └──────────────────┘             │
+│                                                             │
+│  ┌──────────────────────────────────────────┐             │
+│  │ Audit & Compliance Logger                │             │
+│  └──────────────────────────────────────────┘             │
+│                                                             │
 └──────────────────────────────────────────────────────────────┘
 ```
 
-#### 1. Authentication Manager للتحقق من الهوية
+---
 
-**المسؤوليات**:
+## Core Components
+
+### 1. Authentication Manager
+
+**Responsibility**: Validates agent identity through credentials
+
+**Core Functions**:
 ```python
-✓ التحقق من صحة البيانات (مارة الزر)
-✓ حساب درجة الثقة
-✓ تسجيل محاولات المصادقة
-✓ تطبيق حدود المحاولات الفاشلة
+authenticate(agent_id, credentials, method) → AuthResult
+verify_credential(credential) → bool
+calculate_trust_score(credential) → float(0-100)
+is_credential_valid(credential) → bool
 ```
 
-**التفاصيل**:
-- يتحقق من أن البيانات محفوظة بشكل صحيح
-- يتحقق من عدم انتهاء صلاحيتها
-- يحسب درجة ثقة بناءً على جودة البيانات
-- يسجل كل محاولة (ناجحة أو فاشلة)
-- يحظر الحساب بعد X محاولات فاشلة
+**Implementation Details**:
 
-**أمثلة الطرق**:
+- **Credential Validation**: Cryptographic verification of digital signatures
+- **Trust Scoring**: Evaluates credential quality, age, and context
+- **Rate Limiting**: Enforces maximum failed attempts per time window
+- **Audit Trail**: Logs every authentication attempt with outcome
+- **Account Protection**: Automatic lockout after N failed attempts
+
+**Supported Methods**:
+- Client TLS certificates (mTLS)
+- OAuth 2.0 tokens
+- SAML assertions
+- API keys with rotation
+- Hardware token (TOTP/HOTP)
+
+---
+
+### 2. Authorization Manager
+
+**Responsibility**: Enforces access control policies
+
+**Core Functions**:
 ```python
-authenticate(agent_id, credentials, method)
-verify_credential(credential)
-calculate_trust_level(credential)
-is_credential_valid(credential)
+authorize(agent_id, resource, action, context) → Decision
+check_permission(agent_id, permission) → bool
+get_agent_roles(agent_id) → List[Role]
+get_agent_permissions(agent_id) → List[Permission]
+evaluate_policy(agent_id, policy) → bool
 ```
 
-#### 2. Authorization Manager للتحقق من الصلاحيات
+**Access Control Models**:
 
-**المسؤوليات**:
-```python
-✓ التحقق من وجود الصلاحية المطلوبة
-✓ تقييم قواعس RBAC و ABAC
-✓ التحقق من السياق (الوقت، المكان، إلخ)
-✓ تسجيل قرارات التفويض
+**RBAC (Role-Based Access Control)**:
+```
+Agent → Role(s) → Permission(s) → Decision
+Example: Agent has "DataReader" role → read:data permission
 ```
 
-**التفاصيل**:
-- يحصل على الأدوار الموكلة للوكيل
-- يحصل على الصلاحيات المرتبطة بكل دور
-- يقيّم القواعس الإضافية (ABAC)
-- يسجل القرار (سماح/رفض)
-- يُرسل تنبيهات أمنية عند الرفض
-
-**أمثلة الطرق**:
-```python
-authorize(agent_id, resource, action, context)
-check_permission(agent_id, permission)
-get_agent_permissions(agent_id)
-get_agent_roles(agent_id)
-evaluate_policy(agent_id, policy)
+**ABAC (Attribute-Based Access Control)**:
+```
+Decision = f(agent attributes, resource attributes, environment)
+- Agent attributes: department, security_level, mfa_enabled
+- Resource attributes: classification, owner, sensitivity
+- Environment: time_of_day, location, network, risk_score
 ```
 
-#### 3. Session Manager لإدارة الجلسات
+**Features**:
+- Real-time rule evaluation (<20ms)
+- Dynamic policy updates without redeployment
+- Time-based restrictions (business hours only)
+- Geolocation constraints
+- Risk-score evaluation
+- Security alerts on permission denial
 
-**المسؤوليات**:
+---
+
+### 3. Session Manager
+
+**Responsibility**: Manages agent sessions and prevents hijacking
+
+**Core Functions**:
 ```python
-✓ إنشاء جلسات جديدة
-✓ التحقق من صحة الجلسات
-✓ إدارة انتهاء صلاحية الجلسة
-✓ الكشف عن أنماط مريبة
+create_session(agent_id, metadata) → Session
+validate_session(session_id) → bool
+end_session(session_id) → void
+get_active_sessions(agent_id) → List[Session]
+detect_anomalies(session_id) → RiskScore
 ```
 
-**التفاصيل**:
-- ينشئ معرّف جلسة فريد
-- يخزن بيانات الجلسة (عنوان IP، الجهاز، إلخ)
-- يحدد وقت انتهاء الجلسة
-- يكتشف محاولات الاستيلاء على الجلسة
-- يسجل أنشطة الجلسة
+**Session Lifecycle**:
+1. **Creation**: Generate UUID, capture device fingerprint, set TTL
+2. **Validation**: Check expiration, verify device consistency
+3. **Monitoring**: Track request patterns, detect impossible travel
+4. **Termination**: Explicit logout or automatic expiration
 
-**أمثلة الطرق**:
+**Anomaly Detection**:
+- Impossible travel (teleportation detection)
+- Unrecognized devices
+- Concurrent session limits violation
+- Unusual API patterns
+- Peak data transfer detection
+
+---
+
+### 4. Credential Manager
+
+**Responsibility**: Secure lifecycle management of credentials
+
+**Core Functions**:
 ```python
-create_session(agent_id, metadata)
-validate_session(session_id)
-end_session(session_id)
-get_active_sessions(agent_id)
-is_session_suspicious(session_id)
+create_credential(agent_id, type, ttl_days) → Credential
+rotate_credential(credential_id) → NewCredential
+revoke_credential(credential_id) → void
+list_credentials(agent_id) → List[Credential]
 ```
 
-#### 4. Credential Manager لإدارة البيانات
+**Security Measures**:
+- **Storage**: AES-256-GCM encryption at rest
+- **Rotation**: Automatic monthly rotation (configurable)
+- **Audit**: Immutable log of all credential operations
+- **Zero-Knowledge**: Plaintext credentials never logged
+- **Expiration**: Automatic archival after TTL
 
-**المسؤوليات**:
-```python
-✓ إنشاء بيانات جديدة
-✓ التخزين الآمن (مشفر)
-✓ التدوير التلقائي
-✓ إبطال البيانات المنتهية
-```
+**Credential Types**:
+- TLS certificates (X.509)
+- API keys (32-byte random)
+- OAuth tokens with refresh
+- Service account keys
 
-**التفاصيل**:
-- ينشئ بيانات عشوائية آمنة
-- يشفرها قبل الحفظ
-- ينسجل معرّف الوكيل لكل بيانات
-- يحدد صلاحية كل بيانات
-- يدور البيانات تلقائياً بعد وقت معين
+---
 
-**أمثلة الطرق**:
-```python
-create_credential(agent_id, type, ttl_days)
-get_credential(credential_id)
-rotate_credential(credential_id)
-revoke_credential(credential_id)
-list_credentials(agent_id)
-```
+### 5. Federated Identity Manager
 
-#### 5. Federated Identity Manager للربط الخارجي
+**Responsibility**: Integrates with external identity providers
 
-**المسؤوليات**:
-```python
-✓ الربط مع أنظمة هويات خارجية
-✓ المزامنة مع Azure AD، AWS IAM، إلخ
-✓ التحقق من التوقيعات
-✓ إدارة الثقة بين الأنظمة
-```
+**Supported Providers**:
+- Azure Active Directory (Entra ID)
+- AWS IAM
+- Okta
+- Generic OIDC/OAuth2
 
-**التفاصيل**:
-- يربط هوية الوكيل المحلية مع هوية خارجية
-- يُحالف مع Azure AD، AWS IAM، Okta، إلخ
-- يحقق من توقيع الرموز (Tokens)
-- يُحدّث الصلاحيات من النظام الخارجي
-- يزامن الحذف والتعطيل
-
-**أمثلة الطرق**:
+**Core Functions**:
 ```python
 federate_identity(agent_id, provider, external_id)
-validate_federated_token(provider, token)
-sync_with_external_provider(provider)
-update_federated_permissions(agent_id, provider)
+validate_federated_token(provider, token) → bool
+sync_permissions_from_provider(provider)
+handle_external_deprovisioning(agent_id)
 ```
 
-#### 6. Transport Security Manager لأمان النقل
-
-**المسؤوليات**:
-```python
-✓ تفعيل mTLS (تشفير متبادل)
-✓ التحقق من الشهادات
-✓ إدارة مفاتيح التشفير
-✓ دعم الخوارزميات الآمنة المستقبلية
-```
-
-**التفاصيل**:
-- يُفعّل mTLS على كل الاتصالات
-- يتحقق من صحة شهادات العميل والخادم
-- يدير دورة حياة الشهادات
-- يدعم تشفير آمن (TLS 1.3+)
-- يسجل مخاطر السلامة
+**Features**:
+- Two-way synchronization
+- Automatic permission sync from external system
+- Account deprovisioning on external deletion
+- Cross-system audit trail
+- Token validation with provider
 
 ---
 
-### الطبقة الثالثة: البيانات (Data Layer)
+### 6. Transport Security Manager
+
+**Responsibility**: Protects all network communication
+
+**Protocols**:
+- **mTLS 1.3**: Mutual authentication between agent and server
+- **Certificate Pinning**: Prevents man-in-the-middle attacks
+- **Perfect Forward Secrecy**: Session keys are ephemeral
+- **HSTS**: Enforces HTTPS always
+
+**Functions**:
+```python
+verify_client_certificate(cert) → AgentIdentity
+establish_secure_channel(agent_id) → SecureConnection
+validate_tls_version()
+enforce_cipher_suite_requirements()
+```
+
+---
+
+### Layer 3: Data Persistence
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│                  Data Persistence Layer                       │
+│                  Data Layer                                   │
 ├──────────────────────────────────────────────────────────────┤
 │                                                               │
-│  ┌────────────────┐        ┌────────────────┐               │
-│  │ SQLite/Postgres│        │ Agent Registry │               │
-│  │                │        │ (In-Memory)    │               │
-│  │ ┌────────────┐ │        │ ┌──────────┐   │               │
-│  │ │ users      │ │        │ │ Agents   │   │               │
-│  │ │ agents     │ │        │ │ storage  │   │               │
-│  │ │ events     │ │        │ │ metadata │   │               │
-│  │ │ sessions   │ │        │ └──────────┘   │               │
-│  │ │ permissions│ │        │                │               │
-│  │ └────────────┘ │        └────────────────┘               │
-│  └────────────────┘                                         │
+│  ┌──────────────────────┐    ┌──────────────────┐            │
+│  │ PostgreSQL           │    │ Redis Cache      │            │
+│  │ (Persistent)         │    │ (In-Memory)      │            │
+│  │                      │    │                  │            │
+│  │ • users              │    │ • Active agents  │            │
+│  │ • agents             │    │ • Session tokens │            │
+│  │ • audit_events       │    │ • Permission     │            │
+│  │ • sessions           │    │   cache          │            │
+│  │ • permissions        │    │ • Rate limits    │            │
+│  │ • certificates       │    │                  │            │
+│  └──────────────────────┘    └──────────────────┘            │
 │                                                               │
 └──────────────────────────────────────────────────────────────┘
 ```
 
-#### قاعدة البيانات
+#### Data Schema
 
-**جدول المستخدمين (Users)**:
+**Core tables**:
+
 ```sql
-id          INTEGER PRIMARY KEY
-username    TEXT UNIQUE NOT NULL      -- اسم المستخدم
-password_hash BLOB NOT NULL            -- كلمة المرور (مشفرة!)
-email       TEXT UNIQUE NOT NULL      -- البريد الإلكتروني
-role        TEXT DEFAULT 'user'       -- admin أو user
-status      TEXT DEFAULT 'active'     -- active/suspended/inactive
-created_at  TIMESTAMP                 -- وقت الإنشاء
-last_login  TIMESTAMP                 -- آخر دخول
+-- Users/Service Accounts
+users (
+  id UUID PRIMARY KEY,
+  username TEXT UNIQUE NOT NULL,
+  password_hash BYTEA NOT NULL,      -- Bcrypt 12-round
+  role TEXT DEFAULT 'user',
+  status TEXT DEFAULT 'active',
+  created_at TIMESTAMP,
+  last_login TIMESTAMP
+)
+
+-- AI Agents
+agents (
+  id TEXT PRIMARY KEY,               -- Unique per agent
+  name TEXT NOT NULL,
+  type TEXT,                         -- 'llm', 'worker', 'service'
+  status TEXT DEFAULT 'active',
+  metadata JSONB,                    -- Custom attributes
+  created_at TIMESTAMP,
+  updated_at TIMESTAMP
+)
+
+-- Sessions
+sessions (
+  id UUID PRIMARY KEY,
+  agent_id TEXT NOT NULL,
+  started_at TIMESTAMP,
+  ended_at TIMESTAMP,
+  status TEXT DEFAULT 'active',
+  device_fingerprint TEXT,
+  ip_address INET,
+  user_agent TEXT
+)
+
+-- Immutable audit log
+audit_events (
+  id BIGSERIAL PRIMARY KEY,
+  timestamp TIMESTAMP DEFAULT NOW(),
+  agent_id TEXT,
+  action TEXT NOT NULL,              -- 'login', 'read', 'write', etc.
+  resource TEXT,
+  result TEXT,                       -- 'allow', 'deny', 'error'
+  reason TEXT,
+  details JSONB,
+  INDEX ON (agent_id, timestamp)    -- For fast queries
+)
+
+-- Role-based permissions
+permissions (
+  id SERIAL PRIMARY KEY,
+  agent_id TEXT NOT NULL,
+  resource TEXT NOT NULL,
+  action TEXT NOT NULL,
+  granted_at TIMESTAMP,
+  granted_by TEXT,
+  expires_at TIMESTAMP                -- Optional expiration
+)
 ```
 
-**جدول الوكلاء (Agents)**:
-```sql
-id          TEXT PRIMARY KEY          -- معرّف الوكيل الفريد
-name        TEXT NOT NULL             -- اسم الوكيل
-type        TEXT                      -- نوع الوكيل (llm, worker, etc)
-status      TEXT DEFAULT 'active'     -- active/suspended/inactive
-metadata    TEXT                      -- بيانات إضافية (JSON)
-created_at  TIMESTAMP                 -- تاريخ الإنشاء
-updated_at  TIMESTAMP                 -- آخر تحديث
+#### In-Memory Cache (Redis)
+
+**Purpose**: Sub-millisecond access to frequently needed data
+
+**Cached Items**:
+```
+agents:{agent_id}                    → Agent object
+sessions:{session_id}                → Session metadata
+permissions:{agent_id}               → Permission list
+rate_limits:{agent_id}:{endpoint}    → Request count
 ```
 
-**جدول الأحداث (Events)**:
-```sql
-id          INTEGER PRIMARY KEY
-event_type  TEXT NOT NULL             -- login, authorization, error
-agent_id    TEXT                      -- معرّف الوكيل
-action      TEXT                      -- العملية المنفذة
-details     TEXT                      -- تفاصيل العملية
-status      TEXT DEFAULT 'success'    -- success أو failure
-created_at  TIMESTAMP                 -- وقت الحدث
+**Cache Strategy**:
+- TTL: 5 minutes for agents, 24h for permissions
+- Invalidation: Immediate on update
+- Consistency: Write-through to database
+
+---
+
+## Data Flow
+
+### Authentication Flow
+
+```
+STEP 1: Agent sends request
+├─ HTTP/mTLS to /api/v1/authenticate
+├─ Body: { "credentials": {...}, "method": "tls" }
+└─ Headers: mTLS certificate
+
+STEP 2: Transport Security validates TLS
+├─ Verify client certificate validity
+├─ Extract agent ID from certificate
+├─ Decrypt message (TLS session)
+└─ Pass to Authentication Manager
+
+STEP 3: Authentication Manager processes
+├─ Lookup credential in database
+├─ Verify signature/expiration
+├─ Calculate trust score:
+│  ├─ Credential type (5-100 points)
+│  ├─ Age in days (0-20 points)
+│  ├─ Rotation history (0-10 points)
+│  └─ TOTAL: 95/100
+├─ Log attempt to audit trail
+└─ Return AuthResult { success: true, trust_score: 95 }
+
+STEP 4: Session Manager called
+├─ Check/Create session token
+├─ Store in Redis cache
+├─ Set 24-hour expiration
+└─ Return session_id
+
+STEP 5: Return to agent
+├─ HTTP 200 OK
+├─ Body: { "session_id": "xyz", "expires_in": 86400 }
+├─ Log successful auth to database
+└─ Send audit event
 ```
 
-**جدول الجلسات (Sessions)**:
-```sql
-id          TEXT PRIMARY KEY          -- معرّف الجلسة
-agent_id    TEXT NOT NULL             -- معرّف الوكيل
-started_at  TIMESTAMP                 -- وقت البدء
-ended_at    TIMESTAMP                 -- وقت الانتهاء
-status      TEXT DEFAULT 'active'     -- active أو ended
-metadata    TEXT                      -- بيانات الجلسة (JSON)
+### Authorization Flow
+
+```
+STEP 1: Agent sends action request
+├─ GET /api/v1/data/customers
+├─ Headers: { "session_id": "xyz" }
+└─ Context: timestamp, ip_address, etc.
+
+STEP 2: Session validation
+├─ Redis lookup: sessions:xyz
+├─ Check not expired
+├─ Check device fingerprint consistent
+└─ Pass if valid
+
+STEP 3: Authorization Manager evaluates
+├─ Lookup agent permissions from database
+│  ├─ Agent roles: ["data_reader", "auditor"]
+│  ├─ Resource "data/customers": permission found? ✓
+│  └─ Action "read": permission scope includes? ✓
+│
+├─ Evaluate ABAC constraints
+│  ├─ Time: Business hours? 09:00-17:00 EST ✓
+│  ├─ Environment: Production status? active ✓
+│  ├─ Risk score: <50? (current: 15) ✓
+│  └─ Device: Recognized? ✓
+│
+└─ Decision: ALLOW
+
+STEP 4: Log to audit trail
+├─ Authorization event recorded
+├─ Status: ALLOW
+├─ Reason: "valid permissions + context
+└─ Saved to audit_events table
+
+STEP 5: Execute operation
+├─ Retrieve data
+├─ Encrypt response
+├─ Return to agent
+└─ Log operation completion
 ```
 
-**جدول الصلاحيات (Permissions)**:
-```sql
-id          INTEGER PRIMARY KEY
-agent_id    TEXT NOT NULL             -- معرّف الوكيل
-resource    TEXT NOT NULL             -- المورد (ملف، قاعدة، إلخ)
-action      TEXT NOT NULL             -- العملية (read, write, delete)
-granted_by  TEXT                      -- من منح الصلاحية
-granted_at  TIMESTAMP                 -- وقت المنح
+### Session Anomaly Detection
+
 ```
+Real-time monitoring:
 
-#### Agent Registry (ذاكرة في الذاكرة)
+IF (new_request.ip_address != previous_session.ip_address)
+  AND time_difference < 60_seconds
+  THEN flag as "impossible_travel"
+       risk_score += 50
+       
+IF (request_count > rate_limit)
+  THEN flag as "rate_limit_exceeded"
+       risk_score += 30
 
-**الهدف**: تخزين سريع للوكلاء النشطين
+IF (request_from_new_device)
+  THEN require_mfa = true
+       flag as "new_device"
+       risk_score += 20
 
-**المميزات**:
-- تخزين في الذاكرة (سريع جداً)
-- مزامنة مع قاعدة البيانات
-- دعم البحث والفلترة السريع
-
-```python
-# البنية
-registry = {
-    "agent-001": {
-        "id": "agent-001",
-        "name": "AI Assistant",
-        "status": "active",
-        "metadata": {...}
-    }
-}
+IF (risk_score > 75)
+  THEN suspend_session()
+       alert_security_team()
+       force_re_authentication()
 ```
 
 ---
 
-## تدفق البيانات
+## Component Interactions
 
-### تدفق المصادقة (Authentication Flow)
-
-```
-1. الوكيل يرسل طلب
-   ├─ معرّف الوكيل
-   ├─ البيانات المرسلة
-   └─ طريقة التوثيق
-
-2. Authentication Manager يستقبل الطلب
-   ├─ يستخرج البيانات من الطلب
-   ├─ يتحقق من صحة التوقيع
-   ├─ يفك تشفير البيانات
-   └─ يحسب درجة الثقة
-
-3. يبحث عن البيانات في قاعدة البيانات
-   ├─ هل البيانات موجودة؟
-   ├─ هل صلاحيتها سارية؟
-   └─ هل تطابق البيانات المرسلة؟
-
-4. إذا كانت صحيحة:
-   ├─ ينشئ AuthenticationResult (نجح)
-   ├─ يسجل الحدث في البيانات
-   └─ يرجع النتيجة
-
-5. إذا كانت خاطئة:
-   ├─ ينشئ AuthenticationResult (فشل)
-   ├─ يسجل محاولة فاشلة
-   ├─ يتحقق من عدد المحاولات
-   ├─ إذا تجاوزت الحد: ينعّل الحساب
-   └─ يرجع النتيجة
-```
-
-### تدفق التفويض (Authorization Flow)
+### Scenario: File Access Request
 
 ```
-1. الوكيل يطلب إجراء على موارد
-   ├─ معرّف الوكيل
-   ├─ المورد المطلوب
-   ├─ العملية المطلوبة
-   └─ السياق
+Timeline of component interactions:
 
-2. Authorization Manager يستقبل الطلب
-   ├─ يحصل على أدوار الوكيل من البيانات
-   ├─ يحصل على الصلاحيات المرتبطة بكل دور
-   └─ يحصل على قواعس ABAC
+T0ms   | Agent sends: GET /files/contracts.pdf (with mTLS cert)
+T1ms   | Transport Security Manager
+       ├─ Validates TLS handshake ✓
+       ├─ Extracts agent ID from cert
+       └─ Decrypts HTTP message
+T2ms   | Authentication Manager
+       ├─ Verifies cert signature (valid)
+       ├─ Checks cert expiration (not expired)
+       ├─ Calculates trust: 92/100
+       └─ Result: AUTHENTICATED
+T3ms   | Session Manager
+       ├─ Validates session token (active)
+       ├─ Checks expiration (6h remaining)
+       ├─ Verifies device fingerprint (match)
+       └─ Result: SESSION_VALID
+T4ms   | Audit Logger
+       ├─ Log: "agent-42 requested read /files/contracts.pdf"
+       └─ Status: pending_auth
+T5-15ms| Authorization Manager
+       ├─ Lookup agent permissions (from Redis cache hit)
+       ├─ Agent roles: ["lawyer", "auditor"]
+       ├─ Check "file:read" permission
+       ├─ Verify context constraints:
+       │  ├─ Time: 14:30 (within 09:00-17:00) ✓
+       │  ├─ Location: authorized_network ✓
+       │  ├─ Device: recognized ✓
+       │  └─ Risk: low (score: 5) ✓
+       └─ Decision: ALLOW
+T16ms  | Audit Logger
+       ├─ Update log: "Authorization: ALLOW"
+       └─ Reason: "matching_role + context_valid"
+T17-20ms| Data Layer
+       ├─ Query database: SELECT file
+       ├─ Apply encryption layer
+       └─ Package response
+T21ms  | Transport Security Manager
+       ├─ Encrypt response with session key
+       ├─ Create TLS packet
+       └─ Send to agent
+T22ms  | Audit Logger
+       ├─ Final log: "Operation complete: SUCCESS"
+       ├─ Duration: 22ms
+       └─ Save to audit_events table
 
-3. يقيّم القواعس
-   ├─ يتحقق من البيئة (إنتاج/اختبار)
-   ├─ يتحقق من الوقت (ساعات العمل؟)
-   ├─ يتحقق من الموقع (معتمد؟)
-   └─ يتحقق من مستوى المخاطرة
-
-4. القرار النهائي
-   ├─ إذا جميع الشروط صحيحة: اسمح
-   ├─ إذا شرط فاشل: ارفض
-   └─ يسجل القرار والسبب
-
-5. تسجيل في قاعدة البيانات
-   ├─ سجل الحدث (authorize_request)
-   ├─ القرار (allow/deny)
-   └─ السبب والمعلومات
-```
-
-### تدفق إنشاء جلسة (Session Creation Flow)
-
-```
-1. بداية جلسة جديدة
-   ├─ معرّف الوكيل
-   ├─ عنوان IP
-   ├─ الجهاز
-   └─ معلومات أخرى
-
-2. Session Manager ينشئ جلسة
-   ├─ يولّد معرّف جلسة فريد (UUID)
-   ├─ يحفظ وقت البدء
-   ├─ يخزن هويته وبيانات الجهاز
-   └─ يحدد وقت انتهاء الصلاحية (مثلاً 24 ساعة)
-
-3. ينشر الجلسة
-   ├─ يحفظها في الذاكرة (سريع)
-   ├─ يحفظها في قاعدة البيانات (دائم)
-   └─ يرجع معرّف الجلسة
-
-4. استخدام الجلسة
-   ├─ الوكيل يرسل الطلبات مع معرّف الجلسة
-   ├─ الخادم يتحقق من الجلسة في الذاكرة
-   ├─ يتحقق من عدم انتهاء الموعد
-   └─ يسمح بالعملية
-
-5. انتهاء الجلسة
-   ├─ إذا انتهت الصلاحية تلقائياً
-   ├─ أو الوكيل طلب تسجيل خروج
-   ├─ يحدّث الحالة في الذاكرة
-   ├─ يحدّث الحالة في قاعدة البيانات
-   └─ ينظّف الموارد المستخدمة
+TOTAL TIME: <50ms (within target)
 ```
 
 ---
 
-## التفاعلات بين المكونات
+## Performance Characteristics
 
-### سيناريو 1: وكيل يريد قراءة ملف
+| Operation | Latency | Bottleneck | Optimization |
+|-----------|---------|-----------|--------------|
+| Credential validation | 5-8ms | Crypto operations | Hardware acceleration |
+| Session lookup | <1ms | Redis lookup | In-memory cache |
+| Permission check | 3-5ms | DB query | Role cache + indexes |
+| Auth complete | 15-25ms | Logging | Async audit writes |
+| Authorization full | 20-50ms | Policy evaluation | ABAC rule index |
+| API endpoint (end-to-end) | 30-60ms | TLS handshake | Session reuse |
 
-```
-Workflow المكتمل:
+**Target**: <100ms for 99th percentile
 
-1. الوكيل يرسل طلب read على /files/data.json
+---
 
-2. Transport Security Manager
-   ├─ يتحقق من شهادة TLS المتبادلة
-   ├─ يفك تشفير الرسالة
-   └─ يسمح بالمتابعة
+## High-Availability Design
 
-3. Authentication Manager
-   ├─ يستخرج بيانات الوكيل من الرسالة
-   ├─ يتحقق من البيانات
-   ├─ ينجح في التحقق
-   └─ ينشئ AuthenticationResult(success=True)
+**Redundancy**:
+- Database: Master-slave replication
+- Cache: Redis cluster with sentinel
+- API servers: Horizontal scaling behind load balancer
+- Stateless components: Can restart without data loss
 
-4. Session Manager
-   ├─ يحصل على معرّف الجلسة من الطلب
-   ├─ يتحقق من صحة الجلسة
-   ├─ يتحقق من عدم انتهاء الموعد
-   └─ ينجح في التحقق
+**Failover**:
+- Automatic database failover: 2-5 seconds
+- Session recovery: From Redis cluster
+- Audit continuity: Persist to secondary buffer
 
-5. Audit Manager
-   ├─ يسجل: "agent-001 attempted read /files/data.json"
-   └─ الحالة: pending
+---
 
-6. Authorization Manager
-   ├─ يحصل على أدوار الوكيل: ["reader"]
-   ├─ يحصل على الصلاحيات: ["file:read"]
-   ├─ يتحقق من السياق (إنتاج، ساعات العمل، إلخ)
-   ├─ جميع الشروط صحيحة
-   └─ ينشئ AuthorizationDecision(allow=True)
-
-7. Audit Manager
-   ├─ يحدّث السجل: "Authorization: ALLOW"
-   └─ يحفظ في قاعدة البيانات
-
-8. تنفيذ العملية
-   ├─ اقراءة الملف
-   ├─ إرسال المحتوى للوكيل
-   └─ تشفيره (TLS)
-
-9. التسجيل النهائي
-   ├─ سجل الحدث: status=success
-   └─ حفظ في قاعدة البيانات
-
-النتيجة: ✅ الوكيل يحصل على الملف بنجاح
-```
-
-### سيناريو 2: وكيل يحاول كتابة ملف بدون صلاحيات
+## Security Isolation
 
 ```
-Workflow المكتمل:
-
-1-4. النقاط 1-4 نفسها كما في السيناريو الأول
-
-5. Audit Manager
-   ├─ يسجل: "agent-001 attempted write /files/data.json"
-   └─ الحالة: pending
-
-6. Authorization Manager
-   ├─ يحصل على أدوار الوكيل: ["reader"]
-   ├─ يحصل على الصلاحيات: ["file:read"] فقط
-   ├─ يتحقق من الصلاحية: file:write
-   ├─ الصلاحية غير موجودة!
-   └─ ينشئ AuthorizationDecision(allow=False, reason="insufficient_permissions")
-
-7. Audit Manager + Security Alert
-   ├─ يحدّث السجل: "Authorization: DENY (insufficient permissions)"
-   ├─ يسجل تنبيه أمني
-   ├─ قد يحظر الوكيل بعد X محاولات
-   └─ يحفظ كل شيء في قاعدة البيانات
-
-8. إرسال خطأ للوكيل
-   ├─ HTTP 403 Forbidden
-   └─ الرسالة: "You don't have permission to write this file"
-
-النتيجة: ❌ الوكيل يحصل على رسالة رفض
-+ يتم توثيق محاولة غير مصرح بها
+┌─────────────────────────────────────────┐
+│        Untrusted Agent Request          │
+└────────────────────┬────────────────────┘
+                     │
+        mTLS Mutual Authentication
+                     │
+        ┌────────────▼────────────┐
+        │ TLS 1.3 Encrypted       │
+        │ Channel (AES-256-GCM)   │
+        └────────────┬────────────┘
+                     │
+        Cryptographic Verification
+                     │
+        ┌────────────▼─────────────┐
+        │ Trusted Agent Identity   │
+        └────────────┬─────────────┘
+                     │
+    Permission & Context Evaluation
+                     │
+        ┌────────────▼──────────────┐
+        │ Access Control Decision   │
+        │ (RBAC + ABAC)            │
+        └────────────┬──────────────┘
+                     │
+         ┌───────────▼────────────┐
+         │ Audit Trail Recorded   │
+         │ (Immutable Log)        │
+         └───────────┬────────────┘
+                     │
+         ┌───────────▼──────────────┐
+         │ Operation Executed      │
+         │ (If allowed)            │
+         └──────────────────────────┘
 ```
 
 ---
 
-## أمثلة عملية
+<div align="center">
 
-### مثال 1: كود كامل للتسجيل والعمل
+**Architecture proven for enterprise at scale**
 
-```python
-from core.agentic_iam import AgenticIAM
-from config.settings import Settings
-import asyncio
+**[← Back to Documentation](../README.md)**
 
-async def main():
-    # 1. إعداد النظام
-    settings = Settings()
-    iam = AgenticIAM(settings)
-    await iam.initialize()
-    
-    # 2. تسجيل وكيل جديد
-    agent = iam.identity_manager.create_identity(
-        agent_id="my-ai-assistant",
-        metadata={"type": "llm", "version": "2.0"}
-    )
-    
-    # 3. توليد مفاتيح
-    agent = AgentIdentity.generate(agent_id="my-ai-assistant")
-    print(f"🔐 Public Key: {agent.get_public_key()}")
-    
-    # 4. حفظ الوكيل في البيانات
-    iam.agent_registry.register(agent)
-    
-    # 5. التحقق من الوكيل
-    auth = await iam.authentication_manager.authenticate(
-        agent_id="my-ai-assistant",
-        credentials={"api_key": "secret"},
-        method="api_key"
-    )
-    
-    if auth.success:
-        print(f"✅ Authenticated: trust_level={auth.trust_level}")
-        
-        # 6. بدء جلسة
-        session = await iam.session_manager.create_session(
-            agent_id="my-ai-assistant",
-            metadata={"ip": "192.168.1.1"}
-        )
-        
-        # 7. التحقق من صلاحيات المورد
-        decision = await iam.authorization_manager.authorize(
-            agent_id="my-ai-assistant",
-            resource="database://users",
-            action="read"
-        )
-        
-        if decision.allow:
-            print("✅ Authorized to read database")
-            # إجراء العملية
-        else:
-            print(f"❌ Not authorized: {decision.reason}")
-        
-        # 8. تسجيل خروج
-        await iam.session_manager.end_session(session.session_id)
-        
-    else:
-        print("❌ Authentication failed")
-    
-    # 9. إيقاف النظام
-    await iam.shutdown()
-
-asyncio.run(main())
-```
-
----
-
-هذا هو الشرح المفصل والكامل للبنية المعمارية! 🎉
+</div>
