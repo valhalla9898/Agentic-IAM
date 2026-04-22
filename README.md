@@ -6,71 +6,71 @@
 [![Tests](https://img.shields.io/badge/tests-88%2F88%20passing-green.svg)](#-test-results)
 [![Security](https://img.shields.io/badge/security-verified-brightgreen.svg)](#security)
 
-> **Agentic-IAM** هو نظام إدارة الهويات والوصول (IAM) على مستوى الإنتاج، تم تصميمه خصيصاً لإدارة وكلاء الذكاء الاصطناعي في بيئات الإنتاج المعقدة
+> **Agentic-IAM** is a production-grade Identity and Access Management (IAM) system, purpose-built for managing AI agents in complex production environments
 
 ---
 
-## 📖 المحتويات
+## 📖 Table of Contents
 
-1. [نظرة عامة](#-نظرة-عامة)
-2. [المميزات الأساسية](#-المميزات-الأساسية)
-3. [البنية المعمارية](#-البنية-المعمارية-system-architecture)
-4. [شرح المكونات](#-شرح-المكونات-components-deep-dive)
-5. [التثبيت والتشغيل](#-التثبيت-والتشغيل-quick-start)
-6. [الاستخدام](#-الاستخدام-usage-guide)
-7. [الأداء والأمان](#-الأداء-والأمان)
-8. [الاختبارات](#-الاختبارات)
+1. [Overview](#-overview)
+2. [Core Features](#-core-features)
+3. [System Architecture](#-system-architecture-deep-dive)
+4. [Components Explained](#-components-explained-technical-deep-dive)
+5. [Installation & Running](#-installation--running-quick-start)
+6. [Usage Guide](#-usage-guide-comprehensive-examples)
+7. [Performance & Security](#-performance--security)
+8. [Testing](#-testing)
 
 ---
 
-## 🎯 نظرة عامة
+## 🎯 Overview
 
-**Agentic-IAM** هو نظام شامل لإدارة هويات الوكلاء الذكية بما يلي:
+**Agentic-IAM** is a comprehensive system for managing AI agent identities with:
 
-✅ **التوثيق الآمن (Authentication)**
-- دعم مراقبة TLS متبادلة (mTLS) 
-- دعم OAuth 2.0 و OpenID Connect
-- إدارة الهويات الموحدة (Federated Identity)
+✅ **Secure Authentication**
+- Mutual TLS (mTLS) support
+- OAuth 2.0 and OpenID Connect
+- Federated Identity management
 
-✅ **التفويض والصلاحيات (Authorization)**
-- التحكم القائم على الأدوار (RBAC)
-- التحكم القائم على الصفات (ABAC)
-- دعم أقل الصلاحيات (Least Privilege)
+✅ **Authorization & Permissions**
+- Role-Based Access Control (RBAC)
+- Attribute-Based Access Control (ABAC)
+- Least Privilege principle enforcement
 
-✅ **إدارة الجلسات (Session Management)**
-- تتبع الجلسات النشطة
-- آليات انتهاء الجلسة والتجديد
-- الكشف عن أنماط الجلسات المريبة
+✅ **Session Management**
+- Active session tracking
+- Session timeout and renewal mechanisms
+- Suspicious pattern detection
 
-✅ **إدارة بيانات الاعتماد (Credential Management)**
-- التخزين الآمن للبيانات
-- التدوير التلقائي للبيانات
-- دعم أنواع متعددة من البيانات
+✅ **Credential Management**
+- Secure data storage
+- Automatic credential rotation
+- Multiple credential types support
 
-✅ **السجل والامتثال (Audit & Compliance)**
-- تسجيل شامل لجميع العمليات
-- دعم GDPR, HIPAA, SOX, PCI-DSS, ISO-27001
-- تقارير الامتثال
+✅ **Audit & Compliance**
+- Comprehensive operation logging
+- GDPR, HIPAA, SOX, PCI-DSS, ISO-27001 support
+- Compliance reporting
 
-✅ **لوحة التحكم والـ API**
-- واجهة مستخدم حديثة بـ Streamlit
+✅ **Dashboard & APIs**
+- Modern Streamlit UI
 - GraphQL API
 - REST API (FastAPI)
 
 ---
 
-## ✨ المميزات الأساسية
+## ✨ Core Features
 
-| الميزة | الوصف | الفائدة |
-|--------|--------|---------|
-| **إدارة هوية الوكيل** | برمجة وإدارة هويات فريدة لكل وكيل | عزل البيانات وتجنب التضارب |
-| **توثيق متعدد البروتوكول** | mTLS, OAuth 2.0, Federated Identity | المرونة والتوافقية |
-| **صلاحيات دقيقة** | قوائم التحكم القائمة على الأدوار والصفات | تطبيق أقل صلاحيات ممكنة |
-| **أمان النقل** | mTLS متبادلة مع تشفير شامل | حماية من هجمات النقل |
-| **تتبع شامل** | سجل كامل لجميع العمليات | الامتثال والتحقيق |
-| **ذكاء اصطناعي** | مساعد AI للاستكشاف والمساعدة | تجربة أفضل للمستخدم |
-| **لوحة تحكم سهلة** | واجهة رسومية حديثة بـ Streamlit | إدارة سهلة وسريعة |
-| **GraphQL API** | API حديث وقوي | التكامل والأتمتة |
+| Feature | Description | Benefit |
+|---------|-------------|---------|
+| **Agent Identity Management** | Programmatic creation and management of unique agent identities | Data isolation and collision prevention |
+| **Multi-Protocol Authentication** | mTLS, OAuth 2.0, Federated Identity | Flexibility and compatibility |
+| **Fine-Grained Permissions** | Role-based and attribute-based access controls | Enforce least privilege principle |
+| **Transport Security** | Mutual TLS with end-to-end encryption | Protection against transit attacks |
+| **Comprehensive Audit Trail** | Complete operation logging | Compliance and investigation |
+| **AI-Powered Assistance** | AI-powered exploration and help | Enhanced user experience |
+| **Easy-to-Use Dashboard** | Modern Streamlit interface | Easy and fast management |
+| **GraphQL API** | Modern and powerful API | Integration and automation |
 
 ---
 

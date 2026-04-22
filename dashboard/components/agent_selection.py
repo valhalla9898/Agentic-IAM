@@ -89,7 +89,7 @@ def show_agent_list():
     agents = db.list_agents()
 
     if not agents:
-        st.info("📭 لا توجد وكلاء مسجلون (No agents registered)")
+        st.info("📭 No agents registered")
         return
 
     # Display agents as cards

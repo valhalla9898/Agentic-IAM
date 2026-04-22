@@ -1,195 +1,199 @@
-## 📚 Agentic-IAM Dashboard - شرح شامل
+## 📚 Agentic-IAM Dashboard - Complete Guide
 
-### ✅ تم إصلاح كل المشاكل!
+### ✅ All Issues Have Been Fixed!
 
 ---
 
-## 🚀 البدء السريع
+## 🚀 Quick Start
 
-### **الطريقة الأسرع (Windows):**
+### **Fastest Method (Windows):**
 ```batch
-انقر مرتين على: run_dashboard.bat
+Double-click on: run_dashboard.bat
 ```
 
-### **من PowerShell/CMD:**
+### **From PowerShell/CMD:**
 ```powershell
 cd C:\Users\Lenovo\Desktop\Agentic-IAM-main
 streamlit run app.py
 ```
 
-### **سيفتح تلقائياً على:**
+### **Will automatically open to:**
 ```
 http://localhost:8501
 ```
 
 ---
 
-## 📋 قائمة المشاكل التي تم حلها
+## 📋 List of Solved Problems
 
-| المشكلة | الحل |
-|--------|------|
-| ❌ استيراد dashboard.utils غير موجود | ✅ تم إنشاء dashboard/utils.py |
-| ❌ استيراد agent_identity ناقص | ✅ تم إنشاء فئات شاملة |
-| ❌ st.experimental_rerun متقادم | ✅ تم تحديثه إلى st.rerun() |
-| ❌ st.confirm غير موجود | ✅ تم إزالته |
-| ❌ ملفات تبعيات مفقودة | ✅ تم إنشاء جميع الملفات |
-| ❌ مشاكل في BaseSettings | ✅ تم تحويله لفئة عادية |
-| ❌ أخطاء الاستيراد | ✅ تم إصلاح جميع المسارات |
-| ❌ __init__.py مفقود | ✅ تم إنشاء جميع الملفات |
-
----
-
-## 🎯 الميزات المتاحة
-
-### 🏠 الصفحة الرئيسية
-- عرض الإحصائيات الكاملة
-- حالة النظام الصحية
-- إجراءات سريعة
-
-### 👥 إدارة الوكلاء
-- تسجيل وكلاء جدد
-- عرض قائمة الوكلاء
-- معلومات تفصيلية
-- عمليات جماعية
-- الترتيب والتصفية
-
-### 🔐 إدارة الجلسات
-- عرض الجلسات النشطة
-- معلومات مفصلة لكل جلسة
-- إحصائيات الاستخدام
-
-### 📋 سجل التدقيق
-- تصفية حسب النوع
-- تصفية حسب التاريخ
-- البحث المتقدم
-
-### ⚙️ الإعدادات
-- إعدادات عامة
-- إعدادات الأمان
-- إعدادات متقدمة
+| Problem | Solution |
+|---------|----------|
+| ❌ Missing dashboard.utils import | ✅ Created dashboard/utils.py |
+| ❌ Missing agent_identity classes | ✅ Created comprehensive classes |
+| ❌ st.experimental_rerun deprecated | ✅ Updated to st.rerun() |
+| ❌ st.confirm not found | ✅ Removed it |
+| ❌ Missing dependency files | ✅ Created all files |
+| ❌ BaseSettings issues | ✅ Converted to regular class |
+| ❌ Import errors | ✅ Fixed all paths |
+| ❌ Missing __init__.py | ✅ Created all files |
 
 ---
 
-## 🔍 هيكل المشروع
+## 🎯 Available Features
+
+### 🏠 Home Page
+- View complete statistics
+- System health status
+- Quick actions
+
+### 👥 Agent Management
+- Register new agents
+- View agent list
+- Detailed information
+- Bulk operations
+- Sort and filter
+
+### 🔐 Session Management
+- View active sessions
+- Detailed session information
+- Usage statistics
+
+### 📋 Audit Log
+- Filter by type
+- Filter by date
+- Advanced search
+
+### ⚙️ Settings
+- General settings
+- Security settings
+- Advanced settings
+
+---
+
+## 🔍 Project Structure
 
 ```
 Agentic-IAM-main/
-├── app.py                          # التطبيق الرئيسي
-├── agent_identity.py              # إدارة الهوية
-├── authentication.py              # التحقق
-├── authorization.py               # التفويض
+├── app.py                          # Main Application
+├── agent_identity.py              # Identity Management
+├── authentication.py              # Authentication
+├── authorization.py               # Authorization
 ├── config/
 │   ├── __init__.py
-│   └── settings.py               # الإعدادات
+│   └── settings.py               # Configuration
 ├── core/
 │   ├── __init__.py
-│   └── agentic_iam.py           # النواة الرئيسية
+│   └── agentic_iam.py           # Main Core
 ├── dashboard/
 │   ├── __init__.py
-│   ├── utils.py                 # دوال مساعدة
+│   ├── utils.py                 # Helper Functions
 │   └── components/
 │       ├── __init__.py
-│       └── agent_management.py  # إدارة الوكلاء
+│       └── agent_management.py  # Agent Management
 ├── utils/
 │   ├── __init__.py
-│   └── logger.py                # نظام السجلات
-└── test_setup.py                 # اختبار البيئة
+│   └── logger.py                # Logging System
+└── test_setup.py                 # Environment Testing
 ```
 
 ---
 
-## 🧪 اختبار البيئة
+## 🧪 Testing Environment
 
-تشغيل:
+Run:
 ```bash
 python test_setup.py
 ```
 
-المتوقع أن ترى:
+Expected output:
 ```
 ✓ AGENTIC-IAM System Verification
-✓ Testing imports... (جميع الاستيرادات تنجح)
-✓ Testing object creation... (جميع الأجسام تُنشأ)
-✓ Checking file structure... (جميع الملفات موجودة)
+✓ Testing imports... (All imports succeed)
+✓ Testing object creation... (All objects created)
+✓ Checking file structure... (All files present)
 ✓ SYSTEM READY TO RUN
 ```
 
 ---
 
-## 🛠️ معلومات الإعدادات
+## 🛠️ Configuration Information
 
-الملف: `config/settings.py`
+File: `config/settings.py`
 
-المتغيرات الرئيسية:
+Key Variables:
 ```python
-# الخادم
+# Server
 api_host = "127.0.0.1"
 api_port = 8000
 
-# لوحة التحكم
+# Dashboard
 dashboard_host = "127.0.0.1"
 dashboard_port = 8501
 
-# الجلسات
-session_ttl = 3600  # ساعة واحدة
+# Sessions
+session_ttl = 3600  # One hour
 
-# الأمان
+# Security
 enable_mfa = False
 enable_mtls = False
 
-# السجلات
+# Logging
 log_level = "INFO"
 ```
 
 ---
 
-## 📊 معلومات النظام
+## 📊 System Information
 
-| المكون | الحالة |
-|--------|--------|
+| Component | Status |
+|-----------|--------|
 | Python | ✓ 3.13+ |
-| Streamlit | ✓ مثبت |
-| Pydantic | ✓ مثبت |
-| جميع الملفات | ✓ موجودة |
-| الاستيرادات | ✓ تعمل |
-| الإعدادات | ✓ جاهزة |
-| السجلات | ✓ نشطة |
+| Streamlit | ✓ Installed |
+| Pydantic | ✓ Installed |
+| All Files | ✓ Present |
+| Imports | ✓ Working |
+| Configuration | ✓ Ready |
+| Logging | ✓ Active |
 
-**الحالة: ✅ جاهز بنسبة 100%**
-
----
-
-## 🔗 الملفات المهمة
-
-| الملف | الغرض |
-|------|--------|
-| app.py | تطبيق Streamlit الرئيسي |
-| test_setup.py | اختبار البيئة |
-| run_gui.py | مشغل الواجهة |
-| COMPLETION_SUMMARY.py | ملخص الإنجاز |
-| QUICK_START.md | دليل البدء السريع |
+**Status: ✅ 100% Ready**
 
 ---
 
-## 📞 الدعم والمساعدة
+## 🔗 Important Files
 
-### إذا لم يفتح المتصفح تلقائياً:
+| File | Purpose |
+|------|---------|
+| app.py | Main Streamlit Application |
+| test_setup.py | Environment Testing |
+| run_gui.py | GUI Launcher |
+| COMPLETION_SUMMARY.py | Completion Summary |
+| QUICK_START.md | Quick Start Guide |
+
+---
+
+## 📞 Support
+
+### If browser does not open automatically:
 ```
 http://localhost:8501
 ```
 
-### إذا كان المنفذ مشغول:
+### If port is busy:
 ```bash
 streamlit run app.py --server.port 8502
 ```
 
-### للمزيد من المساعدة:
+### For more help:
 ```bash
 streamlit --help
 ```
 
 ---
 
-## 🎉 تم الانتهاء!
+## 🎉 All Done!
 
-النظام جاهز تماماً للاستخدام. استمتع بـ Agentic-IAM! 🚀
+The system is fully ready to use. Enjoy Agentic-IAM! 🚀
+
+---
+
+**Developed by: M/R DUO**
