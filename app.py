@@ -249,6 +249,7 @@ def main():
     with st.sidebar:
         st.title("⚙️ Agentic-IAM")
         st.markdown("v2.0 (Enhanced RBAC)")
+        st.markdown("# **Developed by: M/R DUO**")
         st.markdown("---")
 
         # User info with role badge
@@ -299,6 +300,8 @@ def main():
         Enterprise identity and access
         management for AI agents with
         advanced RBAC controls.
+
+        **Developed by**: M/R DUO
         """)
 
     # Main content - Route to correct page
@@ -476,6 +479,9 @@ def show_home():
         ],
     }
     st.dataframe(pd.DataFrame(stats_data), width="stretch", hide_index=True)
+    
+    st.markdown("---")
+    st.markdown("<div style='text-align: right'><small>Developed by: M/R DUO</small></div>", unsafe_allow_html=True)
 
 
 def show_page_browse_agents():
@@ -486,6 +492,9 @@ def show_page_browse_agents():
 
     st.title("🔍 Browse Agents")
     show_agent_list()
+    
+    st.markdown("---")
+    st.markdown("<div style='text-align: right'><small>Developed by: M/R DUO</small></div>", unsafe_allow_html=True)
 
 
 def show_page_register_agent():
@@ -499,6 +508,9 @@ def show_page_register_agent():
     st.divider()
     st.subheader("📋 All Agents")
     show_agent_list()
+    
+    st.markdown("---")
+    st.markdown("<div style='text-align: right'><small>Developed by: M/R DUO</small></div>", unsafe_allow_html=True)
 
 
 def show_page_manage_agents():
@@ -518,6 +530,9 @@ def show_page_manage_agents():
         show_agent_details(st.session_state.selected_agent)
     else:
         show_agent_list()
+    
+    st.markdown("---")
+    st.markdown("<div style='text-align: right'><small>Developed by: M/R DUO</small></div>", unsafe_allow_html=True)
 
 
 def show_page_audit_log():
@@ -573,6 +588,9 @@ def show_page_audit_log():
             st.download_button("📥 Download CSV", csv, "audit_log.csv")
     else:
         st.info("📭 No events found")
+    
+    st.markdown("---")
+    st.markdown("<div style='text-align: right'><small>Developed by: M/R DUO</small></div>", unsafe_allow_html=True)
 
 
 def show_page_reports():
@@ -697,6 +715,9 @@ def show_page_reports():
             st.bar_chart(event_df.set_index("Event Type"))
         else:
             st.info("No events found")
+    
+    st.markdown("---")
+    st.markdown("<div style='text-align: right'><small>Developed by: M/R DUO</small></div>", unsafe_allow_html=True)
 
 
 def show_page_settings():
@@ -754,6 +775,9 @@ def show_page_settings():
 
         if st.button("💾 Save Advanced Settings"):
             st.success("✅ Advanced settings saved successfully")
+    
+    st.markdown("---")
+    st.markdown("<div style='text-align: right'><small>Developed by: M/R DUO</small></div>", unsafe_allow_html=True)
 
 
 def show_page_user_management():
@@ -915,6 +939,9 @@ def show_page_user_management():
         st.write("Your current permissions:")
         for perm in sorted(permissions, key=lambda p: p.value):
             st.write(f"✅ `{perm.value}`")
+    
+    st.markdown("---")
+    st.markdown("<div style='text-align: right'><small>Developed by: M/R DUO</small></div>", unsafe_allow_html=True)
 
 
 def show_page_system_config():
@@ -985,6 +1012,9 @@ def show_page_system_config():
 
         if st.button("🚀 Restart Services"):
             st.warning("⚠️ Services will restart in 10 seconds...")
+    
+    st.markdown("---")
+    st.markdown("<div style='text-align: right'><small>Developed by: M/R DUO</small></div>", unsafe_allow_html=True)
 
 
 def show_page_system_monitor():
