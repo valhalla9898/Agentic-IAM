@@ -546,6 +546,94 @@ kubectl get pods -l app=agentic-iam
 
 **Last Updated**: April 22, 2026
 
+---
+
+## 🧩 Additional Details (Environment, CI, E2E, Troubleshooting)
+
+### Environment variables (common)
+- `ENVIRONMENT` — development|staging|production (default: development)
+- `SECRET_KEY` — application secret, keep private
+- `AGENTIC_IAM_E2E_ADMIN_PASSWORD` — password used by E2E tests (Playwright)
+- `DATABASE_URL` — sqlite:///data.db or postgres connection string
+- `API_HOST`, `API_PORT` — API binding settings
+
+Create a `.env` file for local development (do not commit):
+
+```text
+ENVIRONMENT=development
+SECRET_KEY=changeme
+DATABASE_URL=sqlite:///./data/agentic.db
+AGENTIC_IAM_E2E_ADMIN_PASSWORD=admin123
+```
+
+### Running Playwright E2E tests (local)
+1. Start the Streamlit dashboard:
+
+```bash
+python run_gui.py
+# or: docker-compose up
+```
+
+2. Export admin password and run tests:
+
+```bash
+export AGENTIC_IAM_E2E_ADMIN_PASSWORD=admin123
+pytest tests/e2e -v
+```
+
+On Windows PowerShell use `$env:AGENTIC_IAM_E2E_ADMIN_PASSWORD = "admin123"` before running pytest.
+
+### CI / GitHub Actions (recommended)
+- Add a workflow at `.github/workflows/ci.yml` to run `pytest`, `flake8`, and build the Docker image on PRs.
+- Recommended checks: `pytest -q`, `bandit -r .`, `flake8 .`.
+
+Example minimal CI steps:
+
+```yaml
+name: CI
+on: [push, pull_request]
+jobs:
+	test:
+		runs-on: ubuntu-latest
+		steps:
+			- uses: actions/checkout@v4
+			- uses: actions/setup-python@v4
+				with: {python-version: 3.10}
+			- run: python -m venv .venv && source .venv/bin/activate
+			- run: pip install -r requirements.txt
+			- run: pytest -q
+```
+
+### Troubleshooting
+- If `uvicorn` fails to start, check `API_PORT` and host binding.
+- If Playwright tests time out, ensure the dashboard is available at `http://localhost:8501` and admin creds are set.
+- For database errors, confirm `DATABASE_URL` points to a writable location.
+
+---
+
+## 🧾 Release & Changelog
+- Keep `CHANGELOG_LATEST.md` updated for each release.
+- Tag releases with semantic versioning (`vMAJOR.MINOR.PATCH`) and create GitHub releases.
+
+---
+
+## 👥 Contributing & Maintainer Notes
+
+- Use branch naming: `feat/...`, `fix/...`, `docs/...`.
+- Add unit tests for all logic changes and integration/e2e for end-to-end features.
+- Run `bandit -r .` and `flake8 .` locally before creating PRs.
+
+Maintainers: add a `MAINTAINERS.md` file listing primary contacts.
+
+---
+
+If you'd like, I will:
+- create a `.github/workflows/ci.yml` with the recommended CI pipeline,
+- add a `MAINTAINERS.md` and `CONTRIBUTING.md`,
+- run `flake8` and `bandit` and open PRs with fixes.
+
+Tell me which of those to do next and I'll proceed.
+
 
 [![GitHub License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Python Version](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
