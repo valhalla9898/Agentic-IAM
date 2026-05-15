@@ -16,10 +16,11 @@
 2. [Core Features](#-core-features)
 3. [System Architecture](#-system-architecture)
 4. [Components Explained](#-components-explained)
-5. [Installation & Running](#-installation--running)
-6. [Usage Guide](#-usage-guide)
-7. [Performance & Security](#-performance--security)
-8. [Testing](#-testing)
+5. [Security Implementation](#-security-implementation)
+6. [Installation & Running](#-installation--running)
+7. [Usage Guide](#-usage-guide)
+8. [Performance & Security](#-performance--security)
+9. [Testing](#-testing)
 
 ---
 
@@ -352,6 +353,208 @@ Persistent data storage
 - `events` - Audit log
 - `sessions` - Active sessions
 - `permissions` - Agent permissions
+
+---
+
+## 🔐 Security Implementation
+
+### 1. RSA Digital Signatures
+
+Generate and verify cryptographic signatures for agent authentication:
+
+```python
+from agent_identity import AgentIdentity
+
+# Generate agent identity with RSA key pair (2048-bit)
+identity = AgentIdentity.generate(
+    agent_id="agent-001",
+    metadata={"type": "llm", "region": "us-east-1"}
+)
+
+# Sign a message
+message = "authenticate-request-timestamp-12345"
+signature = identity.sign_message(message)
+print(f"✅ Signature: {signature[:32]}...")
+
+# Verify signature
+is_valid = identity.verify_message(message, signature)
+print(f"✅ Signature valid: {is_valid}")
+```
+
+**Security Details**:
+- Uses PKCS#8 PEM format for key serialization
+- PSS padding with SHA-256 for signature generation
+- Prevents signature forgery attacks
+
+---
+
+### 2. Authentication Methods
+
+Secure multi-method authentication with trust scoring:
+
+```python
+from agent_identity import AuthenticationManager, AuthenticationResult
+
+auth_manager = AuthenticationManager()
+
+# Method 1: API Key Authentication
+async def auth_api_key():
+    result = await auth_manager.authenticate(
+        agent_id="agent-001",
+        credentials={"api_key": "sk_live_1234567890abcdefgh"},
+        method="api_key"
+    )
+    if result.success:
+        print(f"✅ Authentication success, trust level: {result.trust_level}")
+
+# Method 2: JWT Token Authentication
+async def auth_jwt():
+    result = await auth_manager.authenticate(
+        agent_id="agent-001",
+        credentials={"token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."},
+        method="jwt"
+    )
+
+# Method 3: OAuth 2.0 Authentication
+async def auth_oauth():
+    result = await auth_manager.authenticate(
+        agent_id="agent-001",
+        credentials={"access_token": "ya29.a0AfH6SMBx..."},
+        method="oauth2"
+    )
+
+# Method 4: mTLS Certificate Authentication
+async def auth_mtls():
+    result = await auth_manager.authenticate(
+        agent_id="agent-001",
+        credentials={
+            "certificate": "-----BEGIN CERTIFICATE-----\nMIID...\n-----END CERTIFICATE-----"
+        },
+        method="mtls"
+    )
+```
+
+**Security Features**:
+- Validates credential length and format
+- Returns trust scores (0.0 - 1.0)
+- Logs authentication attempts for audit trail
+
+---
+
+### 3. Audit & Compliance
+
+Track all security events for compliance frameworks:
+
+```python
+from audit_compliance import AuditEvent, EventSeverity, ComplianceFramework
+
+# Log authentication event
+audit_event = AuditEvent(
+    event_id="evt_123456",
+    event_type="AUTHENTICATION",
+    timestamp="2026-05-16T10:30:00Z",
+    severity=EventSeverity.HIGH,
+    component="AuthenticationManager",
+    outcome="SUCCESS",
+    agent_id="agent-001",
+    source_ip="192.168.1.100",
+    user_agent="AgentSDK/1.0",
+    details={
+        "method": "api_key",
+        "trust_level": 0.95,
+        "mfa_verified": True
+    }
+)
+
+# Compliance frameworks supported
+frameworks = [
+    ComplianceFramework.GDPR,      # General Data Protection Regulation
+    ComplianceFramework.HIPAA,     # Health Insurance Portability
+    ComplianceFramework.SOX,       # Sarbanes-Oxley Act
+    ComplianceFramework.PCI_DSS,   # Payment Card Industry
+    ComplianceFramework.ISO_27001  # Information Security Management
+]
+```
+
+**Logged Events**:
+- Login/logout with timestamps
+- Failed authentication attempts
+- Permission grants/denials
+- Credential rotations
+- Configuration changes
+- Compliance violations
+
+---
+
+### 4. HMAC Verification for Symmetric Trust
+
+Alternative symmetric authentication for internal services:
+
+```python
+import base64
+import hmac
+import hashlib
+
+# Symmetric key shared between services
+shared_key = "shared-secret-key-for-hmac"
+
+# Generate HMAC signature
+message = "request-payload-data"
+signature = base64.b64encode(
+    hmac.new(
+        shared_key.encode('utf-8'),
+        message.encode('utf-8'),
+        hashlib.sha256
+    ).digest()
+).decode('utf-8')
+
+# Verify using constant-time comparison (prevents timing attacks)
+expected_sig = base64.b64encode(
+    hmac.new(
+        shared_key.encode('utf-8'),
+        message.encode('utf-8'),
+        hashlib.sha256
+    ).digest()
+).decode('utf-8')
+
+is_valid = hmac.compare_digest(signature, expected_sig)
+print(f"✅ HMAC verification: {is_valid}")
+```
+
+**Security Benefits**:
+- `hmac.compare_digest()` prevents timing attacks
+- SHA-256 hash algorithm (256-bit security)
+- Suitable for service-to-service auth
+
+---
+
+### 5. Compliance Reporting
+
+Generate security and compliance reports:
+
+```python
+from audit_compliance import ComplianceFramework
+
+# Collect audit events for compliance period
+compliance_period = {
+    "start_date": "2026-01-01",
+    "end_date": "2026-05-16",
+    "frameworks": [
+        ComplianceFramework.GDPR,
+        ComplianceFramework.ISO_27001
+    ]
+}
+
+# Report metrics
+report = {
+    "total_authentications": 15234,
+    "failed_attempts": 12,
+    "avg_trust_level": 0.94,
+    "credential_rotations": 156,
+    "unauthorized_access_attempts": 2,
+    "compliance_violations": 0
+}
+```
 
 ---
 
