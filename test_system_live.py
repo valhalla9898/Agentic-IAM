@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-  
+
 Test QA System Live
 """
 
@@ -8,7 +8,7 @@ print("=" * 60)
 print("🚀    Q&A ")
 print("=" * 60)
 
-# 1.    
+# 1.
 print("\n✓  1:  ...")
 try:
     from qa_database import QADatabase
@@ -21,7 +21,7 @@ except Exception as e:
     print(f"   ❌ : {e}")
     exit(1)
 
-# 2.   
+# 2.
 print("\n✓  2:   (3000+ )...")
 try:
     db = QADatabase()
@@ -29,7 +29,7 @@ try:
     categories = db.get_categories()
     print(f"   ✅  : {total}")
     print(f"   ✅  : {len(categories)}")
-    
+
     q = db.get_random_question()
     if q:
         sample = q['question'][:50]
@@ -37,22 +37,22 @@ try:
 except Exception as e:
     print(f"   ❌ : {e}")
 
-# 3.   
+# 3.
 print("\n✓  3:  ...")
 try:
     sec = QASecurityManager(db_path=":memory:")
-    
+
     answer = " "
     hashed, salt = QASecurityManager.hash_answer(answer)
     verified = QASecurityManager.verify_answer(answer, hashed, salt)
-    
+
     print(f"   ✅  : ")
     status = " ✓" if verified else " ✗"
     print(f"   ✅   : {status}")
 except Exception as e:
     print(f"   ❌ : {e}")
 
-# 4.   
+# 4.
 print("\n✓  4:    ...")
 try:
     points = QAUtilities.calculate_experience_points(
@@ -67,7 +67,7 @@ try:
 except Exception as e:
     print(f"   ❌ : {e}")
 
-# 5.  
+# 5.
 print("\n✓  5:    (SM-2)...")
 try:
     rec = QARecommendationEngine(db_path=":memory:")

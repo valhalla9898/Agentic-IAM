@@ -22,7 +22,7 @@ except ImportError:
 
 class AgentIdentity:
     """Base agent identity class with real cryptographic support"""
-    
+
     def __init__(self, agent_id: str, metadata: Dict[str, Any] = None):
         self.agent_id = agent_id
         self.metadata = metadata or {}
@@ -34,7 +34,7 @@ class AgentIdentity:
     def generate(cls, agent_id: str, metadata: Optional[Dict[str, Any]] = None) -> "AgentIdentity":
         """Generate a new agent identity with real RSA keys"""
         identity = cls(agent_id, metadata or {})
-        
+
         if CRYPTO_AVAILABLE:
             # Generate real RSA key pair (2048-bit)
             private_key = rsa.generate_private_key(
@@ -42,26 +42,26 @@ class AgentIdentity:
                 key_size=2048,
                 backend=default_backend()
             )
-            
+
             # Serialize keys to PEM format
             private_pem = private_key.private_bytes(
                 encoding=serialization.Encoding.PEM,
                 format=serialization.PrivateFormat.PKCS8,
                 encryption_algorithm=serialization.NoEncryption()
             ).decode('utf-8')
-            
+
             public_pem = private_key.public_key().public_bytes(
                 encoding=serialization.Encoding.PEM,
                 format=serialization.PublicFormat.SubjectPublicKeyInfo
             ).decode('utf-8')
-            
+
             identity._public_key = public_pem
             identity._private_key = private_pem
         else:
             # Fallback to dummy keys for environments without cryptography
             identity._public_key = f"-----BEGIN PUBLIC KEY-----\nPK_{agent_id}\n-----END PUBLIC KEY-----"
             identity._private_key = f"-----BEGIN PRIVATE KEY-----\nSK_{agent_id}\n-----END PRIVATE KEY-----"
-        
+
         return identity
 
     def get_public_key(self) -> str:
@@ -78,12 +78,12 @@ class AgentIdentity:
 
     def sign_message(self, message: str) -> Optional[str]:
         """Sign a message using the private key
-        
+
         Returns base64-encoded signature or None if signing fails
         """
         if not self.has_private_key() or not CRYPTO_AVAILABLE:
             return None
-        
+
         try:
             private_pem = self.get_private_key().encode('utf-8')
             private_key = serialization.load_pem_private_key(
@@ -91,7 +91,7 @@ class AgentIdentity:
                 password=None,
                 backend=default_backend()
             )
-            
+
             signature = private_key.sign(
                 message.encode('utf-8'),
                 padding.PSS(
@@ -100,14 +100,15 @@ class AgentIdentity:
                 ),
                 hashes.SHA256()
             )
-            
+
             return base64.b64encode(signature).decode('utf-8')
         except Exception:
             return None
 
-    def verify_message(self, message: str, signature: str, public_key: Optional[str] = None) -> bool:
+    def verify_message(self, message: str, signature: str,
+                       public_key: Optional[str] = None) -> bool:
         """Verify a message signature using RSA or fallback to HMAC
-        
+
         Supports:
         1. Real RSA signature verification (if cryptography available)
         2. HMAC-SHA256 verification (for symmetric trust relationships)
@@ -116,10 +117,10 @@ class AgentIdentity:
         # Input validation
         if not all(isinstance(v, str) and v.strip() for v in (message, signature)):
             return False
-        
+
         # Get the public key to use
         key_to_use = public_key or self.get_public_key()
-        
+
         # Try real RSA verification first
         if CRYPTO_AVAILABLE and key_to_use and "-----BEGIN PUBLIC KEY-----" in key_to_use:
             try:
@@ -128,9 +129,9 @@ class AgentIdentity:
                     public_pem,
                     backend=default_backend()
                 )
-                
+
                 sig_bytes = base64.b64decode(signature.encode('utf-8'))
-                
+
                 public_key_obj.verify(
                     sig_bytes,
                     message.encode('utf-8'),
@@ -143,7 +144,7 @@ class AgentIdentity:
                 return True
             except Exception:
                 pass  # Fall through to HMAC verification
-        
+
         # Try HMAC-SHA256 verification (for symmetric auth)
         try:
             expected_sig = base64.b64encode(
@@ -153,11 +154,11 @@ class AgentIdentity:
                     hashlib.sha256
                 ).digest()
             ).decode('utf-8')
-            
+
             return hmac.compare_digest(signature, expected_sig)
         except Exception:
             pass  # Fall through to legacy check
-        
+
         # Fallback: Legacy check for backwards compatibility with tests
         # Just verify it's a non-empty signature of reasonable length
         return len(signature.strip()) >= 16
@@ -177,6 +178,7 @@ class AgentIdentity:
 
 class AgentIdentityManager:
     """Manager for agent identities"""
+
     def __init__(self):
         self.identities = {}
 
@@ -188,6 +190,7 @@ class AgentIdentityManager:
 
 class AuthenticationResult:
     """Authentication result"""
+
     def __init__(
         self,
         success: bool,
@@ -205,6 +208,7 @@ class AuthenticationResult:
 
 class AuthenticationManager:
     """Authentication manager"""
+
     async def initialize(self, **kwargs):
         self.config = kwargs or {}
 
@@ -219,7 +223,9 @@ class AuthenticationManager:
 
         def _jwt_ok() -> bool:
             token = credentials.get("token")
-            return isinstance(token, str) and len(token.strip()) >= 16 and not token.lower().startswith("invalid")
+            return isinstance(
+                token, str) and len(
+                token.strip()) >= 16 and not token.lower().startswith("invalid")
 
         def _api_key_ok() -> bool:
             api_key = credentials.get("api_key")
@@ -250,11 +256,17 @@ class AuthenticationManager:
             for name, check in checks.items():
                 if check():
                     return AuthenticationResult(True, agent_id, name, 0.8)
-            return AuthenticationResult(False, agent_id, "auto", 0.0, "No supported credential format matched")
+            return AuthenticationResult(False, agent_id, "auto", 0.0,
+                                        "No supported credential format matched")
 
         checker = checks.get(resolved_method)
         if not checker:
-            return AuthenticationResult(False, agent_id, resolved_method, 0.0, f"Unsupported auth method: {resolved_method}")
+            return AuthenticationResult(
+                False,
+                agent_id,
+                resolved_method,
+                0.0,
+                f"Unsupported auth method: {resolved_method}")
 
         if checker():
             return AuthenticationResult(True, agent_id, resolved_method, 0.8)
@@ -264,6 +276,7 @@ class AuthenticationManager:
 
 class AuthorizationManager:
     """Authorization manager"""
+
     async def initialize(self, **kwargs):
         self.config = kwargs or {}
 
@@ -289,6 +302,7 @@ class AuthorizationManager:
 
 class Session:
     """Simple session representation"""
+
     def __init__(
         self,
         session_id: str,
@@ -309,7 +323,8 @@ class Session:
         self.metadata = metadata or {}
         self.created_at = created_at or datetime.utcnow()
         self.last_accessed = last_accessed or self.created_at
-        self.expires_at = expires_at if expires_at is not None else (None if not ttl else (self.created_at + timedelta(seconds=ttl)))
+        self.expires_at = expires_at if expires_at is not None else (
+            None if not ttl else (self.created_at + timedelta(seconds=ttl)))
         self.status = status or SessionStatus.ACTIVE
 
     def is_active(self) -> bool:
@@ -346,6 +361,7 @@ class AuthorizationDecision:
 
 class SessionManager:
     """Session manager"""
+
     def __init__(self, storage_backend="memory", session_ttl=3600, cleanup_interval=300):
         self.sessions: Dict[str, Session] = {}
         self.session_store = type('SessionStore', (), {
@@ -362,16 +378,33 @@ class SessionManager:
         self.sessions.clear()
         return None
 
-    async def create_session(self, agent_id: str, trust_level: float, auth_method: str, ttl: int = None, metadata: Dict = None):
+    async def create_session(
+            self,
+            agent_id: str,
+            trust_level: float,
+            auth_method: str,
+            ttl: int = None,
+            metadata: Dict = None):
         session_id = f"session_{len(self.sessions)}"
-        session = Session(session_id=session_id, agent_id=agent_id, trust_level=trust_level, auth_method=auth_method, ttl=(ttl or self.session_ttl), metadata=metadata)
+        session = Session(
+            session_id=session_id,
+            agent_id=agent_id,
+            trust_level=trust_level,
+            auth_method=auth_method,
+            ttl=(
+                ttl or self.session_ttl),
+            metadata=metadata)
         self.sessions[session_id] = session
         return session.session_id
 
     def get_session(self, session_id: str):
         return self.sessions.get(session_id)
 
-    def refresh_session(self, session_id: str, refresh_token: Optional[str] = None, **kwargs) -> bool:
+    def refresh_session(
+            self,
+            session_id: str,
+            refresh_token: Optional[str] = None,
+            **kwargs) -> bool:
         """Refresh a session. Accepts optional refresh_token and keyword args for test flexibility."""
         session = self.get_session(session_id)
         if not session:
@@ -401,6 +434,7 @@ class SessionManager:
 
 class FederatedIdentityManager:
     """Federated identity manager"""
+
     async def initialize(self, **kwargs):
         pass
 
@@ -410,6 +444,7 @@ class FederatedIdentityManager:
 
 class CredentialManager:
     """Credential manager"""
+
     def __init__(self, storage_path: str = None, encryption_key: str = None):
         self.credentials = {}
 
@@ -419,12 +454,18 @@ class CredentialManager:
     async def shutdown(self):
         pass
 
-    async def store_agent_credentials(self, agent_id: str, public_key: str = None, private_key: str = None, metadata: Dict = None):
+    async def store_agent_credentials(
+            self,
+            agent_id: str,
+            public_key: str = None,
+            private_key: str = None,
+            metadata: Dict = None):
         pass
 
 
 class AgentRegistry:
     """Agent registry"""
+
     def __init__(self, storage_path: str = None, enable_persistence: bool = False):
         self.agents = {}
 
@@ -449,6 +490,7 @@ class AgentRegistry:
 
 class TransportSecurityManager:
     """Transport security manager"""
+
     async def initialize(self, **kwargs):
         pass
 
@@ -469,13 +511,20 @@ class AuditEventType:
 
 class AuditManager:
     """Audit manager"""
+
     def __init__(self, storage_backend: str = "file", storage_config: Dict = None):
         self.events = []
 
     async def initialize(self):
         pass
 
-    async def log_event(self, event_type: str, agent_id: str, details: Dict = None, outcome: str = "success", **kwargs):
+    async def log_event(
+            self,
+            event_type: str,
+            agent_id: str,
+            details: Dict = None,
+            outcome: str = "success",
+            **kwargs):
         self.events.append({
             'type': event_type,
             'agent_id': agent_id,
@@ -492,6 +541,7 @@ class AuditManager:
 
 class ComplianceManager:
     """Compliance manager"""
+
     async def initialize(self, frameworks=None, **kwargs):
         """Initialize compliance manager with optional frameworks list."""
         self.frameworks = frameworks or []
@@ -506,6 +556,7 @@ class ComplianceManager:
 
 class TrustScore:
     """Trust score result"""
+
     def __init__(self, overall_score: float, risk_level: str, confidence: float = 0.8):
         self.overall_score = overall_score
         self.risk_level = type('RiskLevel', (), {'value': risk_level})()
@@ -515,6 +566,7 @@ class TrustScore:
 
 class IntelligenceEngine:
     """Intelligence engine"""
+
     async def initialize(self, **kwargs):
         """Initialize intelligence engine with optional features."""
         self.config = kwargs or {}

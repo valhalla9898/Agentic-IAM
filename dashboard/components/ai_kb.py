@@ -61,7 +61,16 @@ def _is_sensitive_path(path: str) -> bool:
 
 
 def _iter_text_files(root: str = "."):
-    skip = {".git", "venv", "env", ".venv", "node_modules", ".mypy_cache", ".pytest_cache", "__pycache__", ".ruff_cache"}
+    skip = {
+        ".git",
+        "venv",
+        "env",
+        ".venv",
+        "node_modules",
+        ".mypy_cache",
+        ".pytest_cache",
+        "__pycache__",
+        ".ruff_cache"}
     for dirpath, dirnames, filenames in os.walk(root):
         parts = set(dirpath.split(os.sep))
         if parts & skip:
@@ -174,11 +183,11 @@ def _load_index() -> List[Dict]:
 
 
 def _cosine(a: List[float], b: List[float]) -> float:
-    sa = sum(x*x for x in a)
-    sb = sum(x*x for x in b)
+    sa = sum(x * x for x in a)
+    sb = sum(x * x for x in b)
     if sa == 0 or sb == 0:
         return 0.0
-    dot = sum(x*y for x, y in zip(a, b))
+    dot = sum(x * y for x, y in zip(a, b))
     return dot / ((sa**0.5) * (sb**0.5))
 
 
@@ -198,12 +207,16 @@ def query_kb(query: str, top_k: int = 3) -> List[Dict]:
                 from openai import OpenAI
 
                 client = OpenAI(api_key=api_key)
-                q_emb = client.embeddings.create(model='text-embedding-3-small', input=[query]).data[0].embedding
+                q_emb = client.embeddings.create(
+                    model='text-embedding-3-small',
+                    input=[query]).data[0].embedding
             except Exception:
                 import openai
 
                 openai.api_key = api_key
-                q_emb = openai.Embedding.create(model='text-embedding-3-small', input=[query]).data[0]['embedding']
+                q_emb = openai.Embedding.create(
+                    model='text-embedding-3-small',
+                    input=[query]).data[0]['embedding']
             scored = []
             for item in index:
                 if 'embedding' not in item:
@@ -211,13 +224,17 @@ def query_kb(query: str, top_k: int = 3) -> List[Dict]:
                 score = _cosine(q_emb, item['embedding'])
                 scored.append((score, item))
             scored.sort(key=lambda x: x[0], reverse=True)
-            return [{'score': s, 'path': it['path'], 'snippet': it['chunk'], 'html': _highlight(it['chunk'], query)} for s, it in scored[:top_k]]
+            return [{'score': s, 'path': it['path'], 'snippet': it['chunk'],
+                     'html': _highlight(it['chunk'], query)} for s, it in scored[:top_k]]
         except Exception:
             # fall through to keyword
             pass
 
     # Keyword fallback
-    q = [token for token in re.findall(r"[a-z0-9_]+", query.lower()) if len(token) >= 4 and token not in STOPWORDS]
+    q = [
+        token for token in re.findall(
+            r"[a-z0-9_]+",
+            query.lower()) if len(token) >= 4 and token not in STOPWORDS]
     if not q:
         q = [token for token in re.findall(r"[a-z0-9_]+", query.lower()) if token not in STOPWORDS]
     scored = []
@@ -227,4 +244,5 @@ def query_kb(query: str, top_k: int = 3) -> List[Dict]:
         if cnt > 0:
             scored.append((cnt, item))
     scored.sort(key=lambda x: x[0], reverse=True)
-    return [{'score': s, 'path': it['path'], 'snippet': it['chunk'], 'html': _highlight(it['chunk'], query)} for s, it in scored[:top_k]]
+    return [{'score': s, 'path': it['path'], 'snippet': it['chunk'],
+             'html': _highlight(it['chunk'], query)} for s, it in scored[:top_k]]

@@ -1,12 +1,11 @@
 """Test that Bloome page is accessible after login via query params."""
 
+from bloome_store import STORE_NAME
 import sys
 from pathlib import Path
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-
-from bloome_store import STORE_NAME
 
 
 def test_bloome_is_always_first_navigation_page():

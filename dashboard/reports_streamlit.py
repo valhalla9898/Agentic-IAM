@@ -18,6 +18,7 @@ st.title("Imported Scan Reports")
 api_base = st.sidebar.text_input("API base URL", "http://127.0.0.1:8000")
 poll = st.sidebar.checkbox("Auto-refresh (30s)", value=False)
 
+
 def fetch_reports(base_url: str):
     try:
         r = requests.get(urljoin(base_url, "/reports/list"), timeout=5)
@@ -36,6 +37,7 @@ def fetch_alerts(base_url: str):
     except Exception as e:
         # Do not spam UI with errors for alerts
         return []
+
 
 def render_report_block(rep):
     target = rep.get("target")
@@ -73,7 +75,8 @@ def main():
     if alerts:
         st.markdown("## Recent Alerts")
         for a in alerts[:10]:
-            st.warning(f"{a.get('timestamp')} • {a.get('target')} • {a.get('severity').upper()} — {a.get('message')}")
+            st.warning(
+                f"{a.get('timestamp')} • {a.get('target')} • {a.get('severity').upper()} — {a.get('message')}")
             for url in a.get('evidence_urls', []):
                 full = urljoin(api_base, url)
                 st.markdown(f"- Evidence: [{url}]({full})")
@@ -84,6 +87,7 @@ def main():
     else:
         for rep in reports:
             render_report_block(rep)
+
 
 if __name__ == "__main__":
     main()

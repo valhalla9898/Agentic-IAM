@@ -1,3 +1,7 @@
+from agent_registry import AgentRegistry
+from agent_identity import AgentIdentity
+from core.agentic_iam import AgenticIAM
+from config.settings import get_settings
 import sys
 from pathlib import Path
 
@@ -6,18 +10,15 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from config.settings import get_settings
-from core.agentic_iam import AgenticIAM
-from agent_identity import AgentIdentity
-from agent_registry import AgentRegistry
-
 
 def main():
     settings = get_settings()
 
     # Create a lightweight IAM instance using only the registry
     iam = AgenticIAM(settings)
-    iam.agent_registry = AgentRegistry(storage_path=settings.agent_registry_path, enable_persistence=True)
+    iam.agent_registry = AgentRegistry(
+        storage_path=settings.agent_registry_path,
+        enable_persistence=True)
     iam.is_initialized = True
 
     # Test agent data (from your sample)
@@ -32,7 +33,10 @@ def main():
 
     # Generate identity and register
     agent_identity = AgentIdentity.generate(agent_id, metadata)
-    reg_id = iam.agent_registry.register_agent(agent_identity, endpoints=["https://payment.example.com"], capabilities=metadata["capabilities"])
+    reg_id = iam.agent_registry.register_agent(
+        agent_identity,
+        endpoints=["https://payment.example.com"],
+        capabilities=metadata["capabilities"])
 
     print("Registered agent:", agent_id)
     print("Registration ID:", reg_id)

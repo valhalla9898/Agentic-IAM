@@ -92,7 +92,13 @@ async def get_trust_score(
 
         # Verify agent exists in non-testing environments.
         agent_entry = iam.agent_registry.get_agent(agent_id)
-        if agent_entry is None and getattr(getattr(iam, "settings", None), "environment", "") != "testing":
+        if agent_entry is None and getattr(
+            getattr(
+                iam,
+                "settings",
+                None),
+            "environment",
+                "") != "testing":
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Agent {agent_id} not found"

@@ -26,6 +26,7 @@ from google.cloud import iam
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class CloudIdentity:
     """Represents an identity in a cloud provider"""
@@ -35,6 +36,7 @@ class CloudIdentity:
     permissions: List[str]
     metadata: Dict[str, Any]
 
+
 @dataclass
 class FederatedAgent:
     """Represents an agent with multi-cloud federation"""
@@ -43,6 +45,7 @@ class FederatedAgent:
     cloud_identities: Dict[str, CloudIdentity]
     trust_score: float
     last_sync: str
+
 
 class CloudProvider(ABC):
     """Abstract base class for cloud providers"""
@@ -66,6 +69,7 @@ class CloudProvider(ABC):
     def create_federated_identity(self, agent_id: str, did: str) -> str:
         """Create a federated identity for an agent"""
         pass
+
 
 class AWSProvider(CloudProvider):
     """AWS IAM provider implementation"""
@@ -95,7 +99,8 @@ class AWSProvider(CloudProvider):
                 self.iam_client = boto3.client('iam', region_name=self.region)
 
             # Get current user/role
-            identity = self.iam_client.get_user() if 'User' in str(self.iam_client.get_user()) else self.iam_client.get_caller_identity()
+            identity = self.iam_client.get_user() if 'User' in str(
+                self.iam_client.get_user()) else self.iam_client.get_caller_identity()
 
             return CloudIdentity(
                 provider='aws',
@@ -131,7 +136,9 @@ class AWSProvider(CloudProvider):
                     PolicyArn=policy['PolicyArn'],
                     VersionId='v1'
                 )
-                permissions.extend(self._extract_permissions(policy_doc['PolicyVersion']['Document']))
+                permissions.extend(
+                    self._extract_permissions(
+                        policy_doc['PolicyVersion']['Document']))
             return permissions
         except Exception as e:
             logger.error(f"Failed to get AWS permissions: {e}")
@@ -179,6 +186,7 @@ class AWSProvider(CloudProvider):
         except Exception as e:
             logger.error(f"Failed to create AWS federated identity: {e}")
             raise
+
 
 class AzureProvider(CloudProvider):
     """Azure Active Directory provider implementation"""
@@ -261,6 +269,7 @@ class AzureProvider(CloudProvider):
         except Exception as e:
             logger.error(f"Failed to create Azure federated identity: {e}")
             raise
+
 
 class GCPProvider(CloudProvider):
     """Google Cloud Identity provider implementation"""
@@ -366,6 +375,7 @@ class GCPProvider(CloudProvider):
             logger.error(f"Failed to create GCP federated identity: {e}")
             raise
 
+
 class MultiCloudFederator:
     """Main class for multi-cloud identity federation"""
 
@@ -377,7 +387,8 @@ class MultiCloudFederator:
         """Add a cloud provider"""
         self.providers[name] = provider
 
-    def authenticate_agent(self, agent_id: str, cloud_provider: str, credentials: Dict[str, Any]) -> CloudIdentity:
+    def authenticate_agent(self, agent_id: str, cloud_provider: str,
+                           credentials: Dict[str, Any]) -> CloudIdentity:
         """Authenticate an agent with a specific cloud provider"""
         if cloud_provider not in self.providers:
             raise ValueError(f"Unknown cloud provider: {cloud_provider}")
@@ -449,6 +460,7 @@ class MultiCloudFederator:
         # For now, just update the timestamp
         agent.last_sync = str(__import__('datetime').datetime.now())
         logger.info(f"Synchronized trust scores for agent {agent_id}")
+
 
 # Example usage
 if __name__ == "__main__":

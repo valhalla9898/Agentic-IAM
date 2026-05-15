@@ -6,7 +6,7 @@ lightweight local development.
 
 
 class AgenticIAMSDK:
-	"""Minimal mobile SDK placeholder."""
+    """Minimal mobile SDK placeholder."""
 
-	async def register_agent(self, agent_data):
-		return {"success": True, "agent": agent_data}
+    async def register_agent(self, agent_data):
+        return {"success": True, "agent": agent_data}

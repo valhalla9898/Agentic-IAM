@@ -8,6 +8,7 @@ from difflib import SequenceMatcher
 from typing import List, Dict, Tuple
 import re
 
+
 class FAQEngine:
     def __init__(self, faq_file: str = "data/faq_questions.json"):
         self.faq_file = faq_file
@@ -15,7 +16,7 @@ class FAQEngine:
         self.question_cache = {}
         self.categories_list = []
         self._build_cache()
-    
+
     def _load_faq(self) -> Dict:
         """Load FAQ data from JSON file"""
         if os.path.exists(self.faq_file):
@@ -26,7 +27,7 @@ class FAQEngine:
                 print(f"Error loading FAQ file: {e}")
                 return {}
         return {}
-    
+
     def _build_cache(self):
         """Build searchable cache of all questions"""
         self.question_cache = {}
@@ -44,7 +45,7 @@ class FAQEngine:
                     self.question_cache[q_en] = item
                 if q_ar:
                     self.question_cache[q_ar] = item
-    
+
     def correct_spelling(self, text: str) -> str:
         """Correct common spelling mistakes"""
         corrections = {
@@ -71,12 +72,12 @@ class FAQEngine:
             'permissi': 'permission',
             'permissio': 'permission',
         }
-        
+
         result = text.lower()
         for typo, correct in corrections.items():
             result = re.sub(r'\b' + typo + r'\b', correct, result)
         return result
-    
+
     def translate_to_english(self, text: str) -> str:
         """Translate Arabic to English (simple keyword mapping)"""
         translation_map = {
@@ -113,12 +114,12 @@ class FAQEngine:
             '': 'success',
             '': 'failed',
         }
-        
+
         result = text
         for ar, en in translation_map.items():
             result = re.sub(r'\b' + ar + r'\b', en, result, flags=re.UNICODE)
         return result
-    
+
     def normalize_question(self, question: str) -> str:
         """Normalize question for better matching"""
         # Correct spelling
@@ -126,31 +127,31 @@ class FAQEngine:
         # Remove extra spaces
         normalized = ' '.join(corrected.split())
         return normalized
-    
+
     def find_similar_questions(self, user_question: str, top_k: int = 5) -> List[Dict]:
         """Find similar questions using fuzzy matching"""
         normalized = self.normalize_question(user_question)
-        
+
         # Try direct match first
         if normalized in self.question_cache:
             return [self.question_cache[normalized]]
-        
+
         # Fuzzy match
         similarities = []
         for cached_q, item in self.question_cache.items():
             ratio = SequenceMatcher(None, normalized, cached_q).ratio()
             if ratio > 0.5:  # At least 50% similar
                 similarities.append((ratio, item))
-        
+
         # Sort by similarity and return top k
         similarities.sort(key=lambda x: x[0], reverse=True)
         return [item for _, item in similarities[:top_k]]
-    
+
     def get_answers(self, user_question: str, top_k: int = 5) -> List[Dict]:
         """Get multiple answer options for a question"""
         # Find similar questions
         similar_questions = self.find_similar_questions(user_question, top_k=3)
-        
+
         answers = []
         for item in similar_questions:
             answer_options = item.get('answers', [])
@@ -163,36 +164,36 @@ class FAQEngine:
                     'related_topics': answer.get('related_topics', []),
                     'difficulty': answer.get('difficulty', 'beginner'),
                 })
-        
+
         return answers[:top_k]
-    
+
     def format_answers_for_display(self, answers: List[Dict]) -> str:
         """Format multiple answers for display"""
         if not answers:
             return "❌ No answers found. Try asking with different keywords."
-        
+
         output = []
         output.append(f"Found {len(answers)} answer options:\n")
         output.append("=" * 60)
-        
+
         for i, answer in enumerate(answers, 1):
             output.append(f"\n**Option {i}** 📌")
             output.append(f"Category: {answer['category']}")
             output.append(f"Level: {answer['difficulty']}")
             output.append(f"\n{answer['answer']}")
-            
+
             if answer.get('related_topics'):
                 output.append(f"\nRelated Topics: {', '.join(answer['related_topics'])}")
-            
+
             output.append("\n" + "-" * 60)
-        
+
         output.append("\n✨ Click on an option number above to get more details!")
         return "\n".join(output)
-    
+
     def get_faq_categories(self) -> List[str]:
         """Get list of all FAQ categories"""
         return self.categories_list
-    
+
     def get_questions_by_category(self, category: str) -> List[Dict]:
         """Get all questions in a specific category"""
         results = []
@@ -200,15 +201,17 @@ class FAQEngine:
             if item.get('category') == category:
                 results.append(item)
         return results
-    
+
     def save_faq(self, data: Dict):
         """Save FAQ data to file"""
         os.makedirs(os.path.dirname(self.faq_file), exist_ok=True)
         with open(self.faq_file, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
 
+
 # Initialize global FAQ engine
 _faq_engine = None
+
 
 def get_faq_engine() -> FAQEngine:
     """Get or initialize the FAQ engine"""

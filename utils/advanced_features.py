@@ -126,10 +126,14 @@ class AgentAnalytics:
                 "total_events": len(recent_events),
                 "successful_events": successful,
                 "failed_events": failed,
-                "success_rate": (successful / len(recent_events) * 100) if recent_events else 0,
+                "success_rate": (
+                    successful /
+                    len(recent_events) *
+                    100) if recent_events else 0,
                 "event_types": event_types,
-                "most_common_event": max(event_types.items(), key=lambda x: x[1])[0] if event_types else "none"
-            }
+                "most_common_event": max(
+                    event_types.items(),
+                    key=lambda x: x[1])[0] if event_types else "none"}
         except Exception as e:
             logger.error(f"Error getting agent activity summary: {e}")
             return {"error": str(e)}
@@ -160,9 +164,10 @@ class AgentAnalytics:
                 "total_events": total,
                 "success_rate": success_rate,
                 "event_distribution": event_stats,
-                "most_active_event": max(event_stats.items(), key=lambda x: x[1])[0] if event_stats else "none",
-                "timestamp": datetime.utcnow().isoformat()
-            }
+                "most_active_event": max(
+                    event_stats.items(),
+                    key=lambda x: x[1])[0] if event_stats else "none",
+                "timestamp": datetime.utcnow().isoformat()}
         except Exception as e:
             logger.error(f"Error getting system analytics: {e}")
             return {"error": str(e)}
@@ -255,7 +260,12 @@ class ReportGenerator:
             users = self.db.list_users()
 
             # Audit trail
-            audit_events = [e for e in events if e.get('event_type') in ['user_login', 'user_logout', 'agent_created', 'agent_deleted']]
+            audit_events = [
+                e for e in events if e.get('event_type') in [
+                    'user_login',
+                    'user_logout',
+                    'agent_created',
+                    'agent_deleted']]
 
             return {
                 "report_type": "compliance_audit",

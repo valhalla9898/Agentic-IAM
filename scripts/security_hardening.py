@@ -34,7 +34,9 @@ class SecretManager:
 
         # Initialize backend
         if backend == "aws":
-            self.client = boto3.client('secretsmanager', region_name=kwargs.get('region', 'us-west-2'))
+            self.client = boto3.client(
+                'secretsmanager', region_name=kwargs.get(
+                    'region', 'us-west-2'))
         elif backend == "azure":
             vault_url = kwargs.get('vault_url')
             if not vault_url:
@@ -191,14 +193,17 @@ class SecurityHardening:
         encryption_key = getattr(self.settings, "encryption_key", "") or ""
         jwt_secret_key = getattr(self.settings, "jwt_secret_key", None)
 
-        # Detect placeholder or sentinel defaults by common substrings and simple entropy/length checks
+        # Detect placeholder or sentinel defaults by common substrings and simple
+        # entropy/length checks
         if (not secret_key) or ("change-in-production" in secret_key) or secret_key.startswith("your-"):
             issues.append("Default or placeholder secret key in use - CRITICAL SECURITY RISK")
 
         if (not encryption_key) or ("your-encryption-key" in encryption_key) or len(encryption_key) != 32:
-            issues.append("Encryption key is missing, a placeholder, or wrong length (must be 32 characters)")
+            issues.append(
+                "Encryption key is missing, a placeholder, or wrong length (must be 32 characters)")
 
-        if jwt_secret_key is None or (isinstance(jwt_secret_key, str) and ("change-in-production" in jwt_secret_key or jwt_secret_key.startswith("jwt-"))):
+        if jwt_secret_key is None or (isinstance(jwt_secret_key, str) and (
+                "change-in-production" in jwt_secret_key or jwt_secret_key.startswith("jwt-"))):
             issues.append("Default or placeholder JWT secret key in use - CRITICAL SECURITY RISK")
 
         # Additional length-based recommendations
@@ -214,7 +219,8 @@ class SecurityHardening:
             issues.append("Audit log integrity not enabled in production")
 
         # Check database URL security
-        if "password" in self.settings.database_url.lower() and not self.settings.database_url.startswith("postgresql"):
+        if "password" in self.settings.database_url.lower(
+        ) and not self.settings.database_url.startswith("postgresql"):
             issues.append("Database credentials in URL - consider using secrets")
 
         # Check CORS configuration
@@ -469,7 +475,8 @@ class SecurityMonitoring:
         now = datetime.utcnow()
 
         # Calculate metrics
-        total_failed_attempts = sum(len(attempts) for attempts in self.failed_auth_attempts.values())
+        total_failed_attempts = sum(len(attempts)
+                                    for attempts in self.failed_auth_attempts.values())
         unique_suspicious_ips = len(self.suspicious_ips)
 
         # Top offending IPs
@@ -502,10 +509,12 @@ class SecurityMonitoring:
             recommendations.append("Consider implementing IP-based blocking for repeat offenders")
 
         if len(self.failed_auth_attempts) > 100:
-            recommendations.append("High number of failed authentication attempts - review authentication policies")
+            recommendations.append(
+                "High number of failed authentication attempts - review authentication policies")
 
         if len(self.rate_limit_violations) > 50:
-            recommendations.append("Consider lowering rate limits or implementing more aggressive throttling")
+            recommendations.append(
+                "Consider lowering rate limits or implementing more aggressive throttling")
 
         return recommendations
 
@@ -536,7 +545,9 @@ class ComplianceChecker:
             issues.append("Audit logging not enabled")
 
         # Data retention
-        if hasattr(self.settings, 'audit_retention_days') and self.settings.audit_retention_days <= 365:
+        if hasattr(
+                self.settings,
+                'audit_retention_days') and self.settings.audit_retention_days <= 365:
             compliance_score += 2
         else:
             issues.append("Data retention policy not configured or too long")
@@ -665,6 +676,7 @@ def generate_secure_token(length: int = 32) -> str:
     """Generate cryptographically secure token"""
     return secrets.token_urlsafe(length)
 
+
 def hash_password(password: str, salt: Optional[bytes] = None) -> Tuple[str, str]:
     """Hash password securely with salt"""
     if salt is None:
@@ -672,6 +684,7 @@ def hash_password(password: str, salt: Optional[bytes] = None) -> Tuple[str, str
 
     pwdhash = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt, 100000)
     return base64.b64encode(salt).decode(), base64.b64encode(pwdhash).decode()
+
 
 def verify_password(password: str, salt: str, hash_value: str) -> bool:
     """Verify password against hash"""
@@ -682,6 +695,7 @@ def verify_password(password: str, salt: str, hash_value: str) -> bool:
         return hmac.compare_digest(pwdhash, hash_bytes)
     except Exception:
         return False
+
 
 def secure_random_string(length: int = 32, alphabet: str = None) -> str:
     """Generate secure random string with custom alphabet"""

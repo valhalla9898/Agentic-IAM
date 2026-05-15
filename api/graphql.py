@@ -31,6 +31,7 @@ type_defs = gql("""
 query = QueryType()
 subscription = SubscriptionType()
 
+
 @query.field("agents")
 def resolve_agents(_, info):
     iam = info.context.get("iam")
@@ -47,6 +48,7 @@ def resolve_agents(_, info):
         })
     return result
 
+
 @query.field("agent")
 def resolve_agent(_, info, agent_id):
     iam = info.context.get("iam")
@@ -61,6 +63,7 @@ def resolve_agent(_, info, agent_id):
         "registration_date": getattr(a, "registration_date", None),
         "last_accessed": getattr(a, "last_accessed", None)
     }
+
 
 @query.field("trustScore")
 def resolve_trust_score(_, info, agent_id):
@@ -81,19 +84,24 @@ def resolve_trust_score(_, info, agent_id):
         "confidence": getattr(score, "confidence", 0.0)
     }
 
+
 @subscription.source("agentRegistered")
 async def agent_registered_generator(obj, info):
     # In a real implementation, this would listen to a pub/sub channel
     # For demo, just yield nothing or a mock
     yield {"agent_id": "demo-agent", "status": "active"}
 
+
 @subscription.field("agentRegistered")
 def agent_registered_resolver(agent, info):
     return agent
 
+
 schema = make_executable_schema(type_defs, query, subscription)
 
 # Create an ASGI GraphQL app factory that FastAPI can mount
+
+
 def create_graphql_app(iam_instance=None):
     graphql = GraphQL(schema, context_value={"iam": iam_instance})
     return graphql

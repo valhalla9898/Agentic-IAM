@@ -109,7 +109,7 @@ async def list_sessions(
                     ))
 
         # Apply pagination
-        paginated_sessions = sessions[offset:offset+limit]
+        paginated_sessions = sessions[offset:offset + limit]
 
         return paginated_sessions
 
@@ -191,7 +191,13 @@ async def create_session(
         # In test mode with heavily mocked registries we allow session creation
         # to keep endpoint behavior deterministic.
         agent_entry = iam.agent_registry.get_agent(request.agent_id)
-        if agent_entry is None and getattr(getattr(iam, "settings", None), "environment", "") != "testing":
+        if agent_entry is None and getattr(
+            getattr(
+                iam,
+                "settings",
+                None),
+            "environment",
+                "") != "testing":
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Agent {request.agent_id} not found"

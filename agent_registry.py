@@ -10,7 +10,11 @@ from typing import Optional, Dict, Any, List
 
 
 class AgentEntry:
-    def __init__(self, agent_id: str, agent_identity: Any, endpoints: Optional[List[str]] = None, capabilities: Optional[List[str]] = None):
+    def __init__(self,
+                 agent_id: str,
+                 agent_identity: Any,
+                 endpoints: Optional[List[str]] = None,
+                 capabilities: Optional[List[str]] = None):
         self.agent_id = agent_id
         self.agent_identity = agent_identity
         self.status = type('Status', (), {'value': 'active'})()
@@ -40,7 +44,10 @@ class AgentRegistry:
     intentionally minimal and suitable for development/demo purposes.
     """
 
-    def __init__(self, storage_path: str = "./data/agent_registry", enable_persistence: bool = True):
+    def __init__(
+            self,
+            storage_path: str = "./data/agent_registry",
+            enable_persistence: bool = True):
         self.storage_dir = Path(storage_path)
         self.storage_dir.mkdir(parents=True, exist_ok=True)
         self.storage_file = self.storage_dir / "registry.json"
@@ -52,7 +59,13 @@ class AgentRegistry:
             try:
                 data = json.loads(self.storage_file.read_text(encoding='utf-8'))
                 for aid, info in data.items():
-                    entry = AgentEntry(agent_id=aid, agent_identity=type('Identity', (), {'metadata': info.get('metadata', {})})(), endpoints=info.get('endpoints', []), capabilities=info.get('capabilities', []))
+                    entry = AgentEntry(
+                        agent_id=aid, agent_identity=type(
+                            'Identity', (), {
+                                'metadata': info.get(
+                                    'metadata', {})})(), endpoints=info.get(
+                            'endpoints', []), capabilities=info.get(
+                            'capabilities', []))
                     entry.status = type('Status', (), {'value': info.get('status', 'active')})()
                     entry.registration_date = datetime.fromisoformat(info.get('registration_date'))
                     entry.last_accessed = datetime.fromisoformat(info.get('last_accessed'))
@@ -72,7 +85,8 @@ class AgentRegistry:
                 import tempfile
                 alt = Path(tempfile.gettempdir()) / "agent_registry_fallback.json"
                 alt.write_text(json.dumps(data, indent=2), encoding='utf-8')
-                print(f"Warning: could not write registry to {self.storage_file}; wrote to {alt} instead: {e}")
+                print(
+                    f"Warning: could not write registry to {self.storage_file}; wrote to {alt} instead: {e}")
                 self.storage_file = alt
             except Exception:
                 # If even fallback fails, raise original error
@@ -83,7 +97,11 @@ class AgentRegistry:
         if aid in self._agents:
             return self._agents[aid].registration_id
 
-        entry = AgentEntry(agent_id=aid, agent_identity=agent_identity, endpoints=endpoints, capabilities=capabilities)
+        entry = AgentEntry(
+            agent_id=aid,
+            agent_identity=agent_identity,
+            endpoints=endpoints,
+            capabilities=capabilities)
         self._agents[aid] = entry
         self._persist()
         return entry.registration_id

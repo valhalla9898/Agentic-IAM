@@ -3,6 +3,7 @@ from playwright.sync_api import sync_playwright
 
 from tests.e2e.helpers import login_as_admin
 
+
 def test_ai_assistant_can_answer_and_summarize(tmp_path):
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)

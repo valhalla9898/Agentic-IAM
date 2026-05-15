@@ -4,6 +4,9 @@ Agentic-IAM: FastAPI Application
 Main FastAPI application with comprehensive middleware, routing, and integration
 with the Agent Identity Framework.
 """
+from utils.logger import setup_logging, get_logger
+from config.settings import Settings
+from core.agentic_iam import AgenticIAM
 import asyncio
 from contextlib import asynccontextmanager
 from typing import Optional
@@ -20,9 +23,6 @@ import uvicorn
 sys.path.append(str(Path(__file__).parent.parent / "core"))
 sys.path.append(str(Path(__file__).parent.parent.parent))
 
-from core.agentic_iam import AgenticIAM
-from config.settings import Settings
-from utils.logger import setup_logging, get_logger
 
 # Import routers defensively (some optional routers may be missing)
 try:
@@ -74,6 +74,7 @@ except Exception:
 iam_instance: Optional[AgenticIAM] = None
 settings_instance: Optional[Settings] = None
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Manage application lifespan events"""
@@ -114,6 +115,7 @@ async def lifespan(app: FastAPI):
 
         logger.info("API server shutdown complete")
 
+
 def create_app() -> FastAPI:
     """Create and configure FastAPI application"""
 
@@ -137,6 +139,7 @@ def create_app() -> FastAPI:
     setup_exception_handlers(app)
 
     return app
+
 
 def setup_middleware(app: FastAPI):
     """Configure application middleware"""
@@ -216,7 +219,9 @@ def setup_middleware(app: FastAPI):
                 if path.startswith(prefix):
                     key = request.headers.get("x-api-key") or request.headers.get("X-API-KEY")
                     if not key or key != admin_key:
-                        return JSONResponse(status_code=401, content={"detail": "Unauthorized - missing or invalid API key"})
+                        return JSONResponse(
+                            status_code=401, content={
+                                "detail": "Unauthorized - missing or invalid API key"})
                     break
         return await call_next(request)
 
@@ -227,7 +232,7 @@ def setup_middleware(app: FastAPI):
         import time
         import hmac
         import hashlib
-        
+
         path = request.url.path
         if path.startswith("/reports/static"):
             signing_key = getattr(settings, "static_url_signing_key", None)
@@ -241,12 +246,17 @@ def setup_middleware(app: FastAPI):
                     now = int(time.time())
                     exp = int(expires)
                     if now > exp:
-                        return JSONResponse(status_code=401, content={"detail": "URL signature expired"})
+                        return JSONResponse(
+                            status_code=401, content={
+                                "detail": "URL signature expired"})
 
                     msg = f"{path}|{expires}".encode("utf-8")
-                    expected = hmac.new(signing_key.encode("utf-8"), msg, hashlib.sha256).hexdigest()
+                    expected = hmac.new(signing_key.encode("utf-8"),
+                                        msg, hashlib.sha256).hexdigest()
                     if not hmac.compare_digest(expected, sig):
-                        return JSONResponse(status_code=401, content={"detail": "Invalid URL signature"})
+                        return JSONResponse(
+                            status_code=401, content={
+                                "detail": "Invalid URL signature"})
                 except Exception:
                     return JSONResponse(status_code=401, content={"detail": "Invalid signed URL"})
         return await call_next(request)
@@ -270,8 +280,11 @@ def setup_middleware(app: FastAPI):
                     if forwarded_cert or client_cert:
                         return await call_next(request)
 
-                    return JSONResponse(status_code=403, content={"detail": "mTLS required for this endpoint"})
+                    return JSONResponse(
+                        status_code=403, content={
+                            "detail": "mTLS required for this endpoint"})
         return await call_next(request)
+
 
 def setup_routers(app: FastAPI):
     """Configure API routers"""
@@ -349,6 +362,7 @@ def setup_routers(app: FastAPI):
 
     # Reports and alerts (from legacy api.app)
     _setup_reports_and_alerts_routers(app)
+
 
 def _setup_reports_and_alerts_routers(app: FastAPI):
     """Setup reports and alerts routers (legacy endpoints from api.app)"""
@@ -467,7 +481,14 @@ def _setup_reports_and_alerts_routers(app: FastAPI):
         with open(path, "w", encoding="utf-8") as fh:
             json.dump(record, fh, indent=2)
 
-        return {"status": "ok", "file": os.path.relpath(path, start=os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))}
+        return {
+            "status": "ok",
+            "file": os.path.relpath(
+                path,
+                start=os.path.abspath(
+                    os.path.join(
+                        os.path.dirname(__file__),
+                        "..")))}
 
     @alerts_router.get("/list")
     async def list_alerts():
@@ -486,6 +507,7 @@ def _setup_reports_and_alerts_routers(app: FastAPI):
         return {"alerts": items}
 
     app.include_router(alerts_router)
+
 
 def setup_exception_handlers(app: FastAPI):
     """Configure exception handlers"""
@@ -547,6 +569,8 @@ def setup_exception_handlers(app: FastAPI):
         )
 
 # Dependency injection
+
+
 async def get_iam() -> AgenticIAM:
     """Get IAM instance dependency"""
     if not iam_instance:
@@ -555,6 +579,7 @@ async def get_iam() -> AgenticIAM:
             detail="IAM system not initialized"
         )
     return iam_instance
+
 
 async def get_settings() -> Settings:
     """Get settings instance dependency"""
@@ -569,6 +594,8 @@ async def get_settings() -> Settings:
 app = create_app()
 
 # Root endpoint
+
+
 @app.get("/")
 async def root():
     """Root endpoint"""
@@ -582,6 +609,8 @@ async def root():
     }
 
 # API info endpoint
+
+
 @app.get("/api/v1")
 async def api_info():
     """API version information"""
@@ -603,6 +632,8 @@ async def api_info():
     }
 
 # Mount GraphQL endpoint (lazy load to avoid circular imports)
+
+
 def mount_graphql():
     try:
         from api import graphql as graphql_module
@@ -610,6 +641,7 @@ def mount_graphql():
         app.mount("/graphql", graphql_app)
     except Exception as e:
         print(f"GraphQL mount skipped: {e}")
+
 
 # Try mounting after app creation
 try:

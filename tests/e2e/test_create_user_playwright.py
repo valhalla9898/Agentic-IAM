@@ -28,7 +28,8 @@ def test_create_user_flow():
             page.goto(base_url)
             login_as_admin(page)
 
-            page.locator('[data-testid="stSidebar"] p').filter(has_text='User Management').first.click()
+            page.locator(
+                '[data-testid="stSidebar"] p').filter(has_text='User Management').first.click()
             page.wait_for_selector('text=Manage Users', timeout=10000)
 
             page.get_by_label("New username").fill(username)
@@ -39,7 +40,8 @@ def test_create_user_flow():
 
             created_user = None
             for _ in range(20):
-                created_user = next((user for user in db.list_users() if user["username"] == username), None)
+                created_user = next(
+                    (user for user in db.list_users() if user["username"] == username), None)
                 if created_user is not None:
                     break
                 time.sleep(0.5)

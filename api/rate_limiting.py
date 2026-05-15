@@ -23,12 +23,14 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 class RateLimitAlgorithm(Enum):
     """Rate limiting algorithms"""
     FIXED_WINDOW = "fixed_window"
     SLIDING_WINDOW = "sliding_window"
     TOKEN_BUCKET = "token_bucket"
     LEAKY_BUCKET = "leaky_bucket"
+
 
 @dataclass
 class RateLimit:
@@ -37,6 +39,7 @@ class RateLimit:
     window_seconds: int
     algorithm: RateLimitAlgorithm = RateLimitAlgorithm.FIXED_WINDOW
 
+
 @dataclass
 class RateLimitResult:
     """Result of rate limit check"""
@@ -44,6 +47,7 @@ class RateLimitResult:
     remaining: int
     reset_time: float
     retry_after: Optional[float] = None
+
 
 class RedisRateLimiter:
     """
@@ -179,7 +183,8 @@ class RedisRateLimiter:
             reset_time=reset_time
         )
 
-    def check_rate_limit(self, identifier: str, endpoint: str, rate_limit: RateLimit) -> RateLimitResult:
+    def check_rate_limit(self, identifier: str, endpoint: str,
+                         rate_limit: RateLimit) -> RateLimitResult:
         """
         Check if request is within rate limit
         """
@@ -208,6 +213,8 @@ class RedisRateLimiter:
             logger.info(f"Reset rate limits for {identifier}:{endpoint or 'all'}")
 
 # FastAPI Integration
+
+
 class RateLimitMiddleware:
     """
     FastAPI middleware for rate limiting
@@ -257,6 +264,8 @@ class RateLimitMiddleware:
         return request.client.host
 
 # Dependency for FastAPI routes
+
+
 def create_rate_limit_dependency(limiter: RedisRateLimiter, rate_limit: RateLimit):
     """
     Create FastAPI dependency for rate limiting
@@ -280,6 +289,7 @@ def create_rate_limit_dependency(limiter: RedisRateLimiter, rate_limit: RateLimi
         return result
 
     return rate_limit_dependency
+
 
 # Example usage
 if __name__ == "__main__":

@@ -5,6 +5,9 @@ Central orchestrator that manages the Agentic-IAM platform, integrating all
 components including the FastAPI backend, Streamlit dashboard, and core
 Agent Identity Framework modules.
 """
+from utils.logger import setup_logging
+from config.settings import Settings
+from core.agentic_iam import AgenticIAM
 import asyncio
 import signal
 import sys
@@ -18,10 +21,6 @@ import subprocess
 # Add core modules to path
 sys.path.append(str(Path(__file__).parent / "core"))
 sys.path.append(str(Path(__file__).parent.parent))
-
-from core.agentic_iam import AgenticIAM
-from config.settings import Settings
-from utils.logger import setup_logging
 
 
 class AgenticIAMPlatform:
@@ -88,13 +87,15 @@ class AgenticIAMPlatform:
         if self.settings.enable_api:
             self.api_process = mp.Process(target=self.start_api_server)
             self.api_process.start()
-            self.logger.info(f"API server started on {self.settings.api_host}:{self.settings.api_port}")
+            self.logger.info(
+                f"API server started on {self.settings.api_host}:{self.settings.api_port}")
 
         # Start dashboard in separate process
         if self.settings.enable_dashboard:
             self.dashboard_process = mp.Process(target=self.start_dashboard_server)
             self.dashboard_process.start()
-            self.logger.info(f"Dashboard started on {self.settings.dashboard_host}:{self.settings.dashboard_port}")
+            self.logger.info(
+                f"Dashboard started on {self.settings.dashboard_host}:{self.settings.dashboard_port}")
 
         self.logger.info("Platform started successfully")
 

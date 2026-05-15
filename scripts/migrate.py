@@ -4,6 +4,7 @@ Database Migration and Schema Management
 Production-grade database migration system for Agentic-IAM platform.
 Supports PostgreSQL, SQLite, and MySQL with version control and rollback capabilities.
 """
+from config.settings import Settings
 import asyncio
 import logging
 import os
@@ -26,7 +27,6 @@ from alembic.operations import Operations
 
 # Add project modules to path
 sys.path.append(str(Path(__file__).parent.parent))
-from config.settings import Settings
 
 
 class DatabaseMigrator:
@@ -488,7 +488,7 @@ class DatabaseMigrator:
         return hashlib.sha256(content.encode()).hexdigest()
 
     async def apply_migration(self, migration_id: str, migration_name: str,
-                            sql: str, rollback_sql: str = "", metadata: Dict[str, Any] = None):
+                              sql: str, rollback_sql: str = "", metadata: Dict[str, Any] = None):
         """Apply a database migration"""
         checksum = self._calculate_checksum(sql)
 
@@ -628,7 +628,7 @@ async def main():
 
     parser = argparse.ArgumentParser(description="Agentic-IAM Database Migration Tool")
     parser.add_argument("--action", choices=["migrate", "rollback", "status", "backup"],
-                       default="migrate", help="Migration action")
+                        default="migrate", help="Migration action")
     parser.add_argument("--migration-id", help="Specific migration ID for rollback")
     parser.add_argument("--backup-name", help="Backup name")
     parser.add_argument("--force", action="store_true", help="Force operation")
@@ -674,7 +674,8 @@ async def main():
             if status['applied_migrations']:
                 print("\nApplied Migrations:")
                 for migration in status['applied_migrations'][-5:]:  # Last 5
-                    print(f"  - {migration['migration_id']}: {migration['migration_name']} ({migration['applied_at']})")
+                    print(
+                        f"  - {migration['migration_id']}: {migration['migration_name']} ({migration['applied_at']})")
 
         elif args.action == "backup":
             print("💾 Creating database backup...")

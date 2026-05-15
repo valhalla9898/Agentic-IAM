@@ -3,6 +3,7 @@
 This module provides a `secret_manager` with a `get_secret(name)` method.
 In production this would be replaced by an actual secret backend.
 """
+import os
 from typing import Optional
 
 
@@ -23,8 +24,6 @@ Usage:
     sm = SecretManager()
     secret = sm.get_secret("DB_PASSWORD")
 """
-from typing import Optional
-import os
 
 
 class SecretManager:

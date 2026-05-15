@@ -3,6 +3,7 @@ Test script to verify the login system functionality
 
 Run this script to test the authentication system without starting the GUI.
 """
+from database import get_database
 import sys
 from pathlib import Path
 from uuid import uuid4
@@ -10,14 +11,12 @@ from uuid import uuid4
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from database import get_database
-
 
 def test_authentication():
     """Test user authentication system"""
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("AGENTIC-IAM AUTHENTICATION SYSTEM TEST")
-    print("="*70 + "\n")
+    print("=" * 70 + "\n")
 
     db = get_database()
 
@@ -29,7 +28,8 @@ def test_authentication():
 
     for user in users:
         role_icon = "👨‍💼" if user['role'] == 'admin' else "👤"
-        print(f"{role_icon} {user['username']:<15} | {user['full_name']:<25} | Role: {user['role']:<10} | Status: {user['status']}")
+        print(
+            f"{role_icon} {user['username']:<15} | {user['full_name']:<25} | Role: {user['role']:<10} | Status: {user['status']}")
 
     # Ensure isolated users exist for this script run
     admin_username = f"admin_test_{uuid4().hex[:8]}"
@@ -51,7 +51,7 @@ def test_authentication():
     )
 
     # Test 2: Authenticate admin
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("Test 2: Admin Login")
     print("-" * 50)
     admin_user = db.authenticate_user(admin_username, admin_password)
@@ -66,7 +66,7 @@ def test_authentication():
         print("❌ Admin authentication failed!")
 
     # Test 3: Authenticate regular user
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("Test 3: User Login")
     print("-" * 50)
     regular_user = db.authenticate_user(user_username, user_password)
@@ -81,7 +81,7 @@ def test_authentication():
         print("❌ User authentication failed!")
 
     # Test 4: Test wrong password
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("Test 4: Invalid Password")
     print("-" * 50)
     wrong_login = db.authenticate_user(admin_username, "wrongpassword")
@@ -91,7 +91,7 @@ def test_authentication():
         print("✅ Invalid password correctly rejected")
 
     # Test 5: Test wrong username
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("Test 5: Invalid Username")
     print("-" * 50)
     wrong_user = db.authenticate_user("nonexistent", "password")
@@ -101,7 +101,7 @@ def test_authentication():
         print("✅ Invalid username correctly rejected")
 
     # Test 6: Create new user
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("Test 6: Create New User")
     print("-" * 50)
     test_username = f"testuser_{uuid4().hex[:8]}"
@@ -128,7 +128,7 @@ def test_authentication():
     test_user = next((user for user in db.list_users() if user["username"] == test_username), None)
 
     # Test 7: Test password change
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("Test 7: Password Change")
     print("-" * 50)
     test_user = db.authenticate_user(test_username, "testpass123")
@@ -155,7 +155,7 @@ def test_authentication():
             print("❌ Password change failed")
 
     # Test 8: Test user edit management
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("Test 8: User Edit Management")
     print("-" * 50)
     if test_user:
@@ -191,7 +191,7 @@ def test_authentication():
             print("❌ Could not reload updated user from database")
 
     # Test 9: Test user deletion
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("Test 9: User Deletion")
     print("-" * 50)
     if test_user:
@@ -208,7 +208,7 @@ def test_authentication():
             print("❌ Delete reported success but user still exists")
 
     # Test 10: Database statistics
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("Test 10: Database Statistics")
     print("-" * 50)
     all_users = db.list_users()
@@ -223,15 +223,15 @@ def test_authentication():
     print(f"Regular Users: {regular}")
 
     # Final summary
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print("TEST SUMMARY")
-    print("="*70)
+    print("=" * 70)
     print("✅ All authentication tests passed!")
     print("\nCredentials used in this run were generated dynamically.")
     print(f"\nDatabase Location: {db.db_path}")
     print("\nRun the application with: python run_gui.py")
     print("Or directly with: streamlit run app.py")
-    print("\n" + "="*70 + "\n")
+    print("\n" + "=" * 70 + "\n")
 
 
 if __name__ == "__main__":

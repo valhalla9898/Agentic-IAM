@@ -170,6 +170,7 @@ TRUSTSCORE_CRD = {
     }
 }
 
+
 class KubernetesOperator:
     def __init__(self):
         self.k8s_client = None
@@ -178,7 +179,7 @@ class KubernetesOperator:
     def initialize_k8s_client(self):
         try:
             config.load_incluster_config()
-        except:
+        except BaseException:
             config.load_kube_config()
         self.k8s_client = client.ApiClient()
 
@@ -241,13 +242,16 @@ class KubernetesOperator:
         except client.rest.ApiException as e:
             logger.error(f"Failed to update status for agent {name}: {e}")
 
+
 operator = KubernetesOperator()
+
 
 @kopf.on.startup()
 def startup(logger, **kwargs):
     logger.info("Agentic-IAM operator starting up with advanced CRD support")
     operator.initialize_k8s_client()
     operator.create_crds()
+
 
 @kopf.on.create('agentic-iam.io', 'v1', 'agents')
 def on_agent_create(spec, name, namespace, **kwargs):
@@ -290,6 +294,7 @@ def on_agent_create(spec, name, namespace, **kwargs):
 
     return {'message': 'Agent processed with CRD support and advanced features'}
 
+
 @kopf.on.update('agentic-iam.io', 'v1', 'agents')
 def on_agent_update(spec, old, new, name, namespace, **kwargs):
     logger.info(f"Agent CR updated: {name} in {namespace}")
@@ -305,6 +310,7 @@ def on_agent_update(spec, old, new, name, namespace, **kwargs):
     # Trigger AI-powered threat intelligence if needed
     # TODO: Integrate with threat intelligence system
 
+
 @kopf.on.delete('agentic-iam.io', 'v1', 'agents')
 def on_agent_delete(spec, name, namespace, **kwargs):
     logger.info(f"Agent CR deleted: {name} in {namespace}")
@@ -319,10 +325,12 @@ def on_agent_delete(spec, name, namespace, **kwargs):
 
     # TODO: Cleanup audit trails, remove from federation, etc.
 
+
 @kopf.on.create('agentic-iam.io', 'v1', 'identities')
 def on_identity_create(spec, name, namespace, **kwargs):
     logger.info(f"Identity CR created: {name} in {namespace}")
     # TODO: Handle DID creation, key management, verifiable credentials
+
 
 @kopf.on.create('agentic-iam.io', 'v1', 'trustscores')
 def on_trustscore_create(spec, name, namespace, **kwargs):

@@ -101,7 +101,8 @@ class TestAPIIntegration:
 
         # Mock session operations
         from unittest.mock import MagicMock, AsyncMock
-        iam_instance.session_manager.create_session = AsyncMock(return_value="integration_session_001")
+        iam_instance.session_manager.create_session = AsyncMock(
+            return_value="integration_session_001")
         iam_instance.session_manager.get_session = MagicMock(return_value=mock_session)
         iam_instance.session_manager.refresh_session = MagicMock(return_value=True)
         iam_instance.session_manager.terminate_session = MagicMock(return_value=True)

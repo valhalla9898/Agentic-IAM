@@ -130,7 +130,13 @@ def show_agent_list():
 
     if not agents:
         st.info("📭 No visible agents available yet")
-        if st.session_state.get("user", {}).get("role", "user").lower() not in {"admin", "operator"}:
+        if st.session_state.get(
+            "user",
+            {}).get(
+            "role",
+            "user").lower() not in {
+            "admin",
+                "operator"}:
             st.caption("Ask an admin to share an agent with your account or mark it as public.")
         return
 
@@ -188,23 +194,22 @@ def show_agent_list():
                             registry_still_exists = None
                             iam = st.session_state.get("iam")
                             if iam and getattr(iam, "agent_registry", None):
-                                registry_exists_before = iam.agent_registry.get_agent(aid) is not None
+                                registry_exists_before = iam.agent_registry.get_agent(
+                                    aid) is not None
                                 if registry_exists_before:
                                     registry_deleted = iam.agent_registry.delete_agent(aid)
                                     registry_still_exists = iam.agent_registry.get_agent(aid)
 
-                            if (
-                                deleted
-                                and still_exists is None
-                                and (not registry_exists_before or (registry_deleted and registry_still_exists is None))
-                            ):
+                            if (deleted and still_exists is None and (not registry_exists_before or (
+                                    registry_deleted and registry_still_exists is None))):
                                 st.success(f"✅ Agent {aid} deleted successfully")
                                 if st.session_state.get("selected_agent") == aid:
                                     st.session_state.selected_agent = None
                                 st.session_state[pending_delete_key] = False
                                 st.rerun()
                             elif deleted and still_exists is None and registry_exists_before:
-                                st.error(f"Agent {aid} deleted from DB, but registry cleanup failed")
+                                st.error(
+                                    f"Agent {aid} deleted from DB, but registry cleanup failed")
                                 st.session_state[pending_delete_key] = False
                                 st.rerun()
                             elif deleted and still_exists is not None:
@@ -221,24 +226,43 @@ def show_agent_list():
                             st.rerun()
 
                 with col_btn1:
-                    st.button("📊 Details", key=f"detail_{agent['id']}", on_click=_select_agent, use_container_width=True)
+                    st.button(
+                        "📊 Details",
+                        key=f"detail_{agent['id']}",
+                        on_click=_select_agent,
+                        use_container_width=True)
 
                 if can_manage_agents:
                     with col_btn2:
-                        st.button("📝 Edit", key=f"edit_{agent['id']}", on_click=_edit_agent, use_container_width=True)
+                        st.button(
+                            "📝 Edit",
+                            key=f"edit_{agent['id']}",
+                            on_click=_edit_agent,
+                            use_container_width=True)
 
                     with col_btn3:
-                        st.button("🗑️ Delete", key=f"del_{agent['id']}", on_click=_begin_delete, use_container_width=True)
+                        st.button(
+                            "🗑️ Delete",
+                            key=f"del_{agent['id']}",
+                            on_click=_begin_delete,
+                            use_container_width=True)
 
                     if st.session_state.get(pending_delete_key):
-                        st.warning(f"⚠️ **Are you sure you want to delete agent '{agent['name']}' (ID: {agent['id']})?**\n\nThis action **cannot be undone**. All agent data and sessions will be permanently removed.")
+                        st.warning(
+                            f"⚠️ **Are you sure you want to delete agent '{agent['name']}' (ID: {agent['id']})?**\n\nThis action **cannot be undone**. All agent data and sessions will be permanently removed.")
                         confirm_col, cancel_col = st.columns(2)
                         with confirm_col:
-                            if st.button("✅ Confirm Delete", key=f"confirm_del_{agent['id']}", use_container_width=True):
+                            if st.button(
+                                "✅ Confirm Delete",
+                                key=f"confirm_del_{agent['id']}",
+                                    use_container_width=True):
                                 # Call _confirm_delete with the agent ID
                                 _confirm_delete(agent['id'])
                         with cancel_col:
-                            if st.button("✖ Cancel", key=f"cancel_del_{agent['id']}", use_container_width=True):
+                            if st.button(
+                                "✖ Cancel",
+                                key=f"cancel_del_{agent['id']}",
+                                    use_container_width=True):
                                 _cancel_delete(agent['id'])
                                 st.rerun()
 
@@ -283,7 +307,8 @@ def show_agent_details(agent_id: str):
         import pandas as pd
         df = pd.DataFrame(events)
         df['created_at'] = pd.to_datetime(df['created_at']).dt.strftime('%Y-%m-%d %H:%M:%S')
-        st.dataframe(df[['event_type', 'action', 'details', 'created_at', 'status']], use_container_width=True)
+        st.dataframe(df[['event_type', 'action', 'details', 'created_at', 'status']],
+                     use_container_width=True)
     else:
         st.info("No events yet")
 
@@ -297,7 +322,8 @@ def show_agent_details(agent_id: str):
         import pandas as pd
         df = pd.DataFrame(sessions)
         df['started_at'] = pd.to_datetime(df['started_at']).dt.strftime('%Y-%m-%d %H:%M:%S')
-        df['ended_at'] = df['ended_at'].apply(lambda x: pd.to_datetime(x).strftime('%Y-%m-%d %H:%M:%S') if x else 'Still Active')
+        df['ended_at'] = df['ended_at'].apply(lambda x: pd.to_datetime(
+            x).strftime('%Y-%m-%d %H:%M:%S') if x else 'Still Active')
         st.dataframe(df[['id', 'status', 'started_at', 'ended_at']], use_container_width=True)
     else:
         st.info("No sessions")

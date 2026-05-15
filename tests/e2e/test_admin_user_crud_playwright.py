@@ -31,7 +31,8 @@ def test_admin_user_crud_flow():
             page.goto(base_url)
             login_as_admin(page)
 
-            page.locator('[data-testid="stSidebar"] p').filter(has_text='User Management').first.click()
+            page.locator(
+                '[data-testid="stSidebar"] p').filter(has_text='User Management').first.click()
             page.wait_for_selector('text=Manage Users', timeout=10000)
 
             page.get_by_label("New username").fill(username)
@@ -41,7 +42,8 @@ def test_admin_user_crud_flow():
 
             page.wait_for_selector("text=created successfully", timeout=10000)
             time.sleep(1)
-            created_user = next((user for user in db.list_users() if user["username"] == username), None)
+            created_user = next(
+                (user for user in db.list_users() if user["username"] == username), None)
             assert created_user is not None
             select_combobox_value(page, "Select user", f"{username} ({email})")
             choose_selectbox_option(page, "Edit role", "operator")
@@ -55,7 +57,9 @@ def test_admin_user_crud_flow():
             assert updated_user["status"] == "suspended"
 
             page.get_by_role("button", name=f"Delete {username}").click()
-            page.wait_for_selector(f"text=Are you sure you want to delete user {username}", timeout=10000)
+            page.wait_for_selector(
+                f"text=Are you sure you want to delete user {username}",
+                timeout=10000)
             page.get_by_role("button", name=f"✅ Confirm Delete {username}").click()
             # Wait for success message - may appear as part of st.success message
             page.wait_for_function(

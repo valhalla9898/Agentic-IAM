@@ -1,4 +1,5 @@
 """Setup script to bootstrap users securely."""
+from database import get_database
 import os
 import secrets
 import string
@@ -7,8 +8,6 @@ from pathlib import Path
 
 # Add project to path
 sys.path.insert(0, str(Path(__file__).parent))
-
-from database import get_database
 
 
 def _generate_password(length: int = 20) -> str:

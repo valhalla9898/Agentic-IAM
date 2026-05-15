@@ -8,6 +8,7 @@ from pathlib import Path
 # Add project to path
 sys.path.insert(0, str(Path(__file__).parent))
 
+
 def test_database():
     """Test database connectivity"""
     try:
@@ -22,6 +23,7 @@ def test_database():
     except Exception as e:
         print(f"✗ Database failed: {e}")
         return False
+
 
 def test_authentication():
     """Test that at least one active admin account exists."""
@@ -39,43 +41,45 @@ def test_authentication():
         print(f"✗ Authentication failed: {e}")
         return False
 
+
 def test_imports():
     """Test critical imports"""
     try:
         import streamlit as st
         print("✓ Streamlit OK")
-        
+
         from fastapi import FastAPI
         print("✓ FastAPI OK")
-        
+
         from sqlalchemy import create_engine
         print("✓ SQLAlchemy OK")
-        
+
         import pandas as pd
         print("✓ Pandas OK")
-        
+
         from openai import OpenAI
         print("✓ OpenAI SDK OK")
-        
+
         return True
     except ImportError as e:
         print(f"⚠ Import warning: {e}")
         return False
 
+
 def main():
     print("=" * 60)
     print("🔧 Agentic-IAM Pre-Launch Check")
     print("=" * 60)
-    
+
     print("\n📦 Checking imports...")
     test_imports()
-    
+
     print("\n📊 Checking database...")
     db_ok = test_database()
-    
+
     print("\n🔐 Checking authentication...")
     auth_ok = test_authentication()
-    
+
     print("\n" + "=" * 60)
     if db_ok and auth_ok:
         print("✅ All checks passed! Ready to launch!")
@@ -90,6 +94,7 @@ def main():
     else:
         print("⚠️ Some checks failed. Please resolve and try again.")
         return 1
+
 
 if __name__ == "__main__":
     sys.exit(main())

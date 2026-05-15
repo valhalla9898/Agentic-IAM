@@ -31,6 +31,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 class KyberKEM:
     """
     Simplified CRYSTALS-Kyber Key Encapsulation Mechanism
@@ -116,6 +117,7 @@ class KyberKEM:
         shared_secret = hkdf.derive(ciphertext)
         return shared_secret
 
+
 class DilithiumSignature:
     """
     Simplified CRYSTALS-Dilithium Digital Signature
@@ -195,8 +197,9 @@ class DilithiumSignature:
                 hashes.SHA256()
             )
             return True
-        except:
+        except BaseException:
             return False
+
 
 class QuantumEncryptor:
     """
@@ -324,14 +327,15 @@ class QuantumEncryptor:
         else:
             # Parse classical encrypted data
             from cryptography.hazmat.primitives import serialization
-            priv_key = serialization.load_pem_private_key(private_key, password=None, backend=self.backend)
+            priv_key = serialization.load_pem_private_key(
+                private_key, password=None, backend=self.backend)
 
             # Parse components (this is approximate - real implementation would need proper parsing)
             encrypted_key_len = 256  # RSA-2048 encrypted key length
             encrypted_key = encrypted_data[:encrypted_key_len]
-            iv = encrypted_data[encrypted_key_len:encrypted_key_len+16]
-            tag = encrypted_data[encrypted_key_len+16:encrypted_key_len+32]
-            data = encrypted_data[encrypted_key_len+32:]
+            iv = encrypted_data[encrypted_key_len:encrypted_key_len + 16]
+            tag = encrypted_data[encrypted_key_len + 16:encrypted_key_len + 32]
+            data = encrypted_data[encrypted_key_len + 32:]
 
             # Decrypt symmetric key
             symmetric_key = priv_key.decrypt(
@@ -349,6 +353,7 @@ class QuantumEncryptor:
             decrypted_data = decryptor.update(data) + decryptor.finalize()
 
             return decrypted_data
+
 
 class QuantumSignature:
     """
@@ -433,8 +438,9 @@ class QuantumSignature:
                     hashes.SHA256()
                 )
                 return True
-            except:
+            except BaseException:
                 return False
+
 
 # Example usage
 if __name__ == "__main__":

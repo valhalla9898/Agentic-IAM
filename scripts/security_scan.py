@@ -67,7 +67,7 @@ def scan_file(path: Path):
     # Secret patterns
     for pat in SECRET_PATTERNS:
         for m in re.finditer(pat, text, flags=re.MULTILINE):
-            snippet = text[max(0, m.start()-40):m.end()+40].strip().replace('\n', ' ')
+            snippet = text[max(0, m.start() - 40):m.end() + 40].strip().replace('\n', ' ')
             findings.append({
                 'type': 'secret',
                 'pattern': pat,
@@ -83,7 +83,7 @@ def scan_file(path: Path):
                 'type': 'dangerous',
                 'pattern': label,
                 'line': line_no,
-                'context': text.splitlines()[line_no-1].strip()[:400],
+                'context': text.splitlines()[line_no - 1].strip()[:400],
             })
 
     # HTTP URL literal (insecure)
@@ -106,7 +106,7 @@ def scan_requirements(path: Path):
         # crude check for very old pins
         m = re.search(r'([A-Za-z0-9_.+-]+)==([0-9]+)\.([0-9]+)(?:\.([0-9]+))?', ln)
         if m:
-            pkg, maj, mino, patch = m.group(1,2,3,4)
+            pkg, maj, mino, patch = m.group(1, 2, 3, 4)
             try:
                 if int(maj) < 1:
                     findings.append({'type': 'old-pin', 'package': pkg, 'version': ln, 'line': i})
@@ -117,7 +117,11 @@ def scan_requirements(path: Path):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--output', '-o', help='Write JSON report to file', default='security_report.json')
+    ap.add_argument(
+        '--output',
+        '-o',
+        help='Write JSON report to file',
+        default='security_report.json')
     args = ap.parse_args()
 
     report = {'scanned_files': 0, 'findings': []}

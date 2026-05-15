@@ -23,21 +23,22 @@ def add_heading_with_formatting(doc, text, level, bold=True, size=None):
 
 def create_comprehensive_report():
     """Create comprehensive technical report with full content"""
-    
+
     doc = Document()
-    
+
     # ==================== TITLE AND METADATA ====================
-    
+
     title = doc.add_paragraph()
-    title_run = title.add_run("AGENTIC-IAM: ENTERPRISE-GRADE IDENTITY AND ACCESS MANAGEMENT\nFOR AI AGENT ECOSYSTEMS")
+    title_run = title.add_run(
+        "AGENTIC-IAM: ENTERPRISE-GRADE IDENTITY AND ACCESS MANAGEMENT\nFOR AI AGENT ECOSYSTEMS")
     title_run.font.name = 'Calibri'
     title_run.font.size = Pt(18)
     title_run.font.bold = True
     title.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
     title.space_after = Pt(12)
-    
+
     doc.add_paragraph()
-    
+
     for label, value in [
         ("Prepared By", "Development Team, Agentic-IAM Project"),
         ("Faculty", "Faculty of Computers and Information"),
@@ -51,13 +52,13 @@ def create_comprehensive_report():
         r2 = p.add_run(value)
         p_format = p.paragraph_format
         p_format.space_after = Pt(6)
-    
+
     doc.add_page_break()
-    
+
     # ==================== ABSTRACT ====================
-    
+
     add_heading_with_formatting(doc, "ABSTRACT", 1)
-    
+
     abstract_full = """Agentic-IAM is an enterprise-grade Identity and Access Management (IAM) platform purpose-built for AI agent ecosystems. This technical report documents the complete architecture, implementation, security framework, and production readiness status of the platform as of April 2026. The system successfully integrates multi-protocol authentication, fine-grained authorization controls, comprehensive audit logging, and federated identity management into a cohesive platform supporting complex AI agent deployments.
 
 With 88 comprehensive tests passing (88% code coverage), zero critical security vulnerabilities, and demonstrated compliance with SOC2, HIPAA, and FedRAMP standards, the platform is verified production-ready for enterprise deployment.
@@ -65,14 +66,14 @@ With 88 comprehensive tests passing (88% code coverage), zero critical security 
 Key deliverables include complete authentication and authorization framework, Role-Based (RBAC) and Attribute-Based (ABAC) access control, federated identity support for multi-cloud deployments, comprehensive audit logging and compliance features, secure credential management with automatic rotation, intuitive Streamlit-based administration dashboard, GraphQL and REST API interfaces, and AI-powered assistance CLI with knowledge base integration.
 
 The platform demonstrates enterprise-grade quality through 100% passing test suite (88 tests across unit, integration, and end-to-end categories), 88% code coverage, zero OWASP Top 10 vulnerabilities, comprehensive security controls including mutual TLS and AES-256 encryption, and complete compliance with leading security standards."""
-    
+
     doc.add_paragraph(abstract_full)
     doc.add_page_break()
-    
+
     # ==================== TABLE OF CONTENTS ====================
-    
+
     add_heading_with_formatting(doc, "TABLE OF CONTENTS", 1)
-    
+
     toc_entries = [
         ("1. Introduction", 2),
         ("2. Background", 3),
@@ -104,20 +105,20 @@ The platform demonstrates enterprise-grade quality through 100% passing test sui
         ("Appendix B: Performance Test Results", 47),
         ("Appendix C: Deployment Checklist", 49),
     ]
-    
+
     for entry, page in toc_entries:
         p = doc.add_paragraph(entry)
         if entry.startswith('   '):
             p.paragraph_format.left_indent = Inches(0.5)
         p_format = p.paragraph_format
         p_format.space_after = Pt(3)
-    
+
     doc.add_page_break()
-    
+
     # ==================== LIST OF FIGURES ====================
-    
+
     add_heading_with_formatting(doc, "LIST OF FIGURES", 1)
-    
+
     figures_list = [
         "Figure 3.1: System Architecture Overview - Layered Architecture Diagram",
         "Figure 3.2: Authentication Flow - mTLS Protocol Exchange",
@@ -128,16 +129,16 @@ The platform demonstrates enterprise-grade quality through 100% passing test sui
         "Figure 5.1: Performance Comparison - Authentication Latency Metrics",
         "Figure 5.2: Test Coverage Distribution - Unit, Integration, E2E Tests",
     ]
-    
+
     for fig in figures_list:
         doc.add_paragraph(fig, style='List Bullet')
-    
+
     doc.add_page_break()
-    
+
     # ==================== LIST OF TABLES ====================
-    
+
     add_heading_with_formatting(doc, "LIST OF TABLES", 1)
-    
+
     tables_list = [
         "Table 1: Technology Stack Components",
         "Table 2: Core Entities and Attributes",
@@ -148,22 +149,22 @@ The platform demonstrates enterprise-grade quality through 100% passing test sui
         "Table 7: Test Coverage Summary",
         "Table 8: System Requirements - Development to Production",
     ]
-    
+
     for tbl in tables_list:
         doc.add_paragraph(tbl, style='List Bullet')
-    
+
     doc.add_page_break()
-    
+
     # ==================== SECTION 1: INTRODUCTION ====================
-    
+
     add_heading_with_formatting(doc, "1. INTRODUCTION", 1)
-    
+
     sections_content = {
         "intro": [
             "Agentic-IAM is an enterprise-grade Identity and Access Management (IAM) platform specifically designed for AI agent ecosystems. Developed with enterprise security standards in mind, the platform provides comprehensive identity lifecycle management, multi-protocol authentication, fine-grained authorization controls, and sophisticated audit logging capabilities.",
-            
+
             "This technical report provides a comprehensive analysis of the Agentic-IAM platform's architecture, implementation approach, security framework, testing procedures, and production readiness status. The analysis covers the complete system design including authentication mechanisms, authorization policies, credential management, session management, and federated identity support.",
-            
+
             "The platform represents a significant advancement in IAM technology specifically tailored to address the unique requirements of autonomous AI agents operating in distributed, multi-cloud environments. Unlike traditional IAM systems designed for human user management, Agentic-IAM provides:",
         ],
         "features": [
@@ -176,37 +177,37 @@ The platform demonstrates enterprise-grade quality through 100% passing test sui
         ],
         "closing": [
             "This report documents the verified production readiness status achieved through comprehensive testing (88 tests, 88% code coverage), security validation, and compliance verification against leading standards. Each section provides detailed analysis of specific platform components, implementation approaches, security controls, testing procedures, and deployment recommendations.",
-            
+
             "The platform has demonstrated production readiness through rigorous testing, security hardening, compliance validation, and architectural excellence. All components are fully implemented, tested, documented, and verified for enterprise deployment.",
         ]
     }
-    
+
     for text in sections_content["intro"]:
         p = doc.add_paragraph(text)
         p.alignment = WD_PARAGRAPH_ALIGNMENT.JUSTIFY
         p.paragraph_format.space_after = Pt(6)
-    
+
     doc.add_paragraph()
-    
+
     for feature in sections_content["features"]:
         doc.add_paragraph(feature, style='List Bullet')
-    
+
     doc.add_paragraph()
-    
+
     for text in sections_content["closing"]:
         p = doc.add_paragraph(text)
         p.alignment = WD_PARAGRAPH_ALIGNMENT.JUSTIFY
         p.paragraph_format.space_after = Pt(6)
-    
+
     doc.add_page_break()
-    
+
     # ==================== SECTION 2: BACKGROUND ====================
-    
+
     add_heading_with_formatting(doc, "2. BACKGROUND", 1)
-    
+
     # 2.1 Problem Statement
     add_heading_with_formatting(doc, "2.1 Problem Statement", 2)
-    
+
     problem_content = """Traditional Identity and Access Management systems were engineered for managing human user identities in centralized corporate environments. The emergence of AI agents and autonomous systems in enterprise deployments reveals critical gaps in existing IAM approaches that must be addressed.
 
 Technical Challenges with Legacy Systems:
@@ -233,19 +234,19 @@ Business Impact:
 • Competitive disadvantage in rapidly evolving AI/ML landscape
 
 These challenges demonstrate the critical need for a purpose-built IAM platform specifically designed for AI agent ecosystems."""
-    
+
     doc.add_paragraph(problem_content)
-    
+
     # 2.2 Project Objectives
     add_heading_with_formatting(doc, "2.2 Project Objectives", 2)
-    
+
     objectives_intro = "The Agentic-IAM project establishes comprehensive objectives across multiple dimensions:"
     doc.add_paragraph(objectives_intro)
-    
+
     doc.add_paragraph()
     p = doc.add_paragraph()
     p.add_run("Primary Objectives:").bold = True
-    
+
     primary_objectives = [
         "Create an IAM platform purpose-built for AI agent ecosystems with agent-centric design",
         "Implement zero-trust architecture with continuous verification and monitoring",
@@ -255,15 +256,15 @@ These challenges demonstrate the critical need for a purpose-built IAM platform 
         "Enable secure agent-to-agent communication with cryptographic verification",
         "Minimize operational overhead through extensive automation and self-service capabilities",
     ]
-    
+
     for obj in primary_objectives:
         p = doc.add_paragraph(obj, style='List Number')
         p.paragraph_format.space_after = Pt(4)
-    
+
     doc.add_paragraph()
     p = doc.add_paragraph()
     p.add_run("Secondary Objectives:").bold = True
-    
+
     secondary_objectives = [
         "Provide intuitive administrative interfaces for non-technical users",
         "Support extensible APIs for third-party integrations and ecosystem development",
@@ -273,17 +274,17 @@ These challenges demonstrate the critical need for a purpose-built IAM platform 
         "Support enterprise-grade high availability and disaster recovery",
         "Provide professional documentation and operational runbooks",
     ]
-    
+
     for obj in secondary_objectives:
         p = doc.add_paragraph(obj, style='List Number')
         p.paragraph_format.space_after = Pt(4)
-    
+
     # 2.3 Scope and Constraints
     add_heading_with_formatting(doc, "2.3 Scope and Constraints", 2)
-    
+
     p = doc.add_paragraph()
     p.add_run("In Scope:").bold = True
-    
+
     in_scope = [
         "Agent identity provisioning and comprehensive lifecycle management",
         "Multi-protocol authentication (mTLS, OAuth 2.0, OIDC, federated)",
@@ -297,14 +298,14 @@ These challenges demonstrate the critical need for a purpose-built IAM platform 
         "Streamlit administration dashboard with data visualization",
         "Security controls (encryption at rest/transit, key management)",
     ]
-    
+
     for item in in_scope:
         doc.add_paragraph(item, style='List Bullet')
-    
+
     doc.add_paragraph()
     p = doc.add_paragraph()
     p.add_run("Out of Scope:").bold = True
-    
+
     out_scope = [
         "Infrastructure provisioning (DevOps and Terraform responsibility)",
         "Network security (firewall, WAF, DDoS protection configuration)",
@@ -316,14 +317,14 @@ These challenges demonstrate the critical need for a purpose-built IAM platform 
         "Machine learning model development for advanced detection",
         "Compliance auditing services or external assessments",
     ]
-    
+
     for item in out_scope:
         doc.add_paragraph(item, style='List Bullet')
-    
+
     doc.add_paragraph()
     p = doc.add_paragraph()
     p.add_run("Design Constraints:").bold = True
-    
+
     constraints = [
         "Python 3.8+ runtime requirement for core platform",
         "PostgreSQL 12+ for production deployments (SQLite for development only)",
@@ -333,23 +334,23 @@ These challenges demonstrate the critical need for a purpose-built IAM platform 
         "Sub-200ms authentication latency requirement",
         "Support for minimum 10,000 agents per instance",
     ]
-    
+
     for item in constraints:
         doc.add_paragraph(item, style='List Bullet')
-    
+
     doc.add_page_break()
-    
+
     # ==================== SECTION 3: SYSTEM ANALYSIS ====================
-    
+
     add_heading_with_formatting(doc, "3. SYSTEM ANALYSIS", 1)
-    
+
     add_heading_with_formatting(doc, "3.1 System Architecture Overview", 2)
-    
+
     arch_intro = """Agentic-IAM employs a layered architecture consisting of four primary layers: Presentation, Business Logic, Data Persistence, and Supporting Services. This architectural approach provides clear separation of concerns, extensibility, and maintainability while enabling horizontal scaling and high availability."""
     doc.add_paragraph(arch_intro)
-    
+
     doc.add_paragraph("\nFigure 3.1: System Architecture Overview (ASCII Diagram)")
-    
+
     ascii_arch = """
 ┌─────────────────────────────────────────────────────────────┐
 │                        Agentic-IAM                            │
@@ -389,9 +390,9 @@ These challenges demonstrate the critical need for a purpose-built IAM platform 
 │  └────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────┘
 """
-    
+
     doc.add_paragraph(ascii_arch, style='Intense Quote')
-    
+
     layer_descriptions = """Layer Descriptions:
 
 Presentation Layer: Provides multiple interfaces for system interaction including Streamlit-based administrative dashboard for identity management with real-time data visualization, REST API (FastAPI) for programmatic access with automatic Swagger documentation, and GraphQL endpoint for flexible querying. All interfaces enforce authentication and authorization before processing requests.
@@ -399,12 +400,12 @@ Presentation Layer: Provides multiple interfaces for system interaction includin
 Business Logic Layer: Implements core IAM functionality including authentication verification with multi-protocol support, authorization policy evaluation with caching, session management with automatic cleanup and timeout enforcement, credential lifecycle management with automatic rotation, federated identity support for multi-cloud scenarios, and transport security management. Components operate asynchronously for improved scalability and throughput.
 
 Data Persistence Layer: Manages persistent storage with SQLite for development and PostgreSQL for production deployments. Includes comprehensive agent registry for identity tracking, immutable audit logs for compliance, and encrypted credential storage with separate key management."""
-    
+
     doc.add_paragraph(layer_descriptions)
-    
+
     # 3.2 Core Components
     add_heading_with_formatting(doc, "3.2 Core Components", 2)
-    
+
     components = {
         "Authentication Manager (authentication.py)": {
             "responsibility": "Credential validation and identity verification",
@@ -417,7 +418,7 @@ Data Persistence Layer: Manages persistent storage with SQLite for development a
             ],
             "pattern": "Pluggable authentication providers enable extension"
         },
-        
+
         "Authorization Manager (authorization.py)": {
             "responsibility": "Access control policy evaluation and enforcement",
             "capabilities": [
@@ -429,7 +430,7 @@ Data Persistence Layer: Manages persistent storage with SQLite for development a
             ],
             "pattern": "Policy-as-code enables version control and audit trails"
         },
-        
+
         "Session Manager (session_manager.py)": {
             "responsibility": "Session lifecycle and surveillance",
             "capabilities": [
@@ -441,7 +442,7 @@ Data Persistence Layer: Manages persistent storage with SQLite for development a
             ],
             "pattern": "In-memory cache with database persistence for durability"
         },
-        
+
         "Credential Manager (credential_manager.py)": {
             "responsibility": "Credential storage and lifecycle management",
             "capabilities": [
@@ -454,39 +455,39 @@ Data Persistence Layer: Manages persistent storage with SQLite for development a
             "pattern": "Encryption-at-rest with separate key management"
         },
     }
-    
+
     for component_name, details in components.items():
         p = doc.add_paragraph()
         p.add_run(component_name).bold = True
-        
+
         p = doc.add_paragraph()
         p.add_run("Responsibility: ").bold = True
         doc.add_paragraph(details["responsibility"])
-        
+
         p = doc.add_paragraph()
         p.add_run("Capabilities:").bold = True
         for cap in details["capabilities"]:
             doc.add_paragraph(cap, style='List Bullet')
-        
+
         p = doc.add_paragraph()
         p.add_run("Design Pattern: ").bold = True
         doc.add_paragraph(details["pattern"])
         doc.add_paragraph()
-    
+
     # 3.3 Technology Stack
     add_heading_with_formatting(doc, "3.3 Technology Stack", 2)
-    
+
     doc.add_paragraph("Table 1: Technology Stack Components")
-    
+
     tech_table = doc.add_table(rows=12, cols=5)
     tech_table.style = 'Light Grid Accent 1'
-    
+
     # Header
     hdr_cells = tech_table.rows[0].cells
     headers = ['Layer', 'Technology', 'Purpose', 'Version', 'Rationale']
     for i, header in enumerate(headers):
         hdr_cells[i].text = header
-    
+
     tech_data = [
         ('Runtime', 'Python', 'Core application', '3.8+', 'Type-safe, async-capable, enterprise adoption'),
         ('Web Framework', 'FastAPI', 'REST API server', '0.95.0+', 'High performance, OpenAPI documentation'),
@@ -500,52 +501,64 @@ Data Persistence Layer: Manages persistent storage with SQLite for development a
         ('Testing', 'pytest', 'Test framework', '7.4.0+', 'Comprehensive fixtures, plugins'),
         ('Linting', 'flake8', 'Code style', '6.0.0+', 'PEP 8 enforcement, code quality'),
     ]
-    
+
     for i, row_data in enumerate(tech_data, 1):
         cells = tech_table.rows[i].cells
         for j, data in enumerate(row_data):
             cells[j].text = data
-    
+
     # 3.4 Data Model
     add_heading_with_formatting(doc, "3.4 Data Model", 2)
-    
+
     datamodel_intro = """The platform implements a comprehensive data model supporting agent identities, roles, credentials, sessions, and audit trails."""
     doc.add_paragraph(datamodel_intro)
-    
+
     doc.add_paragraph("\nTable 2: Core Entities and Attributes")
-    
+
     entity_table = doc.add_table(rows=7, cols=3)
     entity_table.style = 'Light Grid'
-    
+
     hdr_cells = entity_table.rows[0].cells
     hdr_cells[0].text = 'Entity'
     hdr_cells[1].text = 'Key Attributes'
     hdr_cells[2].text = 'Relationships'
-    
+
     entity_data = [
-        ('Agent', 'agent_id, name, identity_certificate, private_key, status, role, metadata, created_at, expires_at, created_by', 'Owns Credentials; Assigned Role; Generated AuditEvents'),
-        ('User', 'user_id, username, password_hash, email, role, created_at, last_login, is_active', 'Created Agents; Generated AuditEvents'),
-        ('Role', 'role_id, name, permissions (set), description, is_custom, created_at', 'Assigned to Agent/User; Contains Permission set'),
-        ('Credential', 'credential_id, agent_id, credential_type, credential_value (encrypted), created_at, expires_at, is_revoked, rotation_due', 'Belongs to Agent; Has expiration schedule'),
-        ('Session', 'session_id, agent_id, creation_time, expiration_time, last_activity, ip_address, user_agent', 'Represents active connection; Generates audit events'),
-        ('AuditEvent', 'event_id, event_type, actor_id, resource_id, action, result, timestamp, ip_address, context', 'Logs all operations; Immutable record'),
+        ('Agent',
+         'agent_id, name, identity_certificate, private_key, status, role, metadata, created_at, expires_at, created_by',
+         'Owns Credentials; Assigned Role; Generated AuditEvents'),
+        ('User',
+         'user_id, username, password_hash, email, role, created_at, last_login, is_active',
+         'Created Agents; Generated AuditEvents'),
+        ('Role',
+         'role_id, name, permissions (set), description, is_custom, created_at',
+         'Assigned to Agent/User; Contains Permission set'),
+        ('Credential',
+         'credential_id, agent_id, credential_type, credential_value (encrypted), created_at, expires_at, is_revoked, rotation_due',
+         'Belongs to Agent; Has expiration schedule'),
+        ('Session',
+         'session_id, agent_id, creation_time, expiration_time, last_activity, ip_address, user_agent',
+         'Represents active connection; Generates audit events'),
+        ('AuditEvent',
+         'event_id, event_type, actor_id, resource_id, action, result, timestamp, ip_address, context',
+         'Logs all operations; Immutable record'),
     ]
-    
+
     for i, (entity, attrs, rels) in enumerate(entity_data, 1):
         cells = entity_table.rows[i].cells
         cells[0].text = entity
         cells[1].text = attrs
         cells[2].text = rels
-    
+
     doc.add_page_break()
-    
+
     # ==================== REMAINING SECTIONS (SUMMARY) ====================
     # Due to length, we'll add comprehensive summaries of remaining sections
-    
+
     add_heading_with_formatting(doc, "4. METHODOLOGY", 1)
-    
+
     add_heading_with_formatting(doc, "4.1 Authentication Approach", 2)
-    
+
     auth_content = """The platform implements multiple authentication mechanisms to support diverse deployment scenarios and legacy integration requirements.
 
 mTLS Authentication Flow:
@@ -567,11 +580,11 @@ Design Rationale:
 • Enables third-party identity provider integration
 • Supports token refresh for session renewal
 • Compatible with OAuth 2.0 ecosystem tools"""
-    
+
     doc.add_paragraph(auth_content)
-    
+
     add_heading_with_formatting(doc, "4.2 Authorization Mechanism", 2)
-    
+
     authz_content = """Authorization decisions are made through two complementary approaches depending on policy complexity.
 
 RBAC Evaluation:
@@ -585,11 +598,11 @@ Use Cases:
 • Complex compliance rules: Use ABAC - Handles time-based, location-based policies
 • Temporary elevated access: Use ABAC - Enables time-limited permissions
 • Resource-specific policies: Use Hybrid - RBAC foundation with ABAC exceptions"""
-    
+
     doc.add_paragraph(authz_content)
-    
+
     add_heading_with_formatting(doc, "4.3 Security Implementation", 2)
-    
+
     security_content = """Security is implemented through defense-in-depth approach with multiple complementary controls.
 
 The 8 Core Security Controls:
@@ -609,11 +622,11 @@ The 8 Core Security Controls:
 7. Federated Identity: External identity providers leverage existing infrastructure. Reduces credential management burden and enables centralized governance.
 
 8. Quantum-Ready Cryptography: Post-quantum algorithms prepare for future threats from quantum computers. Enables migration path to quantum-safe cryptography."""
-    
+
     doc.add_paragraph(security_content)
-    
+
     add_heading_with_formatting(doc, "4.4 Testing Strategy", 2)
-    
+
     testing_content = """Comprehensive testing approach ensures reliability, security, and performance of all platform components.
 
 Test Coverage Summary:
@@ -638,17 +651,17 @@ Key Test Categories:
 • Data encryption and key management
 • Error handling and recovery scenarios
 • Performance and scalability benchmarks"""
-    
+
     doc.add_paragraph(testing_content)
-    
+
     doc.add_page_break()
-    
+
     # ==================== SECTION 5: RESULTS AND DISCUSSION ====================
-    
+
     add_heading_with_formatting(doc, "5. RESULTS AND DISCUSSION", 1)
-    
+
     add_heading_with_formatting(doc, "5.1 Production Readiness Verification", 2)
-    
+
     readiness_content = """Comprehensive verification confirms all production readiness requirements are met.
 
 Production Readiness Checklist:
@@ -664,15 +677,15 @@ System Requirements for Production:
 Development: 2 CPU cores, 2 GB RAM, 500 MB storage, SQLite database
 Staging: 4 CPU cores, 8 GB RAM, 20 GB storage, PostgreSQL database
 Production: 8+ CPU cores, 16+ GB RAM, 100+ GB SSD storage, PostgreSQL with replicas"""
-    
+
     doc.add_paragraph(readiness_content)
-    
+
     add_heading_with_formatting(doc, "5.2 Performance Metrics", 2)
-    
+
     perf_content = """Extensive performance testing validates that the platform meets and exceeds all targets.
 
 Authentication Latency Measurements:
-• Simple token validation: 50-100ms (target: <200ms) ✅ 
+• Simple token validation: 50-100ms (target: <200ms) ✅
 • mTLS certificate check: 100-150ms (target: <500ms) ✅
 • ABAC policy evaluation: 150-200ms (target: <500ms) ✅
 • Full authentication flow: 200-300ms (target: <1000ms) ✅
@@ -688,11 +701,11 @@ Scalability Capacity:
 • PostgreSQL single node: ~10,000 agents (staging/small production)
 • PostgreSQL + read replicas: ~100,000 agents (enterprise deployments)
 • PostgreSQL + sharding: 1M+ agents (multi-region enterprises)"""
-    
+
     doc.add_paragraph(perf_content)
-    
+
     add_heading_with_formatting(doc, "5.3 Security Assessment", 2)
-    
+
     security_assess = """Comprehensive security evaluation validates all controls are properly implemented and effective.
 
 Security Controls Verification:
@@ -717,11 +730,11 @@ Vulnerability Assessment:
 • CWE High-Risk: Zero vulnerabilities identified
 • Cryptographic Standards: All FIPS-compliant algorithms
 • Dependency Vulnerabilities: All critical/high severity patched immediately"""
-    
+
     doc.add_paragraph(security_assess)
-    
+
     add_heading_with_formatting(doc, "5.4 Testing Results", 2)
-    
+
     testing_results = """Complete test suite demonstrates comprehensive platform quality and reliability.
 
 Test Coverage Distribution:
@@ -753,17 +766,17 @@ Code Coverage: 88%
 Critical Issues: 0
 Regression Issues: None
 All security tests: Passing"""
-    
+
     doc.add_paragraph(testing_results)
-    
+
     doc.add_page_break()
-    
+
     # ==================== SECTION 6: CONCLUSIONS ====================
-    
+
     add_heading_with_formatting(doc, "6. CONCLUSIONS AND RECOMMENDATIONS", 1)
-    
+
     add_heading_with_formatting(doc, "6.1 Summary of Achievements", 2)
-    
+
     achievements = """Agentic-IAM successfully delivers a comprehensive, production-ready Identity and Access Management platform specifically designed for AI agent ecosystems.
 
 Architecture & Design Achievements:
@@ -800,11 +813,11 @@ Compliance Achievements:
 ✅ FedRAMP compliance support
 ✅ GDPR data protection
 ✅ PCI DSS controls"""
-    
+
     doc.add_paragraph(achievements)
-    
+
     add_heading_with_formatting(doc, "6.2 Production Deployment Status", 2)
-    
+
     deployment_status = """The platform is VERIFIED PRODUCTION-READY for enterprise deployment.
 
 Readiness Assessment:
@@ -834,11 +847,11 @@ Phase 3 (Month 2-3): Optimization
 - Tune database connections
 - Implement caching layer if needed
 - Establish operational procedures"""
-    
+
     doc.add_paragraph(deployment_status)
-    
+
     add_heading_with_formatting(doc, "6.3 Recommendations for Future Enhancements", 2)
-    
+
     recommendations = """Strategic recommendations for platform enhancement and evolution:
 
 Short-term (0-3 months):
@@ -863,23 +876,23 @@ Long-term (12+ months):
 4. Terraform provider for infrastructure-as-code
 5. Vault integration for secrets management
 6. Advanced features (policy visualization, risk scoring)"""
-    
+
     doc.add_paragraph(recommendations)
-    
+
     doc.add_page_break()
-    
+
     # ==================== REMAINING SECTIONS ====================
-    
+
     add_heading_with_formatting(doc, "7. ACKNOWLEDGEMENTS", 1)
-    
+
     ack_text = """This comprehensive technical report documents the successful delivery of the Agentic-IAM platform. The development team is grateful to all contributors who participated in design, implementation, testing, and security validation. Special recognition to the technical review committee for their oversight and guidance throughout the project lifecycle."""
-    
+
     doc.add_paragraph(ack_text)
-    
+
     doc.add_page_break()
-    
+
     add_heading_with_formatting(doc, "8. REFERENCES", 1)
-    
+
     references = [
         "[1] NIST Cybersecurity Framework (2023). 'Framework for Improving Critical Infrastructure Cybersecurity, Version 1.1'. https://www.nist.gov/cyberframework/",
         "[2] CIS Controls v8 (2021). 'CIS Controls Version 8: Prioritized Safeguards for Proactive Cyber Defense'. https://www.cisecurity.org/controls/",
@@ -892,16 +905,16 @@ Long-term (12+ months):
         "[9] 'Zero Trust Architecture' (2022). NIST SP 800-207: Zero Trust Architecture. https://csrc.nist.gov/publications/detail/sp/800-207/final",
         "[10] 'Cryptographic Algorithms' (2023). NIST Special Publication 800-175B Guideline for the Use of Approved Cryptographic Algorithms.",
     ]
-    
+
     for ref in references:
         doc.add_paragraph(ref)
-    
+
     doc.add_page_break()
-    
+
     # ==================== APPENDICES ====================
-    
+
     add_heading_with_formatting(doc, "APPENDIX A: COMPLIANCE FRAMEWORK MAPPING", 1)
-    
+
     append_a = """SOC2 Type II Compliance:
 Security: ✅ Encrypted data at rest (AES-256), encrypted data in transit (TLS 1.3), access controls (RBAC/ABAC), audit logging
 Availability: ✅ 99.9%+ uptime architecture, high availability configuration, disaster recovery procedures
@@ -917,26 +930,28 @@ FedRAMP Compliance:
 ✅ FIPS 140-2 compliant encryption
 ✅ Continuous monitoring
 ✅ Incident reporting"""
-    
+
     doc.add_paragraph(append_a)
-    
+
     doc.add_page_break()
-    
+
     add_heading_with_formatting(doc, "APPENDIX B: PERFORMANCE TEST RESULTS", 1)
-    
+
     doc.add_paragraph("Comprehensive Performance Testing Environment:")
-    doc.add_paragraph("CPU: 8 cores (Intel Xeon), RAM: 16 GB, Database: PostgreSQL 14, Network: 100 Mbps, Connection Pool: 20 concurrent", style='List Bullet')
-    
+    doc.add_paragraph(
+        "CPU: 8 cores (Intel Xeon), RAM: 16 GB, Database: PostgreSQL 14, Network: 100 Mbps, Connection Pool: 20 concurrent",
+        style='List Bullet')
+
     doc.add_paragraph("\nDetailed Performance Results:")
-    
+
     perf_table = doc.add_table(rows=7, cols=3)
     perf_table.style = 'Light Grid Accent 1'
-    
+
     hdr_cells = perf_table.rows[0].cells
     hdr_cells[0].text = 'Test Case'
     hdr_cells[1].text = 'Throughput / Response Time'
     hdr_cells[2].text = 'Status'
-    
+
     perf_data = [
         ('Authentication Validation', '450 req/sec', '✅ PASS'),
         ('Authorization Evaluation', '850 req/sec', '✅ PASS'),
@@ -945,17 +960,17 @@ FedRAMP Compliance:
         ('Audit Logging', '300 req/sec', '✅ PASS'),
         ('API Response Time', '35-50ms avg', '✅ PASS'),
     ]
-    
+
     for i, (test, metric, status) in enumerate(perf_data, 1):
         cells = perf_table.rows[i].cells
         cells[0].text = test
         cells[1].text = metric
         cells[2].text = status
-    
+
     doc.add_page_break()
-    
+
     add_heading_with_formatting(doc, "APPENDIX C: DEPLOYMENT CHECKLIST", 1)
-    
+
     checklist_sections = {
         "Pre-Deployment": [
             "☐ Security penetration testing completed",
@@ -989,20 +1004,20 @@ FedRAMP Compliance:
             "☐ Annual security audit",
         ]
     }
-    
+
     for section, items in checklist_sections.items():
         add_heading_with_formatting(doc, section, 2)
         for item in items:
             doc.add_paragraph(item)
         doc.add_paragraph()
-    
+
     # ==================== FINAL METADATA ====================
-    
+
     doc.add_page_break()
-    
+
     final_section = doc.add_paragraph()
     final_section.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-    
+
     metadata = final_section.add_run(
         "Report Completion Date: April 7, 2026\n"
         "Version: 1.0 Final - Comprehensive\n"
@@ -1010,11 +1025,10 @@ FedRAMP Compliance:
         "Next Review Date: July 7, 2026 (Quarterly)\n\n"
         "This technical report documents the production-ready status of Agentic-IAM as verified "
         "and approved for enterprise deployment following Sadat Academy for Management Sciences "
-        "technical standards. All content has been reviewed and verified by the technical review committee."
-    )
+        "technical standards. All content has been reviewed and verified by the technical review committee.")
     metadata.font.size = Pt(10)
     metadata.font.italic = True
-    
+
     # Save
     doc.save('TECHNICAL_REPORT_FULL.docx')
     return 'TECHNICAL_REPORT_FULL.docx'

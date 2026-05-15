@@ -25,6 +25,7 @@ import time
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class AgentStatus:
     """Real-time agent status"""
@@ -34,6 +35,7 @@ class AgentStatus:
     last_seen: str
     location: Optional[str] = None
     current_action: Optional[str] = None
+
 
 @dataclass
 class SecurityAlert:
@@ -45,6 +47,7 @@ class SecurityAlert:
     timestamp: str
     details: Dict[str, Any]
 
+
 @dataclass
 class AuditEvent:
     """Real-time audit event"""
@@ -54,6 +57,7 @@ class AuditEvent:
     action: str
     timestamp: str
     details: Dict[str, Any]
+
 
 class WebSocketDashboard:
     """
@@ -126,7 +130,7 @@ class WebSocketDashboard:
             logger.info(f"Cleaned up {len(disconnected)} disconnected clients")
 
     def update_agent_status(self, agent_id: str, status: str, trust_score: float,
-                          location: Optional[str] = None, current_action: Optional[str] = None):
+                            location: Optional[str] = None, current_action: Optional[str] = None):
         """Update agent status and broadcast"""
         agent_status = AgentStatus(
             agent_id=agent_id,
@@ -143,7 +147,7 @@ class WebSocketDashboard:
         asyncio.create_task(self.broadcast_update("agent_status_update", asdict(agent_status)))
 
     def add_security_alert(self, severity: str, message: str, agent_id: Optional[str] = None,
-                          details: Optional[Dict[str, Any]] = None):
+                           details: Optional[Dict[str, Any]] = None):
         """Add security alert and broadcast"""
         alert = SecurityAlert(
             alert_id=f"alert_{int(time.time() * 1000)}",
@@ -164,7 +168,7 @@ class WebSocketDashboard:
         asyncio.create_task(self.broadcast_update("security_alert", asdict(alert)))
 
     def add_audit_event(self, event_type: str, agent_id: str, action: str,
-                       details: Optional[Dict[str, Any]] = None):
+                        details: Optional[Dict[str, Any]] = None):
         """Add audit event and broadcast"""
         event = AuditEvent(
             event_id=f"event_{int(time.time() * 1000)}",
@@ -234,6 +238,7 @@ class WebSocketDashboard:
             self.server.close()
         logger.info("WebSocket server stopped")
 
+
 class StreamlitWebSocketClient:
     """
     Client for connecting Streamlit dashboard to WebSocket server
@@ -302,6 +307,8 @@ class StreamlitWebSocketClient:
             asyncio.create_task(self.websocket.close())
 
 # Example usage and integration with Streamlit
+
+
 def create_sample_dashboard():
     """Create a sample dashboard instance with mock data"""
     dashboard = WebSocketDashboard()
@@ -312,12 +319,13 @@ def create_sample_dashboard():
     dashboard.update_agent_status("agent-003", "offline", 0.80, "ap-southeast-1", None)
 
     dashboard.add_security_alert("high", "Anomaly detected in agent behavior", "agent-002",
-                               {"anomaly_score": 0.87, "pattern": "unusual_api_calls"})
+                                 {"anomaly_score": 0.87, "pattern": "unusual_api_calls"})
 
     dashboard.add_audit_event("authentication", "agent-001", "login_success",
-                            {"ip": "192.168.1.100", "method": "jwt"})
+                              {"ip": "192.168.1.100", "method": "jwt"})
 
     return dashboard
+
 
 if __name__ == "__main__":
     # Start dashboard server

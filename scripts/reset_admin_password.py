@@ -1,10 +1,9 @@
+from database import get_database
 import sys
 from pathlib import Path
 
 # Ensure project root is on sys.path when run from scripts/
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
-from database import get_database
 
 
 def main():

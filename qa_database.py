@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import List, Dict, Optional, Tuple
 import random
 
-# QA Database Content - 3000+   
+# QA Database Content - 3000+
 CATEGORIES = {
     "security": " ",
     "ai": " ",
@@ -83,16 +83,18 @@ QA_DATABASE = {
 }
 
 #         3000
+
+
 def generate_extended_qa():
     """Generate extended QA database to reach 3000+ questions"""
     extended_qa = {}
-    
+
     for category, questions in QA_DATABASE.items():
         extended_qa[category] = questions.copy()
-        
+
         # Generate variations and additional questions
         variations = []
-        
+
         if category == "security":
             security_additions = [
                 {"q": "OAuth 2.0   ", "a": "    service  ( Google)     password "},
@@ -107,7 +109,7 @@ def generate_extended_qa():
                 {"q": "Data Breach Notification  ", "a": "  users   breach      passwords  "},
             ]
             variations.extend(security_additions)
-        
+
         elif category == "ai":
             ai_additions = [
                 {"q": "Convolutional Neural Networks (CNN)   ", "a": "   image recognition  computer vision    spatial relationships  "},
@@ -122,7 +124,7 @@ def generate_extended_qa():
                 {"q": "Ensemble Methods  ", "a": "  models     (voting  averaging)   model "},
             ]
             variations.extend(ai_additions)
-        
+
         elif category == "tech":
             tech_additions = [
                 {"q": "DevOps    ", "a": "Development + Operations - developers  operations      deployment  "},
@@ -137,7 +139,7 @@ def generate_extended_qa():
                 {"q": "ElasticSearch   ", "a": "  Full-Text Search - data     "},
             ]
             variations.extend(tech_additions)
-        
+
         elif category == "management":
             management_additions = [
                 {"q": "Kanban method   Scrum ", "a": "Scrum  fixed sprints meetings Kanban continuous flow - Work In Progress limit"},
@@ -152,7 +154,7 @@ def generate_extended_qa():
                 {"q": "Delegation    Leaders", "a": "  team      important stuff   work  "},
             ]
             variations.extend(management_additions)
-        
+
         elif category == "general":
             general_additions = [
                 {"q": "Binary  Hexadecimal - Programming", "a": "Binary   computers  0  1  Hexadecimal       binary"},
@@ -167,42 +169,44 @@ def generate_extended_qa():
                 {"q": "SOLID Principles   ", "a": "Single Responsibility Open/Closed Liskov Substitution Interface Segregation Dependency Inversion - code "},
             ]
             variations.extend(general_additions)
-        
+
         # Add more variations by duplicating and modifying
         for base_qa in variations:
             extended_qa[category].append(base_qa)
-        
+
         # Generate additional variations
         base_count = len(extended_qa[category])
         target_per_category = 600  # 600 * 5 categories = 3000
-        
+
         while len(extended_qa[category]) < target_per_category:
             # Create variations of existing questions
             original = random.choice(QA_DATABASE[category])
             # Create a variant by paraphrasing
             variant_q = f"   {original['q'].split('')[0] if '' in original['q'] else original['q'][:30]}"
-            variant_a = f"  {original['a'][:50]}... {original['a'][50:]}" if len(original['a']) > 50 else original['a']
-            
+            variant_a = f"  {original['a'][:50]}... {original['a'][50:]}" if len(
+                original['a']) > 50 else original['a']
+
             extended_qa[category].append({
                 "q": variant_q,
                 "a": variant_a
             })
-    
+
     return extended_qa
+
 
 class QADatabase:
     """     """
-    
+
     def __init__(self, db_path: str = "qa_system.db"):
         self.db_path = db_path
         self._init_db()
         self._populate_qa()
-    
+
     def _init_db(self):
         """Initialize the database schema"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
-        
+
         # Create tables
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS questions (
@@ -217,7 +221,7 @@ class QADatabase:
                 is_active BOOLEAN DEFAULT 1
             )
         """)
-        
+
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS user_answers (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -230,7 +234,7 @@ class QADatabase:
                 FOREIGN KEY (question_id) REFERENCES questions (id)
             )
         """)
-        
+
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS user_progress (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -243,7 +247,7 @@ class QADatabase:
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
-        
+
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS leaderboard (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -255,60 +259,60 @@ class QADatabase:
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
-        
+
         conn.commit()
         conn.close()
-    
+
     def _populate_qa(self):
         """Populate the database with QA data"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
-        
+
         # Check if already populated
         cursor.execute("SELECT COUNT(*) FROM questions")
         count = cursor.fetchone()[0]
-        
+
         if count > 0:
             conn.close()
             return
-        
+
         # Get extended QA database
         qa_data = generate_extended_qa()
-        
+
         # Insert questions
         for category, questions in qa_data.items():
             for idx, qa in enumerate(questions):
                 difficulty = (idx % 3) + 1  # 1, 2, or 3
                 cursor.execute("""
-                    INSERT INTO questions 
+                    INSERT INTO questions
                     (question, answer, category, difficulty, rating)
                     VALUES (?, ?, ?, ?, ?)
                 """, (qa['q'], qa['a'], category, difficulty, random.uniform(3.5, 5.0)))
-        
+
         conn.commit()
         conn.close()
-    
+
     def get_random_question(self, category: Optional[str] = None) -> Optional[Dict]:
         """Get a random question"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
-        
+
         if category:
             cursor.execute("""
-                SELECT id, question, answer, category, difficulty FROM questions 
-                WHERE category = ? AND is_active = 1 
+                SELECT id, question, answer, category, difficulty FROM questions
+                WHERE category = ? AND is_active = 1
                 ORDER BY RANDOM() LIMIT 1
             """, (category,))
         else:
             cursor.execute("""
-                SELECT id, question, answer, category, difficulty FROM questions 
-                WHERE is_active = 1 
+                SELECT id, question, answer, category, difficulty FROM questions
+                WHERE is_active = 1
                 ORDER BY RANDOM() LIMIT 1
             """)
-        
+
         result = cursor.fetchone()
         conn.close()
-        
+
         if result:
             return {
                 "id": result[0],
@@ -318,20 +322,20 @@ class QADatabase:
                 "difficulty": result[4]
             }
         return None
-    
+
     def get_question_by_id(self, question_id: int) -> Optional[Dict]:
         """Get question by ID"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
-        
+
         cursor.execute("""
-            SELECT id, question, answer, category, difficulty FROM questions 
+            SELECT id, question, answer, category, difficulty FROM questions
             WHERE id = ?
         """, (question_id,))
-        
+
         result = cursor.fetchone()
         conn.close()
-        
+
         if result:
             return {
                 "id": result[0],
@@ -341,30 +345,30 @@ class QADatabase:
                 "difficulty": result[4]
             }
         return None
-    
+
     def search_questions(self, keyword: str, category: Optional[str] = None) -> List[Dict]:
         """Search questions by keyword"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
-        
+
         search_term = f"%{keyword}%"
-        
+
         if category:
             cursor.execute("""
-                SELECT id, question, answer, category, difficulty FROM questions 
-                WHERE (question LIKE ? OR answer LIKE ?) AND category = ? 
+                SELECT id, question, answer, category, difficulty FROM questions
+                WHERE (question LIKE ? OR answer LIKE ?) AND category = ?
                 LIMIT 20
             """, (search_term, search_term, category))
         else:
             cursor.execute("""
-                SELECT id, question, answer, category, difficulty FROM questions 
-                WHERE question LIKE ? OR answer LIKE ? 
+                SELECT id, question, answer, category, difficulty FROM questions
+                WHERE question LIKE ? OR answer LIKE ?
                 LIMIT 20
             """, (search_term, search_term))
-        
+
         results = cursor.fetchall()
         conn.close()
-        
+
         return [
             {
                 "id": r[0],
@@ -375,40 +379,40 @@ class QADatabase:
             }
             for r in results
         ]
-    
-    def record_answer(self, user_id: str, question_id: int, user_answer: str, 
-                     is_correct: bool, time_taken: int = 0) -> bool:
+
+    def record_answer(self, user_id: str, question_id: int, user_answer: str,
+                      is_correct: bool, time_taken: int = 0) -> bool:
         """Record user answer"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
-        
+
         try:
             cursor.execute("""
-                INSERT INTO user_answers 
+                INSERT INTO user_answers
                 (user_id, question_id, user_answer, is_correct, time_taken)
                 VALUES (?, ?, ?, ?, ?)
             """, (user_id, question_id, user_answer, is_correct, time_taken))
-            
+
             # Update user progress
             self._update_user_progress(cursor, user_id, is_correct)
-            
+
             conn.commit()
             conn.close()
             return True
         except Exception as e:
             conn.close()
             return False
-    
+
     def _update_user_progress(self, cursor, user_id: str, is_correct: bool):
         """Update user progress statistics"""
         # Get current progress
         cursor.execute("""
-            SELECT id, total_questions, correct_answers, points FROM user_progress 
+            SELECT id, total_questions, correct_answers, points FROM user_progress
             WHERE user_id = ?
         """, (user_id,))
-        
+
         result = cursor.fetchone()
-        
+
         if result:
             prog_id, total, correct, points = result
             new_total = total + 1
@@ -416,36 +420,36 @@ class QADatabase:
             new_points = points + (10 if is_correct else 2)
             accuracy = (new_correct / new_total * 100) if new_total > 0 else 0
             new_level = (new_points // 100) + 1
-            
+
             cursor.execute("""
-                UPDATE user_progress 
-                SET total_questions = ?, correct_answers = ?, 
+                UPDATE user_progress
+                SET total_questions = ?, correct_answers = ?,
                     accuracy = ?, points = ?, level = ?
                 WHERE user_id = ?
             """, (new_total, new_correct, accuracy, new_points, new_level, user_id))
         else:
             new_points = 10 if is_correct else 2
             accuracy = (100 if is_correct else 0)
-            
+
             cursor.execute("""
-                INSERT INTO user_progress 
+                INSERT INTO user_progress
                 (user_id, total_questions, correct_answers, accuracy, points, level)
                 VALUES (?, ?, ?, ?, ?, ?)
             """, (user_id, 1, (1 if is_correct else 0), accuracy, new_points, 1))
-    
+
     def get_user_stats(self, user_id: str) -> Optional[Dict]:
         """Get user statistics"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
-        
+
         cursor.execute("""
-            SELECT total_questions, correct_answers, accuracy, level, points 
+            SELECT total_questions, correct_answers, accuracy, level, points
             FROM user_progress WHERE user_id = ?
         """, (user_id,))
-        
+
         result = cursor.fetchone()
         conn.close()
-        
+
         if result:
             return {
                 "total_questions": result[0],
@@ -455,21 +459,21 @@ class QADatabase:
                 "points": result[4]
             }
         return None
-    
+
     def get_leaderboard(self, limit: int = 100) -> List[Dict]:
         """Get leaderboard"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
-        
+
         cursor.execute("""
-            SELECT id, user_id, username, points, accuracy, rank 
-            FROM leaderboard 
+            SELECT id, user_id, username, points, accuracy, rank
+            FROM leaderboard
             ORDER BY points DESC LIMIT ?
         """, (limit,))
-        
+
         results = cursor.fetchall()
         conn.close()
-        
+
         return [
             {
                 "rank": r[5],
@@ -480,32 +484,32 @@ class QADatabase:
             }
             for r in results
         ]
-    
+
     def get_total_questions(self) -> int:
         """Get total number of questions"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
-        
+
         cursor.execute("SELECT COUNT(*) FROM questions WHERE is_active = 1")
         count = cursor.fetchone()[0]
         conn.close()
-        
+
         return count
-    
+
     def get_categories(self) -> List[Dict]:
         """Get all categories with counts"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
-        
+
         cursor.execute("""
-            SELECT category, COUNT(*) as count FROM questions 
-            WHERE is_active = 1 
+            SELECT category, COUNT(*) as count FROM questions
+            WHERE is_active = 1
             GROUP BY category
         """)
-        
+
         results = cursor.fetchall()
         conn.close()
-        
+
         return [
             {
                 "category": r[0],

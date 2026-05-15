@@ -21,7 +21,8 @@ def test_login_flow():
             login_as_admin(page)
 
             page.wait_for_selector('text=Navigation', timeout=10000)
-            page.locator('[data-testid="stSidebar"] p').filter(has_text='User Management').first.click()
+            page.locator(
+                '[data-testid="stSidebar"] p').filter(has_text='User Management').first.click()
             page.wait_for_selector('text=Manage Users', timeout=10000)
 
             assert "user management" in page.content().lower()

@@ -95,7 +95,9 @@ def render_pagination(pagination: Dict, key: str = "page"):
                 st.rerun()
 
     with col2:
-        st.markdown(f"**Page {pagination['page']} of {pagination['total_pages']}**", unsafe_allow_html=True)
+        st.markdown(
+            f"**Page {pagination['page']} of {pagination['total_pages']}**",
+            unsafe_allow_html=True)
 
     with col3:
         if pagination["page"] < pagination["total_pages"]:

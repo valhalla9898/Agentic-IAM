@@ -1,6 +1,7 @@
 import streamlit as st
 from typing import Dict, Any
 
+
 def compute_risk_score(agent: Dict[str, Any]) -> float:
     # Simple heuristic risk score for demo: combine failed actions and age
     failures = agent.get('failed_actions', 0)

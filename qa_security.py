@@ -12,9 +12,10 @@ import sqlite3
 import json
 import tempfile
 
+
 class QASecurityManager:
     """    Q&A System"""
-    
+
     def __init__(self, db_path: str = "qa_security.db"):
         if db_path == ":memory:":
             self.db_path = tempfile.NamedTemporaryFile(suffix="_qa_security.db", delete=False).name
@@ -22,12 +23,12 @@ class QASecurityManager:
             self.db_path = db_path
         self._rate_limit_state = {}
         self._init_security_db()
-    
+
     def _init_security_db(self):
         """Initialize security database"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
-        
+
         # Rate limiting table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS rate_limit (
@@ -39,7 +40,7 @@ class QASecurityManager:
                 reset_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
-        
+
         # Suspicious activity log
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS suspicious_activity (
@@ -52,7 +53,7 @@ class QASecurityManager:
                 severity INTEGER DEFAULT 1
             )
         """)
-        
+
         # User sessions
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS user_sessions (
@@ -66,7 +67,7 @@ class QASecurityManager:
                 is_active BOOLEAN DEFAULT 1
             )
         """)
-        
+
         # Blacklist
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS blacklist (
@@ -77,15 +78,15 @@ class QASecurityManager:
                 expires_at TIMESTAMP
             )
         """)
-        
+
         conn.commit()
         conn.close()
-    
+
     def check_rate_limit(
-        self, 
-        user_id: str, 
-        endpoint: str, 
-        max_requests: int = 100, 
+        self,
+        user_id: str,
+        endpoint: str,
+        max_requests: int = 100,
         time_window: int = 3600
     ) -> Tuple[bool, Dict]:
         """Check if user exceeds rate limit"""
@@ -93,7 +94,7 @@ class QASecurityManager:
         cursor = conn.cursor()
         state_key = (user_id, endpoint)
         now = datetime.now()
-        
+
         try:
             state = self._rate_limit_state.get(state_key)
             if state:
@@ -135,16 +136,16 @@ class QASecurityManager:
                 user_id,
                 endpoint,
             ))
-            
+
             conn.commit()
             conn.close()
-            
+
             return True, {"message": "Request allowed"}
-        
+
         except Exception as e:
             conn.close()
             return False, {"message": f"Error checking rate limit: {str(e)}"}
-    
+
     def log_suspicious_activity(
         self,
         user_id: str,
@@ -156,21 +157,21 @@ class QASecurityManager:
         """Log suspicious activity"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
-        
+
         try:
             cursor.execute("""
-                INSERT INTO suspicious_activity 
+                INSERT INTO suspicious_activity
                 (user_id, activity_type, description, ip_address, severity)
                 VALUES (?, ?, ?, ?, ?)
             """, (user_id, activity_type, description, ip_address, severity))
-            
+
             conn.commit()
             conn.close()
             return True
         except Exception:
             conn.close()
             return False
-    
+
     def create_session(
         self,
         user_id: str,
@@ -181,71 +182,71 @@ class QASecurityManager:
         """Create a secure session"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
-        
+
         try:
             session_token = secrets.token_urlsafe(32)
             expires_at = datetime.now() + timedelta(seconds=expires_in)
-            
+
             cursor.execute("""
-                INSERT INTO user_sessions 
+                INSERT INTO user_sessions
                 (user_id, session_token, ip_address, user_agent, expires_at)
                 VALUES (?, ?, ?, ?, ?)
             """, (user_id, session_token, ip_address, user_agent, expires_at.isoformat()))
-            
+
             conn.commit()
             conn.close()
-            
+
             return session_token
         except Exception:
             conn.close()
             return None
-    
+
     def validate_session(self, session_token: str) -> Tuple[bool, Optional[str]]:
         """Validate a session token"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
-        
+
         try:
             cursor.execute("""
-                SELECT user_id, expires_at, is_active FROM user_sessions 
+                SELECT user_id, expires_at, is_active FROM user_sessions
                 WHERE session_token = ?
             """, (session_token,))
-            
+
             result = cursor.fetchone()
             conn.close()
-            
+
             if result:
                 user_id, expires_at, is_active = result
-                
+
                 if not is_active:
                     return False, None
-                
+
                 expires_at_dt = datetime.fromisoformat(expires_at)
                 if datetime.now() > expires_at_dt:
                     return False, None
-                
+
                 return True, user_id
-            
+
             return False, None
         except Exception:
             conn.close()
             return False, None
-    
+
     def is_user_blacklisted(self, user_id: str) -> bool:
         """Check if user is blacklisted"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
-        
+
         try:
             cursor.execute("""
-                SELECT expires_at FROM blacklist 
-                WHERE user_id = ? 
+                SELECT expires_at FROM blacklist
+                WHERE user_id = ?
                 ORDER BY expires_at DESC LIMIT 1
             """, (user_id,))
-            
+
             result = cursor.fetchone()
             conn.close()
-            
+
             if result:
                 expires_at = result[0]
                 if expires_at:
@@ -253,83 +254,83 @@ class QASecurityManager:
                     if datetime.now() > expires_at_dt:
                         return False
                 return True
-            
+
             return False
         except Exception:
             conn.close()
             return False
-    
+
     def blacklist_user(self, user_id: str, reason: str = "", duration: int = None):
         """Blacklist a user"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
-        
+
         try:
             expires_at = None
             if duration:
                 expires_at = (datetime.now() + timedelta(seconds=duration)).isoformat()
-            
+
             cursor.execute("""
                 INSERT INTO blacklist (user_id, reason, expires_at)
                 VALUES (?, ?, ?)
             """, (user_id, reason, expires_at))
-            
+
             conn.commit()
             conn.close()
             return True
         except Exception:
             conn.close()
             return False
-    
+
     @staticmethod
     def hash_answer(answer: str, salt: str = None) -> Tuple[str, str]:
         """Hash answer for verification"""
         if salt is None:
             salt = secrets.token_hex(16)
-        
+
         hash_obj = hashlib.pbkdf2_hmac(
             'sha256',
             answer.encode('utf-8'),
             salt.encode('utf-8'),
             100000
         )
-        
+
         hashed = hash_obj.hex()
-        
+
         return hashed, salt
-    
+
     @staticmethod
     def verify_answer(answer: str, hashed: str, salt: str) -> bool:
         """Verify hashed answer"""
         computed_hash, _ = QASecurityManager.hash_answer(answer, salt)
         return hmac.compare_digest(computed_hash, hashed)
-    
+
     def get_security_report(self, user_id: str = None) -> Dict:
         """Get security report"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
-        
+
         try:
             if user_id:
                 # Single user report
                 cursor.execute("""
-                    SELECT COUNT(*) FROM suspicious_activity 
+                    SELECT COUNT(*) FROM suspicious_activity
                     WHERE user_id = ?
                 """, (user_id,))
-                
+
                 suspicious_count = cursor.fetchone()[0]
-                
+
                 cursor.execute("""
-                    SELECT COUNT(*) FROM user_sessions 
+                    SELECT COUNT(*) FROM user_sessions
                     WHERE user_id = ? AND is_active = 1
                 """, (user_id,))
-                
+
                 active_sessions = cursor.fetchone()[0]
-                
+
                 is_blacklisted = self.is_user_blacklisted(user_id)
-                
+
                 conn.close()
-                
+
                 return {
                     "user_id": user_id,
                     "suspicious_activities": suspicious_count,
@@ -341,28 +342,30 @@ class QASecurityManager:
                 # System-wide report
                 cursor.execute("SELECT COUNT(*) FROM suspicious_activity")
                 total_suspicious = cursor.fetchone()[0]
-                
+
                 cursor.execute("SELECT COUNT(*) FROM user_sessions WHERE is_active = 1")
                 total_active_sessions = cursor.fetchone()[0]
-                
+
                 cursor.execute("SELECT COUNT(*) FROM blacklist")
                 total_blacklisted = cursor.fetchone()[0]
-                
+
                 conn.close()
-                
+
                 return {
                     "total_suspicious_activities": total_suspicious,
                     "total_active_sessions": total_active_sessions,
                     "total_blacklisted_users": total_blacklisted,
                     "report_generated_at": datetime.now().isoformat()
                 }
-        
+
         except Exception as e:
             conn.close()
             return {"error": str(e)}
 
+
 # Singleton instance
 _security_manager = None
+
 
 def get_security_manager() -> QASecurityManager:
     """Get singleton instance of security manager"""

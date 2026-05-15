@@ -3,6 +3,11 @@ Performance and Load Testing for Agentic-IAM
 
 Run various performance tests to measure throughput, latency, and scalability.
 """
+from authentication import AuthenticationManager
+from agent_registry import AgentRegistry
+from session_manager import SessionManager
+from config.settings import Settings
+from core.agentic_iam import AgenticIAM
 import asyncio
 import time
 import statistics
@@ -12,12 +17,6 @@ from pathlib import Path
 
 # Add project to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
-
-from core.agentic_iam import AgenticIAM
-from config.settings import Settings
-from session_manager import SessionManager
-from agent_registry import AgentRegistry
-from authentication import AuthenticationManager
 
 
 class PerformanceTester:
@@ -185,7 +184,12 @@ class PerformanceTester:
 
         self._print_stats("Trust Scoring", timings, total_time, num_agents)
 
-    def _print_stats(self, operation: str, timings: List[float], total_time: float, count: int) -> None:
+    def _print_stats(
+            self,
+            operation: str,
+            timings: List[float],
+            total_time: float,
+            count: int) -> None:
         """Print performance statistics"""
         if not timings:
             print(f"  ⚠️  No data collected")
@@ -198,7 +202,7 @@ class PerformanceTester:
 
         try:
             std_dev = statistics.stdev(timings) if len(timings) > 1 else 0
-        except:
+        except BaseException:
             std_dev = 0
 
         throughput = count / total_time if total_time > 0 else 0

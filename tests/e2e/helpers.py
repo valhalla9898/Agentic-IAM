@@ -45,7 +45,11 @@ def choose_selectbox_option(page, label_fragment, option_text):
     except Exception:
         combobox.press("Alt+ArrowDown")
         page.locator('[role="option"]').first.wait_for(state="attached", timeout=5000)
-    page.get_by_role("option", name=re.compile(f"^{re.escape(option_text)}$", re.IGNORECASE)).click()
+    page.get_by_role(
+        "option",
+        name=re.compile(
+            f"^{re.escape(option_text)}$",
+            re.IGNORECASE)).click()
 
 
 def select_combobox_value(page, label_fragment, value):

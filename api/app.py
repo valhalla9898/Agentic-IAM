@@ -11,6 +11,8 @@ For legacy code, this still works:
     from api.app import app
 """
 
+from api.main import app
+import api.main as main_module
 import warnings
 import sys
 import importlib
@@ -27,9 +29,7 @@ warnings.warn(
 sys.path.insert(0, str(Path(__file__).parent))
 
 # Re-export the app from main for backwards compatibility
-import api.main as main_module
 importlib.reload(main_module)
-from api.main import app
 
 __all__ = ["app"]
 
@@ -43,4 +43,3 @@ if __name__ == "__main__":
         port=8000,
         reload=True
     )
-

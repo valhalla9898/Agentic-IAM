@@ -340,7 +340,7 @@ class MetricsCollector:
             if self.db_engine:
                 return self.db_engine.pool.size()
             return 0
-        except:
+        except BaseException:
             return 0
 
     def _get_redis_connections(self) -> int:
@@ -350,7 +350,7 @@ class MetricsCollector:
                 info = self.redis_client.info()
                 return info.get('connected_clients', 0)
             return 0
-        except:
+        except BaseException:
             return 0
 
     def _calculate_request_rate(self) -> float:
@@ -365,7 +365,7 @@ class MetricsCollector:
             )
 
             return recent_requests / time_window
-        except:
+        except BaseException:
             return 0.0
 
     def _calculate_avg_response_time(self) -> float:
@@ -374,7 +374,7 @@ class MetricsCollector:
             if self.response_times:
                 return sum(self.response_times) / len(self.response_times)
             return 0.0
-        except:
+        except BaseException:
             return 0.0
 
     def _calculate_error_rate(self) -> float:
@@ -396,7 +396,7 @@ class MetricsCollector:
             if total_requests > 0:
                 return (total_errors / total_requests) * 100
             return 0.0
-        except:
+        except BaseException:
             return 0.0
 
     # Metric recording methods
@@ -499,7 +499,7 @@ class MetricsCollector:
             if current_metrics:
                 if (current_metrics.cpu_usage > 90 or
                     current_metrics.disk_usage > 95 or
-                    self._calculate_error_rate() > 10):
+                        self._calculate_error_rate() > 10):
                     health_status["status"] = "unhealthy"
                 elif (current_metrics.cpu_usage > 70 or
                       current_metrics.disk_usage > 80 or
@@ -531,7 +531,8 @@ class MetricsCollector:
             # Calculate averages
             avg_cpu = sum(m.cpu_usage for m in recent_metrics) / len(recent_metrics)
             avg_memory = sum(m.memory_usage for m in recent_metrics) / len(recent_metrics)
-            avg_response_time = sum(m.response_time_avg for m in recent_metrics) / len(recent_metrics)
+            avg_response_time = sum(
+                m.response_time_avg for m in recent_metrics) / len(recent_metrics)
 
             # Find peaks
             max_cpu = max(m.cpu_usage for m in recent_metrics)
@@ -566,7 +567,8 @@ class PerformanceTester:
         self.metrics = metrics_collector
         self.logger = logging.getLogger("performance_test")
 
-    async def benchmark_authentication(self, iam_instance, iterations: int = 100) -> Dict[str, float]:
+    async def benchmark_authentication(
+            self, iam_instance, iterations: int = 100) -> Dict[str, float]:
         """Benchmark authentication performance"""
         self.logger.info(f"Starting authentication benchmark with {iterations} iterations")
 
@@ -634,9 +636,11 @@ class PerformanceTester:
 # Global metrics collector instance
 _metrics_collector: Optional[MetricsCollector] = None
 
+
 def get_metrics_collector() -> Optional[MetricsCollector]:
     """Get global metrics collector instance"""
     return _metrics_collector
+
 
 def initialize_metrics(settings) -> MetricsCollector:
     """Initialize global metrics collector"""
@@ -644,6 +648,7 @@ def initialize_metrics(settings) -> MetricsCollector:
     _metrics_collector = MetricsCollector(settings)
     _metrics_collector.start_monitoring()
     return _metrics_collector
+
 
 def shutdown_metrics():
     """Shutdown global metrics collector"""

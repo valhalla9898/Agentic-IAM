@@ -1,7 +1,23 @@
-﻿from pathlib import Path
+from pathlib import Path
 import re
 pattern = re.compile(r'[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]+')
-skip_ext = {'.png','.jpg','.jpeg','.gif','.ico','.exe','.dll','.so','.pyc','.zip','.tar','.gz','.docx','.pdf','.pptx','.xlsx'}
+skip_ext = {
+    '.png',
+    '.jpg',
+    '.jpeg',
+    '.gif',
+    '.ico',
+    '.exe',
+    '.dll',
+    '.so',
+    '.pyc',
+    '.zip',
+    '.tar',
+    '.gz',
+    '.docx',
+    '.pdf',
+    '.pptx',
+    '.xlsx'}
 files_with_arabic = []
 for p in Path('.').rglob('*'):
     if not p.is_file():
@@ -20,7 +36,7 @@ for p in Path('.').rglob('*'):
 
 print('FOUND', len(files_with_arabic), 'files with Arabic characters')
 
-count=0
+count = 0
 for fp in files_with_arabic:
     p = Path(fp)
     s = p.read_text(encoding='utf-8')

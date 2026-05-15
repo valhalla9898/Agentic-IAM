@@ -51,36 +51,27 @@ def setup_logging(
         "formatters": {
             "standard": {
                 "format": log_format,
-                "datefmt": "%Y-%m-%d %H:%M:%S"
-            },
+                "datefmt": "%Y-%m-%d %H:%M:%S"},
             "detailed": {
                 "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s [%(pathname)s:%(lineno)d]",
-                "datefmt": "%Y-%m-%d %H:%M:%S"
-            }
-        },
+                "datefmt": "%Y-%m-%d %H:%M:%S"}},
         "handlers": {},
         "loggers": {
             "agentic_iam": {
                 "level": log_level,
                 "handlers": [],
-                "propagate": False
-            },
+                "propagate": False},
             "uvicorn": {
                 "level": "INFO",
                 "handlers": [],
-                "propagate": False
-            },
+                "propagate": False},
             "uvicorn.access": {
                 "level": "INFO",
                 "handlers": [],
-                "propagate": False
-            }
-        },
+                "propagate": False}},
         "root": {
             "level": log_level,
-            "handlers": []
-        }
-    }
+            "handlers": []}}
 
     # Console handler
     if enable_console:
@@ -116,7 +107,8 @@ def setup_logging(
     logger = logging.getLogger("agentic_iam")
 
     # Log startup message
-    logger.info(f"Logging initialized - Level: {log_level}, Console: {enable_console}, File: {bool(log_file)}")
+    logger.info(
+        f"Logging initialized - Level: {log_level}, Console: {enable_console}, File: {bool(log_file)}")
 
     return logger
 
@@ -298,7 +290,8 @@ def log_performance(func):
             return result
         except Exception as e:
             duration = time.time() - start_time
-            logger.error(f"Function {func.__name__} failed after {duration:.3f}s with error: {str(e)}")
+            logger.error(
+                f"Function {func.__name__} failed after {duration:.3f}s with error: {str(e)}")
             raise
 
     return wrapper

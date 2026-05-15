@@ -167,7 +167,8 @@ class RBACManager:
                 user = st.session_state.get('user')
                 if not self.has_permission(user, permission):
                     st.error(f"❌ Access Denied: You don't have permission to {permission.value}")
-                    logger.warning(f"Access denied for {user.get('username', 'unknown') if user else 'guest'} to {permission.value}")
+                    logger.warning(
+                        f"Access denied for {user.get('username', 'unknown') if user else 'guest'} to {permission.value}")
                     return None
                 return func(*args, **kwargs)
             return wrapper
@@ -181,7 +182,8 @@ class RBACManager:
                 user = st.session_state.get('user')
                 if not self.has_any_permission(user, list(permissions)):
                     st.error(f"❌ Access Denied: Insufficient permissions")
-                    logger.warning(f"Access denied for {user.get('username', 'unknown') if user else 'guest'}")
+                    logger.warning(
+                        f"Access denied for {user.get('username', 'unknown') if user else 'guest'}")
                     return None
                 return func(*args, **kwargs)
             return wrapper
@@ -195,7 +197,8 @@ class RBACManager:
                 user = st.session_state.get('user')
                 if not self.has_all_permissions(user, list(permissions)):
                     st.error(f"❌ Access Denied: Insufficient permissions")
-                    logger.warning(f"Access denied for {user.get('username', 'unknown') if user else 'guest'}")
+                    logger.warning(
+                        f"Access denied for {user.get('username', 'unknown') if user else 'guest'}")
                     return None
                 return func(*args, **kwargs)
             return wrapper
@@ -209,8 +212,10 @@ class RBACManager:
                 user = st.session_state.get('user')
                 user_role = self.get_user_role(user)
                 if user_role not in roles:
-                    st.error(f"❌ Access Denied: This action requires one of {[r.value for r in roles]}")
-                    logger.warning(f"Access denied for {user.get('username', 'unknown') if user else 'guest'} role {user_role.value}")
+                    st.error(
+                        f"❌ Access Denied: This action requires one of {[r.value for r in roles]}")
+                    logger.warning(
+                        f"Access denied for {user.get('username', 'unknown') if user else 'guest'} role {user_role.value}")
                     return None
                 return func(*args, **kwargs)
             return wrapper

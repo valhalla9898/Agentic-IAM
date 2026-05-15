@@ -4,6 +4,18 @@ Agentic-IAM: Core Integration Module
 Central orchestrator that integrates all Agent Identity Framework components
 into a unified platform for comprehensive agent identity and access management.
 """
+from utils.logger import get_logger
+from config.settings import Settings
+from agent_intelligence import IntelligenceEngine
+from audit_compliance import AuditManager, ComplianceManager
+from transport_binding import TransportSecurityManager
+from agent_registry import AgentRegistry
+from credential_manager import CredentialManager
+from federated_identity import FederatedIdentityManager
+from session_manager import SessionManager
+from authorization import AuthorizationManager
+from authentication import AuthenticationManager
+from agent_identity import AgentIdentity, AgentIdentityManager
 import asyncio
 import logging
 from datetime import datetime, timedelta
@@ -15,19 +27,6 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent.parent))
 
 # Import all Agent Identity Framework modules
-from agent_identity import AgentIdentity, AgentIdentityManager
-from authentication import AuthenticationManager
-from authorization import AuthorizationManager
-from session_manager import SessionManager
-from federated_identity import FederatedIdentityManager
-from credential_manager import CredentialManager
-from agent_registry import AgentRegistry
-from transport_binding import TransportSecurityManager
-from audit_compliance import AuditManager, ComplianceManager
-from agent_intelligence import IntelligenceEngine
-
-from config.settings import Settings
-from utils.logger import get_logger
 
 
 class AgenticIAM:
@@ -202,7 +201,7 @@ class AgenticIAM:
             self.logger.error(f"Error during shutdown: {str(e)}")
 
     async def register_agent(self, agent_identity: AgentIdentity,
-                           initial_permissions: Optional[List[str]] = None) -> str:
+                             initial_permissions: Optional[List[str]] = None) -> str:
         """Register a new agent in the system"""
         if not self.is_initialized:
             raise RuntimeError("IAM system not initialized")
@@ -260,7 +259,8 @@ class AgenticIAM:
 
         sessions_terminated = 0
         if self.session_manager:
-            sessions_terminated = self.session_manager.terminate_agent_sessions(agent_id, "Agent deletion")
+            sessions_terminated = self.session_manager.terminate_agent_sessions(
+                agent_id, "Agent deletion")
 
         registry_deleted = False
         if self.agent_registry:
@@ -289,7 +289,7 @@ class AgenticIAM:
         }
 
     async def authenticate(self, agent_id: str, credentials: Dict[str, Any],
-                          method: str = "auto", **kwargs) -> 'AuthenticationResult':
+                           method: str = "auto", **kwargs) -> 'AuthenticationResult':
         """Authenticate an agent"""
         if not self.is_initialized or not self.authentication_manager:
             raise RuntimeError("Authentication system not initialized")
@@ -332,7 +332,7 @@ class AgenticIAM:
             raise
 
     async def authorize(self, agent_id: str, resource: str, action: str,
-                       context: Optional[Dict[str, Any]] = None) -> bool:
+                        context: Optional[Dict[str, Any]] = None) -> bool:
         """Authorize an agent action"""
         if not self.is_initialized or not self.authorization_manager:
             raise RuntimeError("Authorization system not initialized")
@@ -369,7 +369,7 @@ class AgenticIAM:
             raise
 
     async def create_session(self, agent_id: str, auth_result: 'AuthenticationResult',
-                           **kwargs) -> str:
+                             **kwargs) -> str:
         """Create a new session for an authenticated agent"""
         if not self.is_initialized or not self.session_manager:
             raise RuntimeError("Session management not initialized")
@@ -496,7 +496,7 @@ class AgenticIAM:
                     count += 1
 
             return total_score / count if count > 0 else 0.0
-        except:
+        except BaseException:
             return 0.0
 
     async def _get_total_trust_scores(self) -> int:
@@ -507,7 +507,7 @@ class AgenticIAM:
 
             agents = self.agent_registry.list_agents() if self.agent_registry else []
             return len(agents)
-        except:
+        except BaseException:
             return 0
 
     async def _get_anomaly_count(self) -> int:
@@ -519,5 +519,5 @@ class AgenticIAM:
             # This would query the intelligence engine for anomaly count
             # For now, return a placeholder
             return 5
-        except:
+        except BaseException:
             return 0

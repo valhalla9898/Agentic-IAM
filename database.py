@@ -187,7 +187,8 @@ class Database:
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
-                cursor.execute("SELECT setting_value FROM system_settings WHERE setting_key = ?", (key,))
+                cursor.execute(
+                    "SELECT setting_value FROM system_settings WHERE setting_key = ?", (key,))
                 row = cursor.fetchone()
                 if not row:
                     return default
@@ -228,7 +229,8 @@ class Database:
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
-                cursor.execute("SELECT setting_key, setting_value FROM system_settings ORDER BY setting_key")
+                cursor.execute(
+                    "SELECT setting_key, setting_value FROM system_settings ORDER BY setting_key")
                 rows = cursor.fetchall()
                 settings = {}
                 for key, raw_value in rows:
@@ -271,7 +273,12 @@ class Database:
             )
 
     # Agent operations
-    def add_agent(self, agent_id: str, name: str, agent_type: str = "standard", metadata: Dict = None) -> bool:
+    def add_agent(
+            self,
+            agent_id: str,
+            name: str,
+            agent_type: str = "standard",
+            metadata: Dict = None) -> bool:
         """Add new agent to database"""
         try:
             with self.get_connection() as conn:
@@ -386,7 +393,12 @@ class Database:
             logger.error(f"Error logging event: {e}")
             return False
 
-    def create_task(self, agent_id: str, task_type: str, details: str, status: str = "pending") -> bool:
+    def create_task(
+            self,
+            agent_id: str,
+            task_type: str,
+            details: str,
+            status: str = "pending") -> bool:
         """Create a task for an agent."""
         try:
             with self.get_connection() as conn:
@@ -487,7 +499,11 @@ class Database:
                     VALUES (?, ?, ?)
                 """, (session_id, agent_id, json.dumps(metadata or {})))
                 conn.commit()
-                self.log_event("session_created", agent_id, "session_start", f"Session {session_id} started")
+                self.log_event(
+                    "session_created",
+                    agent_id,
+                    "session_start",
+                    f"Session {session_id} started")
                 return True
         except Exception as e:
             logger.error(f"Error creating session: {e}")
@@ -509,7 +525,11 @@ class Database:
                 cursor.execute("SELECT agent_id FROM sessions WHERE id = ?", (session_id,))
                 result = cursor.fetchone()
                 if result:
-                    self.log_event("session_ended", result[0], "session_end", f"Session {session_id} ended")
+                    self.log_event(
+                        "session_ended",
+                        result[0],
+                        "session_end",
+                        f"Session {session_id} ended")
 
                 return True
         except Exception as e:
@@ -548,7 +568,8 @@ class Database:
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
-                cursor.execute("SELECT id, username, email, role, full_name, status, created_at, last_login FROM users")
+                cursor.execute(
+                    "SELECT id, username, email, role, full_name, status, created_at, last_login FROM users")
                 rows = cursor.fetchall()
                 users = []
                 for row in rows:

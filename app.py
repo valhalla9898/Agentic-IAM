@@ -4,6 +4,41 @@ Agentic-IAM: Streamlit Dashboard Application
 Main entry point for the web-based GUI dashboard with role-based access control.
 """
 
+from utils.security import (
+    InputValidator,
+    RateLimiter,
+    AccountSecurity,
+    AuditLogger,
+    SessionSecurityManager,
+    SQLInjectionProtection,
+)
+from utils.advanced_features import AgentHealthMonitor, AgentAnalytics, ReportGenerator
+from utils.rbac import (
+    Permission,
+    check_permission,
+    is_admin,
+    is_operator,
+    get_current_user_permissions,
+    get_rbac_manager,
+)
+from bloome_store import (
+    STORE_NAME,
+    build_consultation_details,
+    format_price,
+    get_brand_story,
+    get_catalog_summary,
+    get_featured_products,
+)
+from dashboard.components.risk_assessment import show_risk_assessment
+from dashboard.components.ai_assistant import show_ai_assistant
+from dashboard.components.agent_selection import (
+    show_agent_registration,
+    show_agent_selector,
+    show_agent_list,
+    show_agent_details,
+)
+from config.settings import get_settings
+from database import get_database
 import streamlit as st
 import os
 import sys
@@ -15,41 +50,6 @@ from datetime import datetime
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from database import get_database
-from config.settings import get_settings
-from dashboard.components.agent_selection import (
-    show_agent_registration,
-    show_agent_selector,
-    show_agent_list,
-    show_agent_details,
-)
-from dashboard.components.ai_assistant import show_ai_assistant
-from dashboard.components.risk_assessment import show_risk_assessment
-from bloome_store import (
-    STORE_NAME,
-    build_consultation_details,
-    format_price,
-    get_brand_story,
-    get_catalog_summary,
-    get_featured_products,
-)
-from utils.rbac import (
-    Permission,
-    check_permission,
-    is_admin,
-    is_operator,
-    get_current_user_permissions,
-    get_rbac_manager,
-)
-from utils.advanced_features import AgentHealthMonitor, AgentAnalytics, ReportGenerator
-from utils.security import (
-    InputValidator,
-    RateLimiter,
-    AccountSecurity,
-    AuditLogger,
-    SessionSecurityManager,
-    SQLInjectionProtection,
-)
 
 # Page configuration
 st.set_page_config(
@@ -151,8 +151,10 @@ def _load_demo_onboarding_values() -> None:
         }
 
     st.session_state.onboarding_company_name = demo_values.get("company_name", "Valhalla")
-    st.session_state.onboarding_environment_name = demo_values.get("deployment_environment", "development")
-    st.session_state.onboarding_identity_provider = demo_values.get("identity_provider", "Local Accounts")
+    st.session_state.onboarding_environment_name = demo_values.get(
+        "deployment_environment", "development")
+    st.session_state.onboarding_identity_provider = demo_values.get(
+        "identity_provider", "Local Accounts")
     st.session_state.onboarding_app_url = demo_values.get("app_url", "")
     st.session_state.onboarding_api_url = demo_values.get("api_url", "")
     st.session_state.onboarding_database_type = demo_values.get("database_type", "SQLite")
@@ -189,7 +191,8 @@ def show_onboarding(inline: bool = False):
             _load_demo_onboarding_values()
             st.rerun()
     with demo_col2:
-        st.caption("Use the demo preset for a fast live presentation, or fill the form manually for a real setup.")
+        st.caption(
+            "Use the demo preset for a fast live presentation, or fill the form manually for a real setup.")
 
     with st.form("onboarding_form"):
         col1, col2 = st.columns(2)
@@ -205,7 +208,11 @@ def show_onboarding(inline: bool = False):
                 else 0,
                 key="onboarding_environment_name",
             )
-            identity_options = ["Local Accounts", "Microsoft Entra ID", "LDAP / Active Directory", "Other SSO"]
+            identity_options = [
+                "Local Accounts",
+                "Microsoft Entra ID",
+                "LDAP / Active Directory",
+                "Other SSO"]
             identity_provider = st.selectbox(
                 "Identity Provider",
                 identity_options,
@@ -227,7 +234,9 @@ def show_onboarding(inline: bool = False):
                 else 0,
                 key="onboarding_database_type",
             )
-            database_url = st.text_input("Database Connection String", key="onboarding_database_url")
+            database_url = st.text_input(
+                "Database Connection String",
+                key="onboarding_database_url")
             enable_sso = st.checkbox("Enable Single Sign-On later", key="onboarding_enable_sso")
 
         st.markdown("---")
@@ -240,8 +249,14 @@ def show_onboarding(inline: bool = False):
             admin_email = st.text_input("Admin Email", key="onboarding_admin_email")
 
         with admin_col2:
-            admin_password = st.text_input("Admin Password", type="password", key="onboarding_admin_password")
-            confirm_password = st.text_input("Confirm Password", type="password", key="onboarding_confirm_password")
+            admin_password = st.text_input(
+                "Admin Password",
+                type="password",
+                key="onboarding_admin_password")
+            confirm_password = st.text_input(
+                "Confirm Password",
+                type="password",
+                key="onboarding_confirm_password")
 
         submitted = st.form_submit_button("✅ Save Setup and Continue")
 
@@ -291,7 +306,8 @@ def show_onboarding(inline: bool = False):
 
             admin_exists = False
             try:
-                admin_exists = any(user["username"] == admin_username.strip() for user in db.list_users())
+                admin_exists = any(user["username"] == admin_username.strip()
+                                   for user in db.list_users())
             except Exception:
                 admin_exists = False
 
@@ -541,7 +557,8 @@ def main():
         # Navigation - use stored value or first available page
         current_page = st.session_state.get("main_navigation", available_pages[0])
         try:
-            page_index = available_pages.index(current_page) if current_page in available_pages else 0
+            page_index = available_pages.index(
+                current_page) if current_page in available_pages else 0
         except ValueError:
             page_index = 0
 
@@ -650,7 +667,8 @@ def main():
 def show_bloome_storefront():
     """Show the consumer-facing Bloome storefront."""
     st.title(f"✨ {STORE_NAME}")
-    st.caption("Premium perfume and skin care with clear pricing, product discovery, and concierge-style guidance.")
+    st.caption(
+        "Premium perfume and skin care with clear pricing, product discovery, and concierge-style guidance.")
 
     st.markdown(
         """
@@ -721,8 +739,15 @@ def show_bloome_storefront():
             product_interest = st.selectbox("Product interest", ["Skin Care", "Perfume", "Bundles"])
         with c2:
             skin_concern = st.text_input("Skin concern / fragrance preference")
-            budget_egp = st.slider("Budget (EGP)", min_value=500, max_value=5000, value=1500, step=100)
-            preferred_format = st.selectbox("Preferred format", ["Everyday", "Gift", "Premium", "Routine"])
+            budget_egp = st.slider(
+                "Budget (EGP)",
+                min_value=500,
+                max_value=5000,
+                value=1500,
+                step=100)
+            preferred_format = st.selectbox(
+                "Preferred format", [
+                    "Everyday", "Gift", "Premium", "Routine"])
 
         submitted = st.form_submit_button("Get curated recommendations")
 
@@ -730,7 +755,8 @@ def show_bloome_storefront():
             if not customer_name or not email:
                 st.error("Please enter your name and email.")
             else:
-                details = build_consultation_details(customer_name, email, product_interest, skin_concern, budget_egp)
+                details = build_consultation_details(
+                    customer_name, email, product_interest, skin_concern, budget_egp)
                 st.success("Thanks. A Bloome consultant can use this brief to prepare a recommendation.")
                 st.code(details)
                 st.caption(f"Preferred format: {preferred_format}")
@@ -783,12 +809,17 @@ def show_home():
     with insight_col1:
         st.subheader("Operational Snapshot")
         snapshot_rows = [
-            {"Area": "Tenant", "Value": settings.get("company_name", "Not configured")},
-            {"Area": "Environment", "Value": settings.get("deployment_environment", "development")},
-            {"Area": "Identity Provider", "Value": settings.get("identity_provider", "Local Accounts")},
-            {"Area": "App URL", "Value": settings.get("app_url", "Not configured")},
-            {"Area": "API URL", "Value": settings.get("api_url", "Not configured")},
-        ]
+            {
+                "Area": "Tenant", "Value": settings.get(
+                    "company_name", "Not configured")}, {
+                "Area": "Environment", "Value": settings.get(
+                    "deployment_environment", "development")}, {
+                        "Area": "Identity Provider", "Value": settings.get(
+                            "identity_provider", "Local Accounts")}, {
+                                "Area": "App URL", "Value": settings.get(
+                                    "app_url", "Not configured")}, {
+                                        "Area": "API URL", "Value": settings.get(
+                                            "api_url", "Not configured")}, ]
         st.dataframe(pd.DataFrame(snapshot_rows), width="stretch", hide_index=True)
 
     with insight_col2:
@@ -1040,11 +1071,17 @@ def show_page_incident_response():
     events = db.get_events(limit=250)
     failed_events = [event for event in events if event.get("status") != "success"]
     suspicious_events = [
-        event for event in events
-        if any(term in f"{event.get('event_type', '')} {event.get('details', '')}".lower() for term in ["error", "fail", "denied", "locked", "suspicious", "blocked"])
-    ]
+        event for event in events if any(
+            term in f"{event.get('event_type', '')} {event.get('details', '')}".lower() for term in [
+                "error",
+                "fail",
+                "denied",
+                "locked",
+                "suspicious",
+                "blocked"])]
 
-    incident_candidates = failed_events + [event for event in suspicious_events if event not in failed_events]
+    incident_candidates = failed_events + \
+        [event for event in suspicious_events if event not in failed_events]
 
     col1, col2, col3, col4 = st.columns(4)
     with col1:
@@ -1116,7 +1153,8 @@ def show_page_integrations():
         {"Integration": "Webhook Notifications", "Status": settings.get("webhooks_enabled", False), "Key": "webhooks_enabled"},
         {"Integration": "SIEM / SOC Feed", "Status": settings.get("siem_enabled", False), "Key": "siem_enabled"},
     ]
-    st.dataframe(pd.DataFrame(target_rows)[["Integration", "Status"]], width="stretch", hide_index=True)
+    st.dataframe(pd.DataFrame(target_rows)[
+                 ["Integration", "Status"]], width="stretch", hide_index=True)
 
     st.markdown("---")
 
@@ -1124,18 +1162,40 @@ def show_page_integrations():
         col1, col2 = st.columns(2)
 
         with col1:
-            entra_enabled = st.checkbox("Enable Microsoft Entra ID", value=bool(settings.get("entra_enabled", False)))
-            entra_tenant_id = st.text_input("Entra Tenant ID", value=settings.get("entra_tenant_id", ""))
-            entra_client_id = st.text_input("Entra Client ID", value=settings.get("entra_client_id", ""))
-            ldap_enabled = st.checkbox("Enable LDAP / Active Directory", value=bool(settings.get("ldap_enabled", False)))
+            entra_enabled = st.checkbox(
+                "Enable Microsoft Entra ID", value=bool(
+                    settings.get(
+                        "entra_enabled", False)))
+            entra_tenant_id = st.text_input(
+                "Entra Tenant ID", value=settings.get(
+                    "entra_tenant_id", ""))
+            entra_client_id = st.text_input(
+                "Entra Client ID", value=settings.get(
+                    "entra_client_id", ""))
+            ldap_enabled = st.checkbox(
+                "Enable LDAP / Active Directory",
+                value=bool(
+                    settings.get(
+                        "ldap_enabled",
+                        False)))
             ldap_server = st.text_input("LDAP Server", value=settings.get("ldap_server", ""))
 
         with col2:
-            webhooks_enabled = st.checkbox("Enable Webhook Notifications", value=bool(settings.get("webhooks_enabled", False)))
+            webhooks_enabled = st.checkbox(
+                "Enable Webhook Notifications", value=bool(
+                    settings.get(
+                        "webhooks_enabled", False)))
             webhook_url = st.text_input("Webhook URL", value=settings.get("webhook_url", ""))
-            siem_enabled = st.checkbox("Enable SIEM / SOC Feed", value=bool(settings.get("siem_enabled", False)))
+            siem_enabled = st.checkbox(
+                "Enable SIEM / SOC Feed",
+                value=bool(
+                    settings.get(
+                        "siem_enabled",
+                        False)))
             siem_endpoint = st.text_input("SIEM Endpoint", value=settings.get("siem_endpoint", ""))
-            integration_owner = st.text_input("Integration Owner", value=settings.get("integration_owner", "security-team"))
+            integration_owner = st.text_input(
+                "Integration Owner", value=settings.get(
+                    "integration_owner", "security-team"))
 
         saved = st.form_submit_button("💾 Save Integrations")
 
@@ -1391,10 +1451,13 @@ def show_page_user_management():
                         st.rerun()
 
                 if st.session_state.get(pending_delete_key):
-                    st.warning(f"Are you sure you want to delete user {u['username']}? This cannot be undone.")
+                    st.warning(
+                        f"Are you sure you want to delete user {u['username']}? This cannot be undone.")
                     confirm_col, cancel_col = st.columns(2)
                     with confirm_col:
-                        if st.button(f"✅ Confirm Delete {u['username']}", key=f"confirm_deluser_{u['id']}"):
+                        if st.button(
+                            f"✅ Confirm Delete {u['username']}",
+                                key=f"confirm_deluser_{u['id']}"):
                             ok = db.delete_user(u["id"])
                             still_exists = db.get_user_by_id(u["id"])
                             if ok and not still_exists:
@@ -1402,7 +1465,8 @@ def show_page_user_management():
                                 st.session_state[pending_delete_key] = False
                                 st.rerun()
                             elif ok and still_exists:
-                                st.error(f"Delete reported success, but user {u['username']} still exists")
+                                st.error(
+                                    f"Delete reported success, but user {u['username']} still exists")
                             else:
                                 st.error(f"Failed to delete user {u['username']}")
                     with cancel_col:
@@ -1450,7 +1514,8 @@ def show_page_user_management():
                     st.success(f"User {selected_user['username']} updated successfully")
                     st.rerun()
                 elif role_ok and status_ok:
-                    st.error(f"Update reported success, but user {selected_user['username']} did not persist")
+                    st.error(
+                        f"Update reported success, but user {selected_user['username']} did not persist")
                 else:
                     st.error(f"Failed to update user {selected_user['username']}")
 
@@ -1536,8 +1601,7 @@ def show_page_system_config():
 
         st.caption(
             f"Security config: SSL={'on' if enable_ssl else 'off'}, 2FA={'on' if enable_2fa else 'off'}, "
-            f"policy={password_policy}, session duration={session_duration}h"
-        )
+            f"policy={password_policy}, session duration={session_duration}h")
 
         if st.button("💾 Save Security Config"):
             st.success("✅ Security configuration saved!")
@@ -1890,7 +1954,12 @@ def show_page_security_operations():
     events = db.get_events(limit=250)
 
     failed_events = [e for e in events if e.get("status") != "success"]
-    auth_events = [e for e in events if e.get("event_type", "").startswith("user_") or e.get("event_type", "").startswith("agent_")]
+    auth_events = [
+        e for e in events if e.get(
+            "event_type",
+            "").startswith("user_") or e.get(
+            "event_type",
+            "").startswith("agent_")]
 
     col1, col2, col3 = st.columns(3)
     with col1:
