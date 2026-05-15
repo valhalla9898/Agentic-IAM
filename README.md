@@ -73,48 +73,174 @@
 
 ---
 
-## 🏗️ System Architecture
+## 🏗️ System Architecture Diagram
 
+```mermaid
+graph TB
+    subgraph "Clients"
+        Agent["🤖 AI Agents"]
+        Dashboard["📊 Streamlit Dashboard"]
+        APIClient["🔌 API Clients"]
+    end
+    
+    subgraph "API & Presentation"
+        REST["🔴 REST API<br/>FastAPI"]
+        GraphQL["🟣 GraphQL"]
+        WS["🔵 WebSocket"]
+    end
+    
+    subgraph "Authentication & Security"
+        AuthMgr["🔐 Auth Manager"]
+        AuthzMgr["🛡️ Authz Manager"]
+        TLSMgr["🔒 TLS/mTLS Manager"]
+        CertMgr["📜 Cert Manager"]
+    end
+    
+    subgraph "Core IAM Logic"
+        SessionMgr["📍 Session Manager"]
+        CredMgr["🔑 Credential Manager"]
+        FedMgr["🌐 Federated Identity"]
+        AuditMgr["📋 Audit Manager"]
+    end
+    
+    subgraph "Agent Management"
+        AgentReg["📝 Agent Registry"]
+        IdentityMgr["👤 Identity Manager"]
+        PermMgr["⚙️ Permission Manager"]
+    end
+    
+    subgraph "Data & Persistence"
+        SQLite["💾 SQLite/PostgreSQL"]
+        AuditLog["📊 Audit Logs"]
+        Cache["⚡ Redis Cache"]
+    end
+    
+    Agent -->|TLS| TLSMgr
+    Dashboard -->|HTTPS| REST
+    APIClient -->|TLS| REST
+    
+    REST --> AuthMgr
+    GraphQL --> AuthMgr
+    WS --> AuthMgr
+    
+    AuthMgr --> CertMgr
+    AuthMgr --> SessionMgr
+    AuthzMgr --> PermMgr
+    
+    SessionMgr --> CredMgr
+    CredMgr --> AgentReg
+    FedMgr --> AuthMgr
+    AuditMgr --> AuditLog
+    IdentityMgr --> AgentReg
+    
+    CredMgr --> SQLite
+    AgentReg --> SQLite
+    PermMgr --> SQLite
+    SessionMgr --> Cache
+    
+    style Agent fill:#4CAF50
+    style Dashboard fill:#2196F3
+    style AuthMgr fill:#FF5722
+    style SQLite fill:#FFC107
+    style Cache fill:#9C27B0
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                        Agentic-IAM                            │
-├─────────────────────────────────────────────────────────────┤
-│                                                               │
-│  ┌────────────────────────────────────────────────────────┐  │
-│  │           Presentation Layer (UI/API)                  │  │
-│  │  ┌──────────────────┐  ┌──────────────┐  ┌──────────┐ │  │
-│  │  │ Streamlit        │  │ REST API     │  │ GraphQL  │ │  │
-│  │  │ Dashboard        │  │ (FastAPI)    │  │ Endpoint │ │  │
-│  │  └──────────────────┘  └──────────────┘  └──────────┘ │  │
-│  └────────────────────────────────────────────────────────┘  │
-│                           │                                    │
-│  ┌────────────────────────────────────────────────────────┐  │
-│  │          Business Logic Layer (Core IAM)               │  │
-│  │  ┌────────────────┐  ┌────────────────┐               │  │
-│  │  │ Authentication │  │ Authorization  │               │  │
-│  │  │ Manager        │  │ Manager        │               │  │
-│  │  └────────────────┘  └────────────────┘               │  │
-│  │  ┌────────────────┐  ┌────────────────┐               │  │
-│  │  │ Session        │  │ Credential     │               │  │
-│  │  │ Manager        │  │ Manager        │               │  │
-│  │  └────────────────┘  └────────────────┘               │  │
-│  │  ┌──────────────────────────────────────┐             │  │
-│  │  │ Federated Identity + Transport Sec.  │             │  │
-│  │  └──────────────────────────────────────┘             │  │
-│  └────────────────────────────────────────────────────────┘  │
-│                           │                                    │
-│  ┌────────────────────────────────────────────────────────┐  │
-│  │        Data Layer (Persistence & Logging)              │  │
-│  │  ┌──────────────────┐  ┌──────────────────┐           │  │
-│  │  │ SQLite Database  │  │ Audit Logs &     │           │  │
-│  │  │ (or PostgreSQL)  │  │ Event Tracking   │           │  │
-│  │  └──────────────────┘  └──────────────────┘           │  │
-│  │  ┌──────────────────────────────────────┐             │  │
-│  │  │ Agent Registry (In-Memory + DB)      │             │  │
-│  │  └──────────────────────────────────────┘             │  │
-│  └────────────────────────────────────────────────────────┘  │
-│                                                               │
-└─────────────────────────────────────────────────────────────┘
+
+---
+
+## 💾 Database Schema (ERD)
+
+```mermaid
+erDiagram
+    USERS ||--o{ SESSIONS : creates
+    USERS ||--o{ AUDIT_EVENTS : generates
+    AGENTS ||--o{ CREDENTIALS : has
+    AGENTS ||--o{ SESSIONS : maintains
+    AGENTS ||--o{ PERMISSIONS : has
+    AGENTS ||--o{ AUDIT_EVENTS : generates
+    ROLES ||--o{ PERMISSIONS : defines
+    
+    AGENTS {
+        string agent_id PK
+        string agent_name
+        string status
+        datetime registered_at
+        boolean mfa_enabled
+    }
+    
+    CREDENTIALS {
+        string credential_id PK
+        string agent_id FK
+        string credential_type
+        datetime expires_at
+        boolean is_active
+    }
+    
+    SESSIONS {
+        string session_id PK
+        string agent_id FK
+        datetime created_at
+        datetime expires_at
+        boolean is_active
+    }
+    
+    PERMISSIONS {
+        string permission_id PK
+        string agent_id FK
+        string resource
+        string action
+        datetime expires_at
+    }
+    
+    AUDIT_EVENTS {
+        string event_id PK
+        string agent_id FK
+        string event_type
+        datetime timestamp
+        string result
+    }
+    
+    USERS {
+        int user_id PK
+        string username UK
+        string email UK
+        string role
+    }
+    
+    ROLES {
+        int role_id PK
+        string role_name UK
+    }
+```
+
+---
+
+## 🔄 Authentication & Authorization Flow
+
+```mermaid
+sequenceDiagram
+    participant Agent as 🤖 AI Agent
+    participant TLS as 🔒 TLS Handler
+    participant Auth as 🔐 Auth Manager
+    participant Cred as 🔑 Credential DB
+    participant Audit as 📋 Audit Log
+    
+    Agent->>TLS: 1. Connect (mTLS Handshake)
+    TLS->>TLS: 2. Verify Certificate Chain
+    TLS->>Auth: 3. Request Authentication
+    
+    Auth->>Cred: 4. Fetch Stored Credentials
+    Cred-->>Auth: 5. Return Hashed Credentials
+    
+    Auth->>Auth: 6. Validate Signature/HMAC
+    Note over Auth: Calculate Trust Level
+    
+    alt Authentication Success
+        Auth->>Audit: 7a. Log Success Event
+        Auth-->>Agent: 8a. Issue Session Token ✅
+    else Authentication Failed
+        Auth->>Audit: 7b. Log Failure Event
+        Auth-->>Agent: 8b. Return Error ❌
+    end
 ```
 
 ---
