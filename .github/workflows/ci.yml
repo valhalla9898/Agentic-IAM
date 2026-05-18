@@ -2,6 +2,55 @@ name: CI
 
 on:
   push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Postgres service for tests
+        uses: harmon758/postgresql-action@v2
+        with:
+          postgresql version: '13'
+          postgresql db: 'agentic_iam'
+          postgresql user: 'gh_actions'
+          postgresql password: 'gh_pass'
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install alembic
+      - name: Wait for Postgres
+        run: |
+          sleep 5
+      - name: Run DB migrations
+        env:
+          DATABASE_URL: postgresql://gh_actions:gh_pass@localhost:5432/agentic_iam
+        run: |
+          alembic upgrade head
+      - name: Lint (flake8)
+        run: |
+          pip install flake8
+          flake8 --max-line-length=120 || true
+      - name: Type check (mypy)
+        run: |
+          pip install mypy
+          mypy . || true
+      - name: Run tests
+        run: |
+          pip install pytest pytest-asyncio
+          pytest -q
+name: CI
+
+on:
+  push:
     branches: [ main ]
   pull_request:
     branches: [ main ]

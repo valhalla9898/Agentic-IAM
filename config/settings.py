@@ -22,9 +22,33 @@ class Settings:
         self.debug: bool = overrides.get("debug", os.getenv("DEBUG", "false").lower() == "true")
 
         # API
-        self.api_host: str = overrides.get("api_host", os.getenv("API_HOST", "127.0.0.1"))
-        self.api_port: int = int(overrides.get("api_port", os.getenv("API_PORT", "8000")))
+        self.api_host: str = overrides.get(
+            "api_host", os.getenv("AGENTIC_IAM_API_HOST", os.getenv("API_HOST", "127.0.0.1"))
+        )
+        self.api_port: int = int(
+            overrides.get("api_port", os.getenv("AGENTIC_IAM_API_PORT", os.getenv("API_PORT", "8000")))
+        )
         self.auto_reload: bool = overrides.get("auto_reload", False)
+
+        # Platform services
+        self.enable_api: bool = overrides.get(
+            "enable_api",
+            os.getenv("AGENTIC_IAM_ENABLE_API", os.getenv("ENABLE_API", "true")).lower() == "true",
+        )
+        self.enable_dashboard: bool = overrides.get(
+            "enable_dashboard",
+            os.getenv("AGENTIC_IAM_ENABLE_DASHBOARD", os.getenv("ENABLE_DASHBOARD", "true")).lower() == "true",
+        )
+        self.dashboard_host: str = overrides.get(
+            "dashboard_host",
+            os.getenv("AGENTIC_IAM_DASHBOARD_HOST", os.getenv("DASHBOARD_HOST", "127.0.0.1")),
+        )
+        self.dashboard_port: int = int(
+            overrides.get(
+                "dashboard_port",
+                os.getenv("AGENTIC_IAM_DASHBOARD_PORT", os.getenv("DASHBOARD_PORT", "8501")),
+            )
+        )
 
         # CORS
         self.enable_cors: bool = overrides.get("enable_cors", True)
@@ -78,6 +102,14 @@ class Settings:
             "credential_encryption_key", self.encryption_key)
         self.audit_log_path: str = overrides.get("audit_log_path", "./logs/audit.log")
         self.database_path: str = overrides.get("database_path", self._default_database_path())
+        self.database_url: str = overrides.get(
+            "database_url",
+            os.getenv("AGENTIC_IAM_DATABASE_URL", f"sqlite:///{self.database_path}"),
+        )
+        self.redis_url: Optional[str] = overrides.get(
+            "redis_url",
+            os.getenv("AGENTIC_IAM_REDIS_URL", None),
+        )
 
         # Feature flags
         self.enable_trust_scoring: bool = overrides.get("enable_trust_scoring", True)

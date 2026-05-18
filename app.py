@@ -92,6 +92,8 @@ def initialize_session():
         st.session_state.authenticated = False
     if "requested_page" not in st.session_state:
         st.session_state.requested_page = None
+    if "pending_navigation" not in st.session_state:
+        st.session_state.pending_navigation = None
 
     # Initialize security components
     if "rate_limiter" not in st.session_state:
@@ -330,7 +332,7 @@ def show_onboarding(inline: bool = False):
 
 def navigate_to(page_name: str):
     """Update the active Streamlit navigation target."""
-    st.session_state.main_navigation = page_name
+    st.session_state.pending_navigation = page_name
     st.rerun()
 
 
@@ -552,7 +554,12 @@ def main():
             requested_page = st.session_state.get("requested_page")
 
         if requested_page and requested_page in available_pages:
-            st.session_state.main_navigation = requested_page
+            st.session_state.pending_navigation = requested_page
+
+        pending_navigation = st.session_state.get("pending_navigation")
+        if pending_navigation and pending_navigation in available_pages:
+            st.session_state.main_navigation = pending_navigation
+            st.session_state.pending_navigation = None
 
         # Navigation - use stored value or first available page
         current_page = st.session_state.get("main_navigation", available_pages[0])

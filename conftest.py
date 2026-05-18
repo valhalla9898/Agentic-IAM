@@ -39,6 +39,10 @@ def _has_e2e_tests(items):
     return any("/tests/e2e/" in str(item.fspath).replace("\\", "/") for item in items)
 
 
+def _e2e_admin_password_available():
+    return bool(os.getenv("AGENTIC_IAM_E2E_ADMIN_PASSWORD", ""))
+
+
 def _find_free_port():
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.bind(("127.0.0.1", 0))
@@ -477,6 +481,17 @@ def pytest_configure(config):
 def pytest_collection_modifyitems(config, items):
     """Modify test collection"""
     if _has_e2e_tests(items):
+        if not _e2e_admin_password_available():
+            skip_e2e = pytest.mark.skip(
+                reason=(
+                    "E2E tests require AGENTIC_IAM_E2E_ADMIN_PASSWORD to be set. "
+                    "Bootstrap an admin and export the password to run them."
+                )
+            )
+            for item in items:
+                if "/tests/e2e/" in str(item.fspath).replace("\\", "/"):
+                    item.add_marker(skip_e2e)
+            return
         _start_streamlit_for_e2e(config)
 
     # Add markers based on file location

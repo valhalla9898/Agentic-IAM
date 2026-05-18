@@ -11,7 +11,6 @@ For legacy code, this still works:
     from api.app import app
 """
 
-from api.main import app
 import api.main as main_module
 import warnings
 import sys
@@ -30,6 +29,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 # Re-export the app from main for backwards compatibility
 importlib.reload(main_module)
+app = main_module.app
 
 __all__ = ["app"]
 

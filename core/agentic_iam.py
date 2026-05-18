@@ -15,7 +15,7 @@ from federated_identity import FederatedIdentityManager
 from session_manager import SessionManager
 from authorization import AuthorizationManager
 from authentication import AuthenticationManager
-from agent_identity import AgentIdentity, AgentIdentityManager
+from agent_identity import AgentIdentity, AgentIdentityManager, AuthenticationResult, TrustScore
 import asyncio
 import logging
 from datetime import datetime, timedelta

@@ -18,6 +18,10 @@ except Exception:
     secret_manager = None
 import logging
 import bcrypt
+try:
+    from audit_exporter import append_audit_entry
+except Exception:
+    append_audit_entry = None
 
 logger = logging.getLogger(__name__)
 
@@ -388,6 +392,18 @@ class Database:
                 """, (event_type, agent_id, action, details, status))
                 conn.commit()
                 logger.info(f"Event logged: {event_type} for agent {agent_id}")
+                # Try to append to append-only audit ledger for tamper-evidence
+                try:
+                    if append_audit_entry:
+                        append_audit_entry({
+                            'event_type': event_type,
+                            'agent_id': agent_id,
+                            'action': action,
+                            'details': details,
+                            'status': status,
+                        })
+                except Exception:
+                    pass
                 return True
         except Exception as e:
             logger.error(f"Error logging event: {e}")

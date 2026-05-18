@@ -112,7 +112,7 @@ class TestQASecurity:
 
     def test_answer_hashing(self):
         """Test answer hashing and verification"""
-        answer = " "
+        answer = "RSA encryption"
 
         hashed, salt = QASecurityManager.hash_answer(answer)
         assert hashed != answer, "Hash should differ from original"
@@ -122,7 +122,7 @@ class TestQASecurity:
         assert is_correct, "Correct answer should verify"
 
         # Verify wrong answer
-        is_wrong = QASecurityManager.verify_answer(" ", hashed, salt)
+        is_wrong = QASecurityManager.verify_answer("AES encryption", hashed, salt)
         assert not is_wrong, "Wrong answer should not verify"
 
 
@@ -263,7 +263,7 @@ class TestQAUtilities:
 
     def test_keyword_extraction(self):
         """Test keyword extraction"""
-        text = "        "
+        text = "Machine learning security and authentication workflows"
         keywords = QAUtilities.extract_keywords(text, limit=5)
         assert len(keywords) > 0, "Should extract keywords"
 
