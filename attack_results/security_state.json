@@ -1,0 +1,59 @@
+{
+  "generated_at": "2026-05-19 16:06:14 UTC",
+  "attacks": [
+    {
+      "attack_type": "sql_injection",
+      "severity": "critical",
+      "status": "blocked",
+      "detected_at": "2026-05-19 16:06:14 UTC",
+      "source_ip": "203.0.113.77",
+      "target_endpoint": "/api/v1/auth/login",
+      "metadata": {
+        "username": "demo_operator",
+        "user": "unknown",
+        "vector": "login_form"
+      }
+    },
+    {
+      "attack_type": "brute_force",
+      "severity": "high",
+      "status": "mitigated",
+      "detected_at": "2026-05-19 16:06:14 UTC",
+      "source_ip": "198.51.100.24",
+      "target_endpoint": "/api/v1/auth/login",
+      "metadata": {
+        "username": "unknown",
+        "attempts": 14,
+        "vector": "credential_stuffing"
+      }
+    }
+  ],
+  "active": [
+    {
+      "severity": "critical",
+      "alert_type": "web_attack",
+      "title": "SQL injection attempt blocked",
+      "message": "WAF and application controls blocked a malicious login payload before session creation.",
+      "created_at": "2026-05-19 16:06:14 UTC"
+    },
+    {
+      "severity": "high",
+      "alert_type": "auth_attack",
+      "title": "Repeated login failures detected",
+      "message": "Rate limiter locked the source after repeated failures.",
+      "created_at": "2026-05-19 16:06:14 UTC"
+    }
+  ],
+  "blocked_ips": [
+    {
+      "ip": "203.0.113.77",
+      "reason": "Auto-blocked after SQL injection pattern detection",
+      "blocked_at": "2026-05-19 16:06:14 UTC"
+    },
+    {
+      "ip": "198.51.100.24",
+      "reason": "Auto-blocked after credential stuffing threshold exceeded",
+      "blocked_at": "2026-05-19 16:06:14 UTC"
+    }
+  ]
+}

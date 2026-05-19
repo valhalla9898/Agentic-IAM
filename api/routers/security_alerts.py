@@ -17,10 +17,13 @@ class AttackEventResponse(BaseModel):
     id: int
     attack_type: str
     source_ip: str
+    target_endpoint: Optional[str]
+    payload: Optional[str]
     severity: str
     detected_at: datetime
     status: str
     description: Optional[str]
+    metadata: Optional[str]
 
     class Config:
         from_attributes = True

@@ -39,16 +39,656 @@ from dashboard.components.agent_selection import (
 )
 from config.settings import get_settings
 from database import get_database
+from security_telemetry import (
+    DEFAULT_SECURITY_RULES,
+    build_incident_export_payload,
+    calculate_security_kpis,
+    enrich_security_state,
+    generate_correlation_id,
+)
+from security_incident_management import (
+    build_executive_report,
+    correlate_security_cases,
+    execute_playbook,
+    get_security_playbooks,
+    render_executive_report_pdf,
+    summarize_case_metrics,
+)
 import streamlit as st
+import requests
 import os
 import sys
 import json
+import sqlite3
 from pathlib import Path
 import pandas as pd
 from datetime import datetime
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent))
+
+
+DEMO_SECURITY_STATE_PATH = Path(__file__).parent / "attack_results" / "security_state.json"
+
+
+def _build_demo_security_state() -> dict:
+    """Create a realistic demo incident payload for local screenshots and demos."""
+    now = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+    source_ip = "203.0.113.77"
+    base_state = {
+        "generated_at": now,
+        "incident_id": generate_correlation_id("incident"),
+        "attacks": [
+            {
+                "attack_type": "sql_injection",
+                "severity": "critical",
+                "status": "blocked",
+                "detected_at": now,
+                "source_ip": source_ip,
+                "target_endpoint": "/api/v1/auth/login",
+                "metadata": {
+                    "username": "demo_operator",
+                    "user": "unknown",
+                    "vector": "login_form",
+                },
+            },
+            {
+                "attack_type": "brute_force",
+                "severity": "high",
+                "status": "mitigated",
+                "detected_at": now,
+                "source_ip": "198.51.100.24",
+                "target_endpoint": "/api/v1/auth/login",
+                "metadata": {
+                    "username": "unknown",
+                    "attempts": 14,
+                    "vector": "credential_stuffing",
+                },
+            },
+        ],
+        "active": [
+            {
+                "severity": "critical",
+                "alert_type": "web_attack",
+                "title": "SQL injection attempt blocked",
+                "message": "WAF and application controls blocked a malicious login payload before session creation.",
+                "created_at": now,
+            },
+            {
+                "severity": "high",
+                "alert_type": "auth_attack",
+                "title": "Repeated login failures detected",
+                "message": "Rate limiter locked the source after repeated failures.",
+                "created_at": now,
+            },
+        ],
+        "blocked_ips": [
+            {
+                "ip": source_ip,
+                "reason": "Auto-blocked after SQL injection pattern detection",
+                "blocked_at": now,
+            },
+            {
+                "ip": "198.51.100.24",
+                "reason": "Auto-blocked after credential stuffing threshold exceeded",
+                "blocked_at": now,
+            },
+        ],
+    }
+    return enrich_security_state(base_state, DEFAULT_SECURITY_RULES)
+
+
+def _write_demo_security_state(state: dict | None = None) -> dict:
+    """Persist the demo security payload so the dashboard can render it."""
+    DEMO_SECURITY_STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    state = state or _build_demo_security_state()
+    with open(DEMO_SECURITY_STATE_PATH, "w", encoding="utf-8") as fh:
+        json.dump(state, fh, indent=2)
+    return state
+
+
+def _load_demo_security_state() -> dict:
+    """Load the local demo security payload if it exists."""
+    if not DEMO_SECURITY_STATE_PATH.exists():
+        return {}
+    try:
+        with open(DEMO_SECURITY_STATE_PATH, "r", encoding="utf-8") as fh:
+            data = json.load(fh)
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+
+def _build_attack_flow_stages() -> list[dict]:
+    """Return an end-to-end attack lifecycle for screenshots and demos."""
+    return [
+        {
+            "stage": "1. Reconnaissance",
+            "status": "Observed",
+            "detail": "The attacker probes the login endpoint and discovers the public auth surface.",
+            "control": "WAF telemetry and request logging",
+        },
+        {
+            "stage": "2. Exploit Attempt",
+            "status": "Blocked",
+            "detail": "A crafted SQL injection payload is submitted through the login form.",
+            "control": "Input validation and application-layer filtering",
+        },
+        {
+            "stage": "3. Detection",
+            "status": "Alerted",
+            "detail": "The attack is flagged as critical and pushed to the alert queue immediately.",
+            "control": "Security analytics and alerting rules",
+        },
+        {
+            "stage": "4. Containment",
+            "status": "Auto-blocked",
+            "detail": "The source IP is isolated automatically and repeated login attempts are rate-limited.",
+            "control": "Auto-block and rate limiter",
+        },
+        {
+            "stage": "5. Recovery",
+            "status": "In progress",
+            "detail": "Administrators review the incident and verify that no session was created.",
+            "control": "Incident response workflow",
+        },
+        {
+            "stage": "6. Closeout",
+            "status": "Complete",
+            "detail": "Evidence is preserved and the incident is marked as contained with loss avoided.",
+            "control": "Audit trail and post-incident review",
+        },
+    ]
+
+
+def _get_dashboard_db():
+    """Return the active dashboard database when session state is available."""
+    try:
+        return st.session_state.db
+    except Exception:
+        return None
+
+
+def _dispatch_security_notifications(payload: dict) -> list[dict]:
+    """Send incident payloads to configured webhook and SIEM endpoints."""
+    db = _get_dashboard_db()
+    if not db:
+        return []
+
+    settings = db.get_system_settings()
+    targets = []
+    if settings.get("webhooks_enabled") and settings.get("webhook_url"):
+        targets.append({"name": "webhook", "url": str(settings.get("webhook_url"))})
+    if settings.get("siem_enabled") and settings.get("siem_endpoint"):
+        targets.append({"name": "siem", "url": str(settings.get("siem_endpoint"))})
+
+    results = []
+    for target in targets:
+        try:
+            response = requests.post(target["url"], json=payload, timeout=5)
+            if response.status_code >= 400 and hasattr(db, "enqueue_security_notification"):
+                db.enqueue_security_notification(
+                    target_name=target["name"],
+                    target_url=target["url"],
+                    payload=payload,
+                    status="retry",
+                    attempts=1,
+                    max_attempts=3,
+                    last_error=f"HTTP {response.status_code}",
+                )
+            results.append({
+                "target": target["name"],
+                "url": target["url"],
+                "status_code": response.status_code,
+                "delivered": response.status_code < 400,
+            })
+        except Exception as exc:
+            if hasattr(db, "enqueue_security_notification"):
+                db.enqueue_security_notification(
+                    target_name=target["name"],
+                    target_url=target["url"],
+                    payload=payload,
+                    status="queued",
+                    attempts=1,
+                    max_attempts=3,
+                    last_error=str(exc),
+                )
+            results.append({
+                "target": target["name"],
+                "url": target["url"],
+                "delivered": False,
+                "error": str(exc),
+            })
+    return results
+
+
+def _ensure_local_security_tables(db_path: str) -> None:
+    """Create local security telemetry tables when the runtime lacks newer helpers."""
+    with sqlite3.connect(db_path) as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS attack_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                attack_type TEXT NOT NULL,
+                source_ip TEXT NOT NULL,
+                target_endpoint TEXT,
+                payload TEXT,
+                severity TEXT DEFAULT 'medium',
+                detected_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                status TEXT DEFAULT 'detected',
+                description TEXT,
+                metadata TEXT
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS security_alerts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                alert_type TEXT NOT NULL,
+                title TEXT NOT NULL,
+                message TEXT NOT NULL,
+                severity TEXT DEFAULT 'medium',
+                source_ip TEXT,
+                attack_event_id INTEGER,
+                is_resolved BOOLEAN DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                resolved_at TIMESTAMP
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS blocked_ips (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ip_address TEXT UNIQUE NOT NULL,
+                reason TEXT,
+                attack_event_id INTEGER,
+                block_duration_seconds INTEGER,
+                blocked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                expires_at TIMESTAMP,
+                is_active BOOLEAN DEFAULT 1
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS security_cases (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                case_key TEXT UNIQUE NOT NULL,
+                title TEXT NOT NULL,
+                status TEXT DEFAULT 'open',
+                severity TEXT DEFAULT 'medium',
+                summary TEXT,
+                correlation_id TEXT,
+                attack_types TEXT,
+                source_ips TEXT,
+                attack_ids TEXT,
+                alert_ids TEXT,
+                blocked_ips TEXT,
+                recommended_actions TEXT,
+                playbook_name TEXT,
+                integrity_hash TEXT,
+                first_seen TIMESTAMP,
+                last_seen TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                closed_at TIMESTAMP
+            )
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS security_playbook_runs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                case_id INTEGER,
+                case_key TEXT,
+                playbook_name TEXT NOT NULL,
+                status TEXT DEFAULT 'pending',
+                auto_applied BOOLEAN DEFAULT 0,
+                details TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        conn.commit()
+
+
+def _direct_sql_record_security_demo(state: dict) -> None:
+    """Persist demo telemetry directly with SQLite when helper methods are unavailable."""
+    db = _get_dashboard_db()
+    if not db or not getattr(db, "db_path", None):
+        return
+
+    _ensure_local_security_tables(db.db_path)
+    with sqlite3.connect(db.db_path) as conn:
+        cursor = conn.cursor()
+
+        attack_ids = []
+        for attack in state.get("attacks", []):
+            attack_metadata = dict(attack.get("metadata", {})) if isinstance(attack.get("metadata"), dict) else {}
+            attack_metadata.update({
+                "correlation_id": attack.get("correlation_id"),
+                "event_hash": attack.get("event_hash"),
+                "threat_intel": attack.get("threat_intel", {}),
+                "matched_rules": attack.get("matched_rules", []),
+                "recommended_actions": attack.get("recommended_actions", []),
+            })
+            cursor.execute(
+                """
+                INSERT INTO attack_events (
+                    attack_type, source_ip, target_endpoint, payload,
+                    severity, status, description, metadata
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    attack.get("attack_type", "unknown"),
+                    attack.get("source_ip", "unknown"),
+                    attack.get("target_endpoint"),
+                    attack.get("payload"),
+                    attack.get("severity", "medium"),
+                    attack.get("status", "detected"),
+                    attack.get("description"),
+                    json.dumps(attack_metadata),
+                ),
+            )
+            attack_ids.append(cursor.lastrowid)
+
+        primary_attack_id = attack_ids[0] if attack_ids else None
+        for alert in state.get("active", []):
+            cursor.execute(
+                """
+                INSERT INTO security_alerts (
+                    alert_type, title, message, severity, source_ip,
+                    attack_event_id, is_resolved
+                ) VALUES (?, ?, ?, ?, ?, ?, 0)
+                """,
+                (
+                    alert.get("alert_type", "security_event"),
+                    alert.get("title", "Security Alert"),
+                    alert.get("message", ""),
+                    alert.get("severity", "medium"),
+                    alert.get("source_ip"),
+                    primary_attack_id,
+                ),
+            )
+
+        for block in state.get("blocked_ips", []):
+            cursor.execute(
+                """
+                INSERT INTO blocked_ips (
+                    ip_address, reason, attack_event_id, block_duration_seconds,
+                    blocked_at, expires_at, is_active
+                ) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, NULL, 1)
+                ON CONFLICT(ip_address) DO UPDATE SET
+                    reason = excluded.reason,
+                    attack_event_id = excluded.attack_event_id,
+                    is_active = excluded.is_active,
+                    blocked_at = CURRENT_TIMESTAMP
+                """,
+                (
+                    block.get("ip", "unknown"),
+                    block.get("reason", "Auto-blocked"),
+                    primary_attack_id,
+                    None,
+                ),
+            )
+
+        try:
+            cases = correlate_security_cases(state.get("attacks", []), state.get("active", []), state.get("blocked_ips", []))
+            for case in cases:
+                cursor.execute(
+                    """
+                    INSERT INTO security_cases (
+                        case_key, title, status, severity, summary, correlation_id,
+                        attack_types, source_ips, attack_ids, alert_ids, blocked_ips,
+                        recommended_actions, playbook_name, integrity_hash,
+                        first_seen, last_seen, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                    ON CONFLICT(case_key) DO UPDATE SET
+                        title = excluded.title,
+                        status = excluded.status,
+                        severity = excluded.severity,
+                        summary = excluded.summary,
+                        correlation_id = excluded.correlation_id,
+                        attack_types = excluded.attack_types,
+                        source_ips = excluded.source_ips,
+                        attack_ids = excluded.attack_ids,
+                        alert_ids = excluded.alert_ids,
+                        blocked_ips = excluded.blocked_ips,
+                        recommended_actions = excluded.recommended_actions,
+                        playbook_name = excluded.playbook_name,
+                        integrity_hash = excluded.integrity_hash,
+                        first_seen = excluded.first_seen,
+                        last_seen = excluded.last_seen,
+                        updated_at = CURRENT_TIMESTAMP
+                    """,
+                    (
+                        case.get("case_key"),
+                        case.get("title"),
+                        case.get("status", "open"),
+                        case.get("severity", "medium"),
+                        case.get("summary", ""),
+                        case.get("correlation_id"),
+                        json.dumps(case.get("attack_types", [])),
+                        json.dumps(case.get("source_ips", [])),
+                        json.dumps(case.get("attack_ids", [])),
+                        json.dumps(case.get("alert_ids", [])),
+                        json.dumps(case.get("blocked_ips", [])),
+                        json.dumps(case.get("recommended_actions", [])),
+                        case.get("playbook_name"),
+                        case.get("integrity_hash"),
+                        case.get("first_seen"),
+                        case.get("last_seen"),
+                    ),
+                )
+                case_row = cursor.execute("SELECT id FROM security_cases WHERE case_key = ?", (case.get("case_key"),)).fetchone()
+                case_id = case_row[0] if case_row else None
+                playbook = next((item for item in get_security_playbooks() if item.get("playbook_name") == case.get("playbook_name")), None)
+                if playbook and case_id is not None:
+                    cursor.execute(
+                        """
+                        INSERT INTO security_playbook_runs (
+                            case_id, case_key, playbook_name, status, auto_applied, details
+                        ) VALUES (?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            case_id,
+                            case.get("case_key"),
+                            playbook.get("playbook_name", "unknown"),
+                            "executed" if playbook.get("auto_execute") else "recorded",
+                            int(bool(playbook.get("auto_execute"))),
+                            json.dumps({"steps": playbook.get("steps", []), "case": case.get("case_key")}),
+                        ),
+                    )
+        except Exception:
+            pass
+
+        conn.commit()
+
+
+def _persist_security_demo_state(state: dict) -> dict:
+    """Persist demo telemetry locally and in the dashboard database."""
+    db = _get_dashboard_db()
+    if db and isinstance(state, dict):
+        state = enrich_security_state(state, DEFAULT_SECURITY_RULES)
+        if not hasattr(db, "record_attack_event") or not hasattr(db, "record_security_alert") or not hasattr(db, "block_ip"):
+            _direct_sql_record_security_demo(state)
+        else:
+            attack_ids = []
+            for attack in state.get("attacks", []):
+                attack_metadata = dict(attack.get("metadata", {})) if isinstance(attack.get("metadata"), dict) else {}
+                attack_metadata.update({
+                    "correlation_id": attack.get("correlation_id"),
+                    "event_hash": attack.get("event_hash"),
+                    "threat_intel": attack.get("threat_intel", {}),
+                    "matched_rules": attack.get("matched_rules", []),
+                    "recommended_actions": attack.get("recommended_actions", []),
+                })
+                attack_id = db.record_attack_event(
+                    attack_type=attack.get("attack_type", "unknown"),
+                    source_ip=attack.get("source_ip", "unknown"),
+                    target_endpoint=attack.get("target_endpoint"),
+                    payload=attack.get("payload"),
+                    severity=attack.get("severity", "medium"),
+                    status=attack.get("status", "detected"),
+                    description=attack.get("description"),
+                    metadata=attack_metadata,
+                )
+                if attack_id:
+                    attack_ids.append(attack_id)
+
+            primary_attack_id = attack_ids[0] if attack_ids else None
+            for alert in state.get("active", []):
+                db.record_security_alert(
+                    alert_type=alert.get("alert_type", "security_event"),
+                    title=alert.get("title", "Security Alert"),
+                    message=alert.get("message", ""),
+                    severity=alert.get("severity", "medium"),
+                    source_ip=alert.get("source_ip"),
+                    attack_event_id=primary_attack_id,
+                    is_resolved=False,
+                )
+
+            for block in state.get("blocked_ips", []):
+                db.block_ip(
+                    ip_address=block.get("ip", "unknown"),
+                    reason=block.get("reason", "Auto-blocked"),
+                    attack_event_id=primary_attack_id,
+                    is_active=True,
+                )
+
+            db.log_event(
+                "security_incident_demo_generated",
+                agent_id="system",
+                action="containment",
+                details=json.dumps({
+                    "attack_count": len(state.get("attacks", [])),
+                    "alert_count": len(state.get("active", [])),
+                    "blocked_count": len(state.get("blocked_ips", [])),
+                }),
+            )
+
+            try:
+                db.set_system_setting("security_telemetry_last_generated", state.get("generated_at"))
+                db.set_system_setting("security_rules", DEFAULT_SECURITY_RULES)
+                db.set_system_setting("security_last_fingerprint", state.get("integrity_hash"))
+            except Exception:
+                pass
+
+            cases = correlate_security_cases(state.get("attacks", []), state.get("active", []), state.get("blocked_ips", []))
+            state["cases"] = cases
+            if hasattr(db, "upsert_security_case"):
+                for case in cases:
+                    db.upsert_security_case(
+                        case_key=case.get("case_key", "unknown-case"),
+                        title=case.get("title", "Security case"),
+                        severity=case.get("severity", "medium"),
+                        status=case.get("status", "open"),
+                        summary=case.get("summary", ""),
+                        correlation_id=case.get("correlation_id"),
+                        attack_types=case.get("attack_types", []),
+                        source_ips=case.get("source_ips", []),
+                        attack_ids=case.get("attack_ids", []),
+                        alert_ids=case.get("alert_ids", []),
+                        blocked_ips=case.get("blocked_ips", []),
+                        recommended_actions=case.get("recommended_actions", []),
+                        playbook_name=case.get("playbook_name"),
+                        integrity_hash=case.get("integrity_hash"),
+                        first_seen=case.get("first_seen"),
+                        last_seen=case.get("last_seen"),
+                    )
+
+                for case in cases:
+                    playbook = next((item for item in get_security_playbooks() if item.get("playbook_name") == case.get("playbook_name")), None)
+                    if playbook and playbook.get("auto_execute"):
+                        execute_playbook(db, case, playbook)
+
+            if hasattr(db, "record_security_chain_entry") and state.get("integrity_hash"):
+                try:
+                    previous_entries = db.list_security_chain_entries(limit=1, chain_name="incident-flow") if hasattr(db, "list_security_chain_entries") else []
+                    previous_hash = previous_entries[0]["current_hash"] if previous_entries else None
+                    db.record_security_chain_entry(
+                        chain_name="incident-flow",
+                        current_hash=state.get("integrity_hash"),
+                        payload={
+                            "incident_id": state.get("incident_id"),
+                            "correlation_id": state.get("correlation_id"),
+                            "executive_summary": state.get("executive_summary", {}),
+                        },
+                        previous_hash=previous_hash,
+                    )
+                except Exception:
+                    pass
+
+            if hasattr(db, "record_incident_export"):
+                try:
+                    kpis = calculate_security_kpis(state.get("attacks", []), state.get("active", []), state.get("blocked_ips", []))
+                    export_payload = build_incident_export_payload(state, state.get("attacks", []), state.get("active", []), state.get("blocked_ips", []), kpis)
+                    db.record_incident_export(
+                        export_type="security_demo",
+                        export_hash=export_payload.get("export_hash", ""),
+                        summary=f"{len(state.get('attacks', []))} attacks, {len(state.get('active', []))} alerts, {len(state.get('blocked_ips', []))} blocks",
+                        file_name="attack_flow_export.json",
+                    )
+                except Exception:
+                    pass
+
+    _write_demo_security_state(state)
+    _dispatch_security_notifications({
+        "event": "security_incident_demo_generated",
+        "generated_at": state.get("generated_at"),
+        "incident_id": state.get("incident_id"),
+        "correlation_id": state.get("correlation_id"),
+        "attacks": state.get("attacks", []),
+        "alerts": state.get("active", []),
+        "blocked_ips": state.get("blocked_ips", []),
+        "cases": state.get("cases", []),
+        "integrity_hash": state.get("integrity_hash"),
+        "source": "Agentic-IAM dashboard",
+    })
+    return state
+
+
+def _load_security_rules(db) -> list[dict]:
+    """Load stored security rules or fall back to the default ruleset."""
+    try:
+        rules = db.get_system_setting("security_rules", DEFAULT_SECURITY_RULES)
+        if isinstance(rules, list) and rules:
+            return rules
+    except Exception:
+        pass
+    return DEFAULT_SECURITY_RULES
+
+
+def _process_security_notification_queue(db) -> list[dict]:
+    """Retry queued notifications using the current dashboard settings."""
+    results = []
+    if not db or not hasattr(db, "list_security_notifications") or not hasattr(db, "update_security_notification"):
+        return results
+
+    queued = db.list_security_notifications(limit=20, status="queued") + db.list_security_notifications(limit=20, status="retry")
+    for item in queued:
+        payload = item.get("payload", {})
+        try:
+            response = requests.post(item.get("target_url", ""), json=payload, timeout=5)
+            if response.status_code < 400:
+                db.update_security_notification(
+                    item["id"],
+                    status="delivered",
+                    attempts=int(item.get("attempts", 0)) + 1,
+                    last_error=None,
+                )
+                results.append({"id": item["id"], "target": item.get("target_name"), "status": "delivered"})
+            else:
+                db.update_security_notification(
+                    item["id"],
+                    status="retry" if int(item.get("attempts", 0)) + 1 < int(item.get("max_attempts", 3)) else "failed",
+                    attempts=int(item.get("attempts", 0)) + 1,
+                    last_error=f"HTTP {response.status_code}",
+                )
+                results.append({"id": item["id"], "target": item.get("target_name"), "status": "retry"})
+        except Exception as exc:
+            db.update_security_notification(
+                item["id"],
+                status="retry" if int(item.get("attempts", 0)) + 1 < int(item.get("max_attempts", 3)) else "failed",
+                attempts=int(item.get("attempts", 0)) + 1,
+                last_error=str(exc),
+            )
+            results.append({"id": item["id"], "target": item.get("target_name"), "status": "error", "error": str(exc)})
+    return results
 
 
 # Page configuration
@@ -479,6 +1119,12 @@ def get_navigation_pages():
     pages.append("🧭 Activity Timeline")
     pages.append("🚨 Incident Response")
 
+    # Security forensics views - replace overlapping configuration pages
+    if is_operator() or is_admin():
+        pages.append("🕵️ Attack Forensics")
+        pages.append("🧪 Attack Flow Lifecycle")
+        pages.append("🔔 Alert Center")
+
     # User pages (available to all authenticated users)
     if check_permission(Permission.AGENT_READ):
         pages.append("🔍 Browse Agents")
@@ -494,10 +1140,6 @@ def get_navigation_pages():
 
     if check_permission(Permission.SETTINGS_VIEW):
         pages.append("⚙️ Settings")
-
-    if check_permission(Permission.SETTINGS_VIEW) or is_admin():
-        pages.append("🔌 Connection Hub")
-        pages.append("🔗 Integrations")
 
     # Admin-only pages
     if is_admin():
@@ -631,10 +1273,12 @@ def main():
         show_page_activity_timeline()
     elif page == "🚨 Incident Response":
         show_page_incident_response()
-    elif page == "🔌 Connection Hub":
-        show_page_connection_hub()
-    elif page == "🔗 Integrations":
-        show_page_integrations()
+    elif page == "🕵️ Attack Forensics":
+        show_page_attack_forensics()
+    elif page == "🧪 Attack Flow Lifecycle":
+        show_page_attack_flow()
+    elif page == "🔔 Alert Center":
+        show_page_alert_center()
     elif page == "👥 User Management":
         if is_admin():
             show_page_user_management()
@@ -1149,19 +1793,40 @@ def show_page_incident_response():
 def show_page_integrations():
     """Integration hub for identity and external platform connections."""
     st.title("🔗 Integrations")
+    st.caption("Connection coverage, identity providers, notifications, and SIEM handoff.")
 
     db = st.session_state.db
     settings = db.get_system_settings()
 
-    st.subheader("Connection Targets")
-    target_rows = [
-        {"Integration": "Microsoft Entra ID", "Status": settings.get("entra_enabled", False), "Key": "entra_enabled"},
-        {"Integration": "LDAP / Active Directory", "Status": settings.get("ldap_enabled", False), "Key": "ldap_enabled"},
-        {"Integration": "Webhook Notifications", "Status": settings.get("webhooks_enabled", False), "Key": "webhooks_enabled"},
-        {"Integration": "SIEM / SOC Feed", "Status": settings.get("siem_enabled", False), "Key": "siem_enabled"},
+    integrations = [
+        ("Microsoft Entra ID", bool(settings.get("entra_enabled", False))),
+        ("LDAP / Active Directory", bool(settings.get("ldap_enabled", False))),
+        ("Webhook Notifications", bool(settings.get("webhooks_enabled", False))),
+        ("SIEM / SOC Feed", bool(settings.get("siem_enabled", False))),
     ]
-    st.dataframe(pd.DataFrame(target_rows)[
-                 ["Integration", "Status"]], width="stretch", hide_index=True)
+    enabled_integrations = sum(1 for _, is_enabled in integrations if is_enabled)
+
+    overview_col1, overview_col2, overview_col3 = st.columns(3)
+    with overview_col1:
+        st.metric("Enabled Connectors", enabled_integrations)
+    with overview_col2:
+        st.metric("Configured Owner", settings.get("integration_owner", "security-team"))
+    with overview_col3:
+        st.metric("Identity Sources", sum(1 for key in ["entra_enabled", "ldap_enabled"] if settings.get(key, False)))
+
+    st.subheader("Connection Targets")
+    target_rows = []
+    target_cols = st.columns(2)
+    for index, (integration_name, is_enabled) in enumerate(integrations):
+        with target_cols[index % 2]:
+            st.markdown(
+                f"**{integration_name}**  \n"
+                f"Status: {'Enabled' if is_enabled else 'Disabled'}  \n"
+                f"Owner: {settings.get('integration_owner', 'security-team')}"
+            )
+        target_rows.append({"Integration": integration_name, "Status": is_enabled})
+
+    st.dataframe(pd.DataFrame(target_rows), width="stretch", hide_index=True)
 
     st.markdown("---")
 
@@ -1327,6 +1992,41 @@ def show_page_reports():
         else:
             st.info("Click the button above to generate a compliance report")
 
+        st.markdown("---")
+        st.subheader("Executive Security Report")
+        attacks = _fetch_security_alerts("attacks")
+        alerts = _fetch_security_alerts("active")
+        blocked_ips = _fetch_security_alerts("blocked-ips")
+        cases = db.list_security_cases(limit=50) if hasattr(db, "list_security_cases") else []
+        if not attacks and not alerts and not blocked_ips:
+            st.info("No live security telemetry found yet")
+        else:
+            demo_state = _load_demo_security_state() or {}
+            exec_report = build_executive_report(demo_state if isinstance(demo_state, dict) else {}, cases, attacks, alerts, blocked_ips)
+            exec_cols = st.columns(4)
+            with exec_cols[0]:
+                st.metric("Cases", exec_report.get("case_metrics", {}).get("total_cases", 0))
+            with exec_cols[1]:
+                st.metric("Block Rate", f"{exec_report.get('summary', {}).get('block_rate', 0.0):.1f}%")
+            with exec_cols[2]:
+                st.metric("MTTD (min)", f"{exec_report.get('kpis', {}).get('mttd_minutes', 0.0):.2f}")
+            with exec_cols[3]:
+                st.metric("MTTR (min)", f"{exec_report.get('kpis', {}).get('mttr_minutes', 0.0):.2f}")
+
+            st.json(exec_report)
+            st.download_button(
+                "📥 Download Executive JSON",
+                data=json.dumps(exec_report, indent=2),
+                file_name="executive_security_report.json",
+                mime="application/json",
+            )
+            st.download_button(
+                "📄 Download Executive PDF",
+                data=render_executive_report_pdf(exec_report),
+                file_name="executive_security_report.pdf",
+                mime="application/pdf",
+            )
+
     with tab4:
         st.subheader("System Analytics")
 
@@ -1358,6 +2058,15 @@ def show_page_settings():
         return
 
     st.title("⚙️ Settings")
+    st.caption("General behavior, security posture, and advanced platform defaults.")
+
+    settings_col1, settings_col2, settings_col3 = st.columns(3)
+    with settings_col1:
+        st.metric("Theme", "Light / Dark / Auto")
+    with settings_col2:
+        st.metric("Security Focus", "MFA + Session Control")
+    with settings_col3:
+        st.metric("Advanced Mode", "Logging + Debug")
 
     tab1, tab2, tab3 = st.tabs(["General", "Security", "Advanced"])
 
@@ -1376,6 +2085,9 @@ def show_page_settings():
         if st.button("💾 Save General Settings"):
             st.success("✅ Settings saved successfully")
 
+        st.markdown("---")
+        st.write("**Current focus:** UI theme, notification posture, and refresh cadence.")
+
     with tab2:
         st.subheader("Security Settings")
 
@@ -1392,6 +2104,31 @@ def show_page_settings():
         if st.button("💾 Save Security Settings"):
             st.success("✅ Security settings saved successfully")
 
+        st.markdown("---")
+        st.write("**Current focus:** MFA, session timeout, and enforced password change.")
+
+        st.markdown("---")
+        st.subheader("Detection Rules")
+        db = st.session_state.db
+        current_rules = db.get_system_setting("security_rules", DEFAULT_SECURITY_RULES)
+        rules_text = st.text_area(
+            "Incident detection rules (JSON)",
+            value=json.dumps(current_rules, indent=2),
+            height=320,
+        )
+        st.caption(
+            "These rules are used by the attack flow to enrich incidents, score risk, and suggest response actions."
+        )
+        if st.button("💾 Save Detection Rules"):
+            try:
+                parsed_rules = json.loads(rules_text)
+                if not isinstance(parsed_rules, list):
+                    raise ValueError("Rules must be a JSON list")
+                db.set_system_setting("security_rules", parsed_rules)
+                st.success("✅ Detection rules saved successfully")
+            except Exception as exc:
+                st.error(f"Invalid rules JSON: {exc}")
+
     with tab3:
         st.subheader("Advanced Settings")
 
@@ -1406,6 +2143,9 @@ def show_page_settings():
 
         if st.button("💾 Save Advanced Settings"):
             st.success("✅ Advanced settings saved successfully")
+
+        st.markdown("---")
+        st.write("**Current focus:** debug verbosity and log volume control.")
 
 
 def show_page_user_management():
@@ -1922,6 +2662,620 @@ def show_page_activity_timeline():
     st.dataframe(pd.DataFrame(timeline_rows), width="stretch", hide_index=True)
 
 
+def _fetch_security_alerts(endpoint: str, fallback: list | None = None):
+    """Fetch security data from the local API with a safe fallback."""
+    try:
+        response = requests.get(f"http://127.0.0.1:8000/alerts/{endpoint}", timeout=5)
+        if response.status_code == 200:
+            payload = response.json()
+            if isinstance(payload, list) and payload:
+                return payload
+            if isinstance(payload, dict):
+                for key in (endpoint, endpoint.replace("-", "_")):
+                    value = payload.get(key)
+                    if isinstance(value, list) and value:
+                        return value
+    except Exception:
+        pass
+
+    db = _get_dashboard_db()
+    if db:
+        if hasattr(db, "list_attack_events") and endpoint == "attacks":
+            records = db.list_attack_events(limit=100)
+            if records:
+                return records
+        elif hasattr(db, "list_security_alerts") and endpoint.startswith("active"):
+            records = db.list_security_alerts(limit=100, active_only=True)
+            if records:
+                return records
+        elif hasattr(db, "list_security_alerts") and endpoint.startswith("recent"):
+            limit = 20
+            try:
+                if "limit=" in endpoint:
+                    limit = int(endpoint.split("limit=")[-1].split("&")[0])
+            except Exception:
+                limit = 20
+            records = db.list_security_alerts(limit=limit, active_only=False)
+            if records:
+                return records
+        elif hasattr(db, "list_blocked_ips") and endpoint in {"blocked-ips", "blocked_ips"}:
+            records = db.list_blocked_ips(active_only=True)
+            if records:
+                return records
+
+        if getattr(db, "db_path", None):
+            try:
+                _ensure_local_security_tables(db.db_path)
+                with sqlite3.connect(db.db_path) as conn:
+                    cursor = conn.cursor()
+                    if endpoint == "attacks":
+                        cursor.execute(
+                            """
+                            SELECT id, attack_type, source_ip, target_endpoint, payload,
+                                   severity, detected_at, status, description, metadata
+                            FROM attack_events ORDER BY detected_at DESC LIMIT 100
+                            """
+                        )
+                        rows = cursor.fetchall()
+                        if rows:
+                            return [{
+                                "id": row[0],
+                                "attack_type": row[1],
+                                "source_ip": row[2],
+                                "target_endpoint": row[3],
+                                "payload": row[4],
+                                "severity": row[5],
+                                "detected_at": row[6],
+                                "status": row[7],
+                                "description": row[8],
+                                "metadata": json.loads(row[9]) if row[9] else {},
+                            } for row in rows]
+                    elif endpoint.startswith("active"):
+                        cursor.execute(
+                            """
+                            SELECT id, alert_type, title, message, severity, source_ip,
+                                   attack_event_id, is_resolved, created_at, resolved_at
+                            FROM security_alerts WHERE is_resolved = 0
+                            ORDER BY created_at DESC LIMIT 100
+                            """
+                        )
+                        rows = cursor.fetchall()
+                        if rows:
+                            return [{
+                                "id": row[0],
+                                "alert_type": row[1],
+                                "title": row[2],
+                                "message": row[3],
+                                "severity": row[4],
+                                "source_ip": row[5],
+                                "attack_event_id": row[6],
+                                "is_resolved": bool(row[7]),
+                                "created_at": row[8],
+                                "resolved_at": row[9],
+                            } for row in rows]
+                    elif endpoint.startswith("recent"):
+                        limit = 20
+                        try:
+                            if "limit=" in endpoint:
+                                limit = int(endpoint.split("limit=")[-1].split("&")[0])
+                        except Exception:
+                            limit = 20
+                        cursor.execute(
+                            """
+                            SELECT id, alert_type, title, message, severity, source_ip,
+                                   attack_event_id, is_resolved, created_at, resolved_at
+                            FROM security_alerts ORDER BY created_at DESC LIMIT ?
+                            """,
+                            (limit,),
+                        )
+                        rows = cursor.fetchall()
+                        if rows:
+                            return [{
+                                "id": row[0],
+                                "alert_type": row[1],
+                                "title": row[2],
+                                "message": row[3],
+                                "severity": row[4],
+                                "source_ip": row[5],
+                                "attack_event_id": row[6],
+                                "is_resolved": bool(row[7]),
+                                "created_at": row[8],
+                                "resolved_at": row[9],
+                            } for row in rows]
+                    elif endpoint in {"blocked-ips", "blocked_ips"}:
+                        cursor.execute(
+                            """
+                            SELECT ip_address, reason, attack_event_id, block_duration_seconds,
+                                   blocked_at, expires_at, is_active
+                            FROM blocked_ips WHERE is_active = 1 ORDER BY blocked_at DESC
+                            """
+                        )
+                        rows = cursor.fetchall()
+                        if rows:
+                            return [{
+                                "ip": row[0],
+                                "reason": row[1],
+                                "attack_event_id": row[2],
+                                "block_duration_seconds": row[3],
+                                "blocked_at": row[4],
+                                "expires_at": row[5],
+                                "is_active": bool(row[6]),
+                            } for row in rows]
+            except Exception:
+                pass
+
+    demo_state = _load_demo_security_state()
+    if isinstance(demo_state, dict):
+        for key in (endpoint, endpoint.replace("-", "_")):
+            value = demo_state.get(key)
+            if isinstance(value, list) and value:
+                return value
+    return fallback or []
+
+
+def _parse_attack_metadata(raw_metadata):
+    """Return attack metadata as a dictionary when possible."""
+    if isinstance(raw_metadata, dict):
+        return raw_metadata
+    if isinstance(raw_metadata, str) and raw_metadata.strip():
+        try:
+            parsed = json.loads(raw_metadata)
+            if isinstance(parsed, dict):
+                return parsed
+        except Exception:
+            return {}
+    return {}
+
+
+def _estimate_loss_impact(attack_type: str, severity: str, blocked: bool) -> str:
+    """Provide a conservative estimated impact for the incident."""
+    base_values = {
+        "critical": 50000,
+        "high": 20000,
+        "medium": 7000,
+        "low": 1500,
+    }
+    multipliers = {
+        "brute_force": 1.4,
+        "sql_injection": 1.8,
+        "xss": 0.9,
+        "rate_limit": 0.7,
+    }
+    base = base_values.get(str(severity).lower(), 5000)
+    multiplier = multipliers.get(str(attack_type).lower(), 1.0)
+    impact = int(base * multiplier)
+    if blocked:
+        impact = int(impact * 0.35)
+    return f"~${impact:,}"
+
+
+def _summarize_attack_status(attack: dict, blocked_ips: list[dict]) -> str:
+    """Describe how an attack was stopped or mitigated."""
+    if attack.get("status") == "blocked":
+        blocked_match = next(
+            (item for item in blocked_ips if item.get("ip") == attack.get("source_ip")),
+            None,
+        )
+        if blocked_match and blocked_match.get("reason"):
+            return f"Auto-blocked: {blocked_match.get('reason')}"
+        return "Auto-blocked by security controls"
+    if attack.get("status") == "mitigated":
+        return "Mitigated by security workflow"
+    return "Detected and under review"
+
+
+def show_page_attack_forensics():
+    """Detailed incident forensics for attacks, sources, containment, and impact."""
+    st.title("🕵️ Attack Forensics")
+    st.caption("Attack timeline, source identity, containment action, and estimated impact.")
+
+    demo_banner = st.container()
+    with demo_banner:
+        st.info("Demo mode is available for local screenshots and walkthroughs. It uses synthetic telemetry, blocked IPs, and auto-containment records.")
+        demo_col1, demo_col2 = st.columns(2)
+        with demo_col1:
+            if st.button("Generate Demo Incident", width="stretch"):
+                _persist_security_demo_state(_build_demo_security_state())
+                st.success("Demo incident generated. Open this page again or rerun to refresh the telemetry.")
+                st.rerun()
+        with demo_col2:
+            if st.button("Reset Demo Incident", width="stretch"):
+                if DEMO_SECURITY_STATE_PATH.exists():
+                    DEMO_SECURITY_STATE_PATH.unlink()
+                st.success("Demo incident cleared.")
+                st.rerun()
+
+    attacks = _fetch_security_alerts("attacks")
+    active_alerts = _fetch_security_alerts("active")
+    blocked_ips = _fetch_security_alerts("blocked-ips")
+
+    if not attacks and not active_alerts and not blocked_ips:
+        st.warning("No security telemetry available. Generate a demo incident or start the API server to load attack data.")
+        return
+
+    critical_count = sum(1 for attack in attacks if str(attack.get("severity", "")).lower() == "critical")
+    blocked_count = sum(1 for attack in attacks if attack.get("status") == "blocked")
+    suspicious_count = len(active_alerts)
+
+    metric_col1, metric_col2, metric_col3, metric_col4 = st.columns(4)
+    with metric_col1:
+        st.metric("Attack Events", len(attacks))
+    with metric_col2:
+        st.metric("Blocked", blocked_count)
+    with metric_col3:
+        st.metric("Critical", critical_count)
+    with metric_col4:
+        st.metric("Active Alerts", suspicious_count)
+
+    st.markdown("---")
+
+    top_attack = attacks[0] if attacks else None
+    if top_attack:
+        top_metadata = _parse_attack_metadata(top_attack.get("metadata"))
+        insight_col1, insight_col2, insight_col3 = st.columns(3)
+        with insight_col1:
+            st.markdown("**Latest Case**")
+            st.write(f"{top_attack.get('attack_type', 'unknown')} from {top_attack.get('source_ip', 'unknown')}")
+        with insight_col2:
+            st.markdown("**Likely Actor**")
+            st.write(top_metadata.get("username") or top_metadata.get("user") or "unknown")
+        with insight_col3:
+            st.markdown("**Containment Status**")
+            st.write(_summarize_attack_status(top_attack, blocked_ips))
+
+        with st.expander("Recent incident highlights", expanded=False):
+            for attack in attacks[:5]:
+                metadata = _parse_attack_metadata(attack.get("metadata"))
+                actor = metadata.get("username") or metadata.get("user") or attack.get("source_ip", "unknown")
+                status_text = _summarize_attack_status(attack, blocked_ips)
+                impact_text = _estimate_loss_impact(
+                    attack.get("attack_type", "unknown"),
+                    attack.get("severity", "medium"),
+                    attack.get("status") == "blocked",
+                )
+                st.markdown(
+                    f"- **{attack.get('attack_type', 'unknown')}** | {actor} | {attack.get('source_ip', 'unknown')} | {status_text} | {impact_text}"
+                )
+
+    if attacks:
+        forensic_rows = []
+        for attack in attacks[:100]:
+            metadata = _parse_attack_metadata(attack.get("metadata"))
+            actor = metadata.get("username") or metadata.get("user") or attack.get("source_ip", "unknown")
+            stop_reason = _summarize_attack_status(attack, blocked_ips)
+            blocked = attack.get("status") == "blocked"
+            forensic_rows.append({
+                "Time": attack.get("detected_at", ""),
+                "Attack": attack.get("attack_type", "unknown"),
+                "Actor": actor,
+                "Source IP": attack.get("source_ip", "unknown"),
+                "Target": attack.get("target_endpoint", "unknown"),
+                "Status": attack.get("status", "detected"),
+                "Stopped By": stop_reason,
+                "Estimated Impact": _estimate_loss_impact(
+                    attack.get("attack_type", "unknown"),
+                    attack.get("severity", "medium"),
+                    blocked,
+                ),
+            })
+
+        st.dataframe(pd.DataFrame(forensic_rows), width="stretch", hide_index=True)
+
+        st.markdown("---")
+        st.subheader("Incident Details")
+        selected_attack = st.selectbox(
+            "Inspect a specific attack",
+            options=attacks,
+            format_func=lambda item: f"{item.get('attack_type', 'unknown')} | {item.get('source_ip', 'unknown')} | {item.get('detected_at', '')}",
+        )
+
+        selected_metadata = _parse_attack_metadata(selected_attack.get("metadata"))
+        detail_cols = st.columns(3)
+        with detail_cols[0]:
+            st.write(f"**Attack Type:** {selected_attack.get('attack_type', 'unknown')}")
+            st.write(f"**Severity:** {selected_attack.get('severity', 'medium')}")
+            st.write(f"**Status:** {selected_attack.get('status', 'detected')}")
+        with detail_cols[1]:
+            st.write(f"**Actor:** {selected_metadata.get('username') or selected_metadata.get('user') or 'unknown'}")
+            st.write(f"**Source IP:** {selected_attack.get('source_ip', 'unknown')}")
+            st.write(f"**Target:** {selected_attack.get('target_endpoint', 'unknown')}")
+        with detail_cols[2]:
+            st.write(f"**Estimated Impact:** {_estimate_loss_impact(selected_attack.get('attack_type', 'unknown'), selected_attack.get('severity', 'medium'), selected_attack.get('status') == 'blocked')}")
+            st.write(f"**Response:** {_summarize_attack_status(selected_attack, blocked_ips)}")
+            st.write(f"**Loss Avoided:** {'Yes' if selected_attack.get('status') == 'blocked' else 'Partial'}")
+
+        if selected_attack.get("description"):
+            st.info(selected_attack.get("description"))
+        if selected_metadata:
+            st.json(selected_metadata)
+    else:
+        st.info("No attack events recorded yet")
+
+
+def show_page_alert_center():
+    """Active alert queue for unresolved security alerts."""
+    st.title("🔔 Alert Center")
+    st.caption("Live unresolved alerts with current severity and source IP.")
+
+    db = st.session_state.db
+    active_alerts = _fetch_security_alerts("active")
+    recent_alerts = _fetch_security_alerts("recent?limit=20")
+
+    alert_col1, alert_col2 = st.columns(2)
+    with alert_col1:
+        st.metric("Active Alerts", len(active_alerts))
+    with alert_col2:
+        st.metric("Recent Alerts", len(recent_alerts))
+
+    st.markdown("---")
+
+    if active_alerts:
+        st.subheader("Priority Alerts")
+        for alert in active_alerts[:5]:
+            severity = str(alert.get("severity", "medium")).upper()
+            source_ip = alert.get("source_ip", "n/a")
+            title = alert.get("title", "Alert")
+            message = alert.get("message", "")
+            left_col, right_col = st.columns([4, 1])
+            with left_col:
+                st.warning(f"{severity} | {title} | {source_ip}")
+                st.caption(message)
+            with right_col:
+                if hasattr(db, "resolve_security_alert") and st.button(
+                    "Resolve",
+                    key=f"resolve_alert_{alert.get('id', source_ip)}",
+                    width="stretch",
+                ):
+                    if db.resolve_security_alert(alert.get("id")):
+                        st.success("Alert resolved")
+                        st.rerun()
+                    else:
+                        st.error("Failed to resolve alert")
+
+    if active_alerts:
+        alert_rows = []
+        for alert in active_alerts[:50]:
+            alert_rows.append({
+                "Time": alert.get("created_at", ""),
+                "Severity": alert.get("severity", "medium"),
+                "Type": alert.get("alert_type", "unknown"),
+                "Source IP": alert.get("source_ip", ""),
+                "Title": alert.get("title", ""),
+                "Message": alert.get("message", ""),
+            })
+
+        st.dataframe(pd.DataFrame(alert_rows), width="stretch", hide_index=True)
+    else:
+        st.success("No active alerts")
+
+    if recent_alerts:
+        st.markdown("---")
+        st.subheader("Recent Alert Feed")
+        for alert in recent_alerts[:10]:
+            st.write(f"**{alert.get('severity', 'medium').upper()}** - {alert.get('title', 'Alert')} ({alert.get('source_ip', 'n/a')})")
+            st.caption(alert.get("message", ""))
+
+
+def show_page_attack_flow():
+    """End-to-end attack lifecycle view for demos and screenshots."""
+    st.title("🧪 Attack Flow Lifecycle")
+    st.caption("From reconnaissance to containment, recovery, and final closeout.")
+
+    db = _get_dashboard_db()
+    if db:
+        _process_security_notification_queue(db)
+
+    button_col1, button_col2 = st.columns(2)
+    with button_col1:
+        if st.button("Run Full Demo Attack Flow", width="stretch"):
+            _persist_security_demo_state(_build_demo_security_state())
+            st.success("Full attack flow generated and persisted.")
+            st.rerun()
+    with button_col2:
+        if st.button("Reset Demo Flow", width="stretch"):
+            if DEMO_SECURITY_STATE_PATH.exists():
+                DEMO_SECURITY_STATE_PATH.unlink()
+            st.success("Demo flow cleared.")
+            st.rerun()
+
+    demo_state = _load_demo_security_state() or _build_demo_security_state()
+    attacks = _fetch_security_alerts("attacks") or (demo_state.get("attacks", []) if isinstance(demo_state, dict) else [])
+    alerts = _fetch_security_alerts("active") or (demo_state.get("active", []) if isinstance(demo_state, dict) else [])
+    blocks = _fetch_security_alerts("blocked-ips") or (demo_state.get("blocked_ips", []) if isinstance(demo_state, dict) else [])
+    cases = db.list_security_cases(limit=25) if db and hasattr(db, "list_security_cases") else (demo_state.get("cases", []) if isinstance(demo_state, dict) else [])
+    stages = _build_attack_flow_stages()
+    kpis = calculate_security_kpis(attacks, alerts, blocks)
+    export_payload = build_incident_export_payload(demo_state if isinstance(demo_state, dict) else {}, attacks, alerts, blocks, kpis)
+    executive_report = build_executive_report(demo_state if isinstance(demo_state, dict) else {}, cases, attacks, alerts, blocks)
+    chain_hash = (demo_state or {}).get("integrity_hash", "")
+
+    col1, col2, col3, col4, col5, col6, col7 = st.columns(7)
+    with col1:
+        st.metric("Stages", len(stages))
+    with col2:
+        st.metric("Alerts", len(alerts))
+    with col3:
+        st.metric("Blocked IPs", len(blocks))
+    with col4:
+        st.metric("Critical Events", sum(1 for item in attacks if item.get("severity") == "critical"))
+    with col5:
+        st.metric("MTTD (min)", f"{kpis.get('mttd_minutes', 0.0):.2f}")
+    with col6:
+        st.metric("MTTR (min)", f"{kpis.get('mttr_minutes', 0.0):.2f}")
+    with col7:
+        st.metric("Cases", len(cases))
+
+    st.markdown("---")
+
+    summary = (demo_state or {}).get("executive_summary", {}) if isinstance(demo_state, dict) else {}
+    summary_cols = st.columns(4)
+    with summary_cols[0]:
+        st.metric("Threat Level", str(summary.get("threat_level", "medium")).title())
+    with summary_cols[1]:
+        st.metric("Block Rate", f"{kpis.get('block_rate', 0.0):.1f}%")
+    with summary_cols[2]:
+        st.metric("Integrity", chain_hash[:12] if chain_hash else "n/a")
+    with summary_cols[3]:
+        st.metric("Rules Matched", sum(len(item.get("matched_rules", [])) for item in attacks))
+
+    timeline_col, summary_col = st.columns([2, 1])
+    with timeline_col:
+        st.subheader("Attack Timeline")
+        for stage in stages:
+            status = stage["status"]
+            if status == "Observed":
+                emoji = "👁️"
+            elif status == "Blocked":
+                emoji = "🟥"
+            elif status == "Alerted":
+                emoji = "⚠️"
+            elif status == "Auto-blocked":
+                emoji = "🛡️"
+            elif status == "In progress":
+                emoji = "🔄"
+            else:
+                emoji = "✅"
+
+            with st.container(border=True):
+                left_col, right_col = st.columns([1, 4])
+                with left_col:
+                    st.markdown(f"### {emoji} {stage['stage']}")
+                    st.metric("Status", status)
+                with right_col:
+                    st.write(stage["detail"])
+                    st.caption(f"Control: {stage['control']}")
+
+    with summary_col:
+        st.subheader("Outcome Summary")
+        st.success("The exploit was blocked before a session was created.")
+        st.info("The source IP was automatically isolated by security controls.")
+        st.warning("Administrators review the incident and preserve evidence.")
+
+        if summary:
+            st.write(f"**Incident ID:** {demo_state.get('incident_id', 'n/a')}")
+            st.write(f"**Correlation ID:** {demo_state.get('correlation_id', 'n/a')}")
+            st.write(f"**Top Risk Score:** {summary.get('top_risk_score', 0)}")
+            st.write(f"**Top Reputation:** {summary.get('top_reputation', 'unknown')}")
+
+        st.markdown("---")
+        st.write("**Key facts**")
+        st.write(f"- Attack type: {attacks[0].get('attack_type', 'unknown') if attacks else 'unknown'}")
+        st.write(f"- Source IP: {attacks[0].get('source_ip', 'unknown') if attacks else 'unknown'}")
+        st.write(f"- Final status: {_summarize_attack_status(attacks[0], blocks) if attacks else 'contained'}")
+        st.write(f"- Estimated impact: {_estimate_loss_impact(attacks[0].get('attack_type', 'unknown') if attacks else 'unknown', attacks[0].get('severity', 'medium') if attacks else 'medium', True)}")
+
+        st.markdown("---")
+        st.subheader("Evidence")
+        st.json({
+            "attack_count": len(attacks),
+            "alert_count": len(alerts),
+            "blocked_ips": [item.get("ip") for item in blocks],
+            "integrity_hash": chain_hash,
+            "block_rate": kpis.get("block_rate", 0.0),
+            "mttd_minutes": kpis.get("mttd_minutes", 0.0),
+            "mttr_minutes": kpis.get("mttr_minutes", 0.0),
+            "source": "demo_security_state.json",
+        })
+
+        snapshot_payload = {
+            "generated_at": datetime.utcnow().isoformat() + "Z",
+            "attacks": attacks,
+            "alerts": alerts,
+            "blocked_ips": blocks,
+            "stages": stages,
+            "executive_summary": summary,
+            "kpis": kpis,
+            "integrity_hash": chain_hash,
+        }
+        st.download_button(
+            "Download Incident Snapshot",
+            data=json.dumps(snapshot_payload, indent=2),
+            file_name="incident_snapshot.json",
+            mime="application/json",
+            use_container_width=True,
+        )
+
+        snapshot_rows = []
+        for attack in attacks:
+            snapshot_rows.append({
+                "Type": attack.get("attack_type", "unknown"),
+                "Source IP": attack.get("source_ip", "unknown"),
+                "Status": attack.get("status", "detected"),
+                "Correlation ID": attack.get("correlation_id", ""),
+                "Threat Score": attack.get("threat_intel", {}).get("risk_score", 0),
+            })
+        if snapshot_rows:
+            st.download_button(
+                "Download Attack CSV",
+                data=pd.DataFrame(snapshot_rows).to_csv(index=False),
+                file_name="attack_events.csv",
+                mime="text/csv",
+                use_container_width=True,
+            )
+
+        st.download_button(
+            "Download Full Incident Package",
+            data=json.dumps(export_payload, indent=2),
+            file_name="incident_package.json",
+            mime="application/json",
+            use_container_width=True,
+        )
+
+        st.download_button(
+            "Download Executive Report JSON",
+            data=json.dumps(executive_report, indent=2),
+            file_name="executive_security_report.json",
+            mime="application/json",
+            use_container_width=True,
+        )
+
+        st.download_button(
+            "Download Executive Report PDF",
+            data=render_executive_report_pdf(executive_report),
+            file_name="executive_security_report.pdf",
+            mime="application/pdf",
+            use_container_width=True,
+        )
+
+        if summary.get("recommended_actions"):
+            st.markdown("---")
+            st.subheader("Recommended Actions")
+            for action in summary.get("recommended_actions", [])[:5]:
+                st.write(f"- {action}")
+
+        if cases:
+            st.markdown("---")
+            st.subheader("Correlated Cases")
+            case_rows = []
+            for case in cases[:10]:
+                case_rows.append({
+                    "Case": case.get("title", "Case"),
+                    "Status": case.get("status", "open"),
+                    "Severity": case.get("severity", "medium"),
+                    "Playbook": case.get("playbook_name", "generic-triage"),
+                    "Sources": ", ".join(case.get("source_ips", [])[:3]),
+                    "Summary": case.get("summary", ""),
+                })
+            st.dataframe(pd.DataFrame(case_rows), width="stretch", hide_index=True)
+
+    st.markdown("---")
+    st.subheader("Flow Status Table")
+    flow_df = pd.DataFrame(stages)
+    st.dataframe(flow_df, width="stretch", hide_index=True)
+
+    st.markdown("---")
+    st.subheader("Telemetry Summary")
+    telemetry_rows = [
+        {"Metric": "Attack Count", "Value": kpis.get("attack_count", 0)},
+        {"Metric": "Critical Count", "Value": kpis.get("critical_count", 0)},
+        {"Metric": "Alert Count", "Value": kpis.get("alert_count", 0)},
+        {"Metric": "False Positive Rate", "Value": f"{kpis.get('false_positive_rate', 0.0):.1f}%"},
+        {"Metric": "Case Count", "Value": len(cases)},
+        {"Metric": "Integrity Hash", "Value": chain_hash},
+    ]
+    st.dataframe(pd.DataFrame(telemetry_rows), width="stretch", hide_index=True)
+
+
 def show_page_connection_hub():
     """Central place to review company integration settings."""
     st.title("🔌 Connection Hub")
@@ -1959,6 +3313,16 @@ def show_page_security_operations():
     st.title("🛡️ Security Operations")
     db = st.session_state.db
     events = db.get_events(limit=250)
+    attacks = _fetch_security_alerts("attacks")
+    active_alerts = _fetch_security_alerts("active")
+    blocked_ips = _fetch_security_alerts("blocked-ips")
+    cases = db.list_security_cases(limit=50) if hasattr(db, "list_security_cases") else []
+    playbook_runs = db.list_security_playbook_runs(limit=25) if hasattr(db, "list_security_playbook_runs") else []
+    security_rules = _load_security_rules(db)
+    notification_queue = db.list_security_notifications(limit=25) if hasattr(db, "list_security_notifications") else []
+    chain_entries = db.list_security_chain_entries(limit=10, chain_name="incident-flow") if hasattr(db, "list_security_chain_entries") else []
+    kpis = calculate_security_kpis(attacks, active_alerts, blocked_ips)
+    case_metrics = summarize_case_metrics(cases)
 
     failed_events = [e for e in events if e.get("status") != "success"]
     auth_events = [
@@ -1977,11 +3341,127 @@ def show_page_security_operations():
         st.metric("Registered Users", len(db.list_users()))
 
     st.markdown("---")
+    kpi_cols = st.columns(4)
+    with kpi_cols[0]:
+        st.metric("Attack Count", kpis.get("attack_count", 0))
+    with kpi_cols[1]:
+        st.metric("Blocked", kpis.get("blocked_count", 0))
+    with kpi_cols[2]:
+        st.metric("MTTD (min)", f"{kpis.get('mttd_minutes', 0.0):.2f}")
+    with kpi_cols[3]:
+        st.metric("MTTR (min)", f"{kpis.get('mttr_minutes', 0.0):.2f}")
+
+    case_cols = st.columns(4)
+    with case_cols[0]:
+        st.metric("Cases", case_metrics.get("total_cases", 0))
+    with case_cols[1]:
+        st.metric("Open Cases", case_metrics.get("open_cases", 0))
+    with case_cols[2]:
+        st.metric("Contained Cases", case_metrics.get("contained_cases", 0))
+    with case_cols[3]:
+        st.metric("Closed Cases", case_metrics.get("closed_cases", 0))
+
+    st.markdown("---")
     st.subheader("Security Snapshot")
     st.write("- Rate limiting is active in the login flow")
     st.write("- Account lockout is enabled for repeated failures")
     st.write("- SQL injection filtering is active")
     st.write("- Audit logging captures system changes")
+    st.write(f"- Detection rules loaded: {len(security_rules)}")
+    st.write(f"- Notification queue entries: {len(notification_queue)}")
+    st.write(f"- Integrity chain entries: {len(chain_entries)}")
+
+    if st.button("Retry Failed Notifications"):
+        results = _process_security_notification_queue(db)
+        if results:
+            st.success(f"Processed {len(results)} queued notification(s).")
+        else:
+            st.info("No queued notifications were available for retry.")
+
+    if security_rules:
+        st.subheader("Active Detection Rules")
+        rule_rows = []
+        for rule in security_rules:
+            rule_rows.append({
+                "Rule": rule.get("rule_key", "custom"),
+                "Title": rule.get("title", "Security rule"),
+                "Pattern": rule.get("pattern", ""),
+                "Severity": rule.get("severity", "medium"),
+                "Action": rule.get("response_action", "monitor"),
+            })
+        st.dataframe(pd.DataFrame(rule_rows), width="stretch", hide_index=True)
+
+    if notification_queue:
+        st.subheader("Notification Queue")
+        queue_rows = []
+        for item in notification_queue:
+            queue_rows.append({
+                "Time": item.get("created_at", ""),
+                "Target": item.get("target_name", ""),
+                "Status": item.get("status", ""),
+                "Attempts": item.get("attempts", 0),
+                "Last Error": item.get("last_error", ""),
+            })
+        st.dataframe(pd.DataFrame(queue_rows), width="stretch", hide_index=True)
+
+    if chain_entries:
+        st.subheader("Integrity Chain")
+        chain_rows = []
+        for entry in chain_entries:
+            chain_rows.append({
+                "Time": entry.get("created_at", ""),
+                "Chain": entry.get("chain_name", ""),
+                "Previous Hash": str(entry.get("previous_hash", ""))[:12],
+                "Current Hash": str(entry.get("current_hash", ""))[:12],
+            })
+        st.dataframe(pd.DataFrame(chain_rows), width="stretch", hide_index=True)
+
+    if cases:
+        st.subheader("Correlated Cases")
+        case_rows = []
+        for case in cases[:20]:
+            case_rows.append({
+                "Case": case.get("title", "Case"),
+                "Status": case.get("status", "open"),
+                "Severity": case.get("severity", "medium"),
+                "Playbook": case.get("playbook_name", "generic-triage"),
+                "Sources": ", ".join(case.get("source_ips", [])[:3]),
+                "Actions": ", ".join(case.get("recommended_actions", [])[:4]),
+            })
+        st.dataframe(pd.DataFrame(case_rows), width="stretch", hide_index=True)
+
+        selected_case = st.selectbox(
+            "Select a case to operate on",
+            options=cases,
+            format_func=lambda item: f"{item.get('title', 'Case')} | {item.get('severity', 'medium')} | {item.get('status', 'open')}",
+        )
+        selected_playbook = next((item for item in get_security_playbooks() if item.get("playbook_name") == selected_case.get("playbook_name")), get_security_playbooks()[-1])
+        play_col1, play_col2 = st.columns(2)
+        with play_col1:
+            if st.button("Execute Recommended Playbook", width="stretch"):
+                result = execute_playbook(db, selected_case, selected_playbook)
+                st.success(f"Playbook {result.get('playbook_name')} executed")
+                st.json(result)
+        with play_col2:
+            if st.button("Close Case", width="stretch"):
+                if db.close_security_case(selected_case.get("id")):
+                    st.success("Case closed")
+                    st.rerun()
+                else:
+                    st.error("Failed to close case")
+
+    if playbook_runs:
+        st.subheader("Recent Playbook Runs")
+        run_rows = []
+        for run in playbook_runs[:15]:
+            run_rows.append({
+                "Time": run.get("created_at", ""),
+                "Case": run.get("case_key", ""),
+                "Playbook": run.get("playbook_name", ""),
+                "Status": run.get("status", ""),
+                "Auto": run.get("auto_applied", False),
+            })
+        st.dataframe(pd.DataFrame(run_rows), width="stretch", hide_index=True)
 
     if failed_events:
         st.subheader("Recent Failed Events")

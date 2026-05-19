@@ -42,5 +42,21 @@ def test_requested_page_parameter_handling():
     assert session_requested_page == "Bloome", "Requested page should be 'Bloome'"
 
 
+def test_operator_navigation_includes_security_forensics_pages(monkeypatch):
+    """Verify operator navigation exposes the new incident-focused pages."""
+    import app as app_module
+
+    monkeypatch.setattr(app_module, "is_admin", lambda: False)
+    monkeypatch.setattr(app_module, "is_operator", lambda: True)
+    monkeypatch.setattr(app_module, "check_permission", lambda permission: permission.name != "SETTINGS_VIEW")
+
+    pages = app_module.get_navigation_pages()
+
+    assert "🕵️ Attack Forensics" in pages
+    assert "🔔 Alert Center" in pages
+    assert "🔌 Connection Hub" not in pages
+    assert "🔗 Integrations" not in pages
+
+
 if __name__ == "__main__":
     print("✓ All post-login redirect tests passed!")
