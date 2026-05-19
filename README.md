@@ -935,6 +935,23 @@ pytest tests/e2e -v
 pytest -v --cov=. --cov-report=html
 ```
 
+### New: Security Incident Management (Incident Correlation, Playbooks, Executive Reports & PDF export)
+
+- **What it adds:** correlation of attacks into `cases`, persistent case management, automated response playbooks, recorded playbook runs, and an executive security report with JSON and downloadable PDF export directly from the Streamlit dashboard.
+
+- **How to use (local):**
+    1. Start the dashboard: `python run_gui.py` (opens http://localhost:8501)
+    2. Login with demo admin or your admin account (demo_admin / DemoAdmin@12345 for local demos).
+    3. Open **Security Operations**: view correlated Cases, select a case, click **Execute Recommended Playbook** or **Close Case**.
+    4. Open **Reports**: generate the Executive Security Report and click **Download Executive PDF** to get a compact PDF summary.
+
+- **Notes:** the PDF generator uses a minimal, dependency-free renderer included in the codebase and produces valid PDF bytes for browser download. For production-quality typography consider adding `reportlab` or `WeasyPrint` in CI.
+
+- **Tests:** run the full test suite before pushing or deploying: `pytest -q` (local run: 133 passed, 6 skipped at last verification).
+
+- **Repository:** these changes were committed and pushed to `origin` on branch `feat/infra-ci-alembic-casbin-celery`.
+
+
 ### Test Results
 ```
 ✅ Broad automated coverage across unit, integration, and E2E tests
