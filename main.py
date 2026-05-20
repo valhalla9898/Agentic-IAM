@@ -17,10 +17,47 @@ from typing import Optional
 import multiprocessing as mp
 import uvicorn
 import subprocess
+import logging
 
 # Add core modules to path
 sys.path.append(str(Path(__file__).parent / "core"))
 sys.path.append(str(Path(__file__).parent.parent))
+
+
+# Ensure spawn start method on Windows to avoid fork-related issues
+if sys.platform.startswith("win"):
+    try:
+        mp.set_start_method("spawn", force=True)
+    except RuntimeError:
+        # start method already set
+        pass
+
+
+def _run_api_server(host: str, port: int, log_level: str) -> None:
+    try:
+        uvicorn.run("api.main:app", host=host, port=port, log_level=log_level, access_log=True)
+    except Exception as e:
+        logging.getLogger("AgenticIAM").error(f"API server error: {e}")
+
+
+def _run_dashboard_server(dashboard_host: str, dashboard_port: int, cwd_path: str) -> None:
+    try:
+        cmd = [
+            sys.executable,
+            "-m",
+            "streamlit",
+            "run",
+            "dashboard/main.py",
+            "--server.port",
+            str(dashboard_port),
+            "--server.address",
+            dashboard_host,
+            "--browser.gatherUsageStats",
+            "false",
+        ]
+        subprocess.run(cmd, cwd=cwd_path)
+    except Exception as e:
+        logging.getLogger("AgenticIAM").error(f"Dashboard server error: {e}")
 
 
 class AgenticIAMPlatform:
@@ -85,14 +122,20 @@ class AgenticIAMPlatform:
 
         # Start API server in separate process
         if self.settings.enable_api:
-            self.api_process = mp.Process(target=self.start_api_server)
+            self.api_process = mp.Process(
+                target=_run_api_server,
+                args=(self.settings.api_host, self.settings.api_port, self.settings.log_level.lower()),
+            )
             self.api_process.start()
             self.logger.info(
                 f"API server started on {self.settings.api_host}:{self.settings.api_port}")
 
         # Start dashboard in separate process
         if self.settings.enable_dashboard:
-            self.dashboard_process = mp.Process(target=self.start_dashboard_server)
+            self.dashboard_process = mp.Process(
+                target=_run_dashboard_server,
+                args=(self.settings.dashboard_host, self.settings.dashboard_port, str(Path(__file__).parent)),
+            )
             self.dashboard_process.start()
             self.logger.info(
                 f"Dashboard started on {self.settings.dashboard_host}:{self.settings.dashboard_port}")
@@ -163,8 +206,4 @@ async def main():
 
 
 if __name__ == "__main__":
-    # Set multiprocessing start method
-    if sys.platform.startswith('darwin'):  # macOS
-        mp.set_start_method('spawn', force=True)
-
     asyncio.run(main())

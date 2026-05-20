@@ -224,7 +224,13 @@ def execute_playbook(db: Any, case: Dict[str, Any], playbook: Optional[Dict[str,
         result = {"step": step, "status": "skipped", "details": "No matching executor"}
         if step == "Block source IP" and hasattr(db, "block_ip"):
             for source_ip in source_ips:
-                if db.block_ip(source_ip, f"Playbook {playbook.get('playbook_name')}", attack_event_id=case.get("attack_ids", [None])[0]):
+                # Safely grab a representative attack_event_id if present
+                attack_event_id = (case.get("attack_ids") or [None])[0]
+                try:
+                    blocked = db.block_ip(source_ip, f"Playbook {playbook.get('playbook_name')}", attack_event_id=attack_event_id)
+                except Exception:
+                    blocked = False
+                if blocked:
                     result = {"step": step, "status": "success", "details": f"Blocked {source_ip}"}
         elif step == "Resolve linked alerts" and hasattr(db, "resolve_security_alert"):
             resolved = 0

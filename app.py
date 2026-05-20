@@ -21,14 +21,7 @@ from utils.rbac import (
     get_current_user_permissions,
     get_rbac_manager,
 )
-from bloome_store import (
-    STORE_NAME,
-    build_consultation_details,
-    format_price,
-    get_brand_story,
-    get_catalog_summary,
-    get_featured_products,
-)
+# Bloome storefront removed — related utilities were deleted
 from dashboard.components.risk_assessment import show_risk_assessment
 from dashboard.components.ai_assistant import show_ai_assistant
 from dashboard.components.agent_selection import (
@@ -1109,7 +1102,7 @@ def show_logout():
 
 def get_navigation_pages():
     """Get navigation pages based on user role"""
-    pages = ["Bloome"]
+    pages = []
 
     if is_admin() or is_operator():
         pages.insert(0, "Home")
@@ -1251,8 +1244,7 @@ def main():
     # Main content - Route to correct page
     if page == "Home":
         show_home()
-    elif page == "Bloome":
-        show_bloome_storefront()
+    # Bloome page removed
     elif page == "🤖 AI Assistant":
         show_ai_assistant()
     elif page == "🔍 Browse Agents":
@@ -1315,102 +1307,7 @@ def main():
         st.warning(f"Page '{page}' not implemented yet")
 
 
-def show_bloome_storefront():
-    """Show the consumer-facing Bloome storefront."""
-    st.title(f"✨ {STORE_NAME}")
-    st.caption(
-        "Premium perfume and skin care with clear pricing, product discovery, and concierge-style guidance.")
 
-    st.markdown(
-        """
-        <style>
-        .bloome-hero {
-            background: linear-gradient(135deg, #f7efe4 0%, #fff8f0 45%, #f3e5d8 100%);
-            border: 1px solid rgba(126, 93, 52, 0.12);
-            border-radius: 24px;
-            padding: 2rem;
-            box-shadow: 0 18px 50px rgba(117, 80, 38, 0.10);
-        }
-        .bloome-chip {
-            display: inline-block;
-            padding: 0.4rem 0.8rem;
-            border-radius: 999px;
-            background: rgba(126, 93, 52, 0.08);
-            margin-right: 0.5rem;
-            margin-bottom: 0.5rem;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    hero_col1, hero_col2 = st.columns([2, 1])
-    with hero_col1:
-        st.markdown("<div class='bloome-hero'>", unsafe_allow_html=True)
-        st.subheader("Perfume and skincare, curated like a boutique.")
-        st.write(get_brand_story())
-        for label in ["Perfume", "Skin Care", "Gift Sets", "Consultation"]:
-            st.markdown(f"<span class='bloome-chip'>{label}</span>", unsafe_allow_html=True)
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    with hero_col2:
-        summary = get_catalog_summary()
-        st.metric("Categories", len(summary))
-        st.metric("Featured Products", len(get_featured_products()))
-        st.metric("Starting Price", format_price(620))
-
-    st.markdown("---")
-    st.subheader("Featured Collection")
-    featured = get_featured_products()
-    product_cols = st.columns(2)
-    for index, product in enumerate(featured):
-        with product_cols[index % 2]:
-            st.markdown(
-                f"""
-                <div style='border:1px solid rgba(126,93,52,0.14);border-radius:20px;padding:1rem;background:#fffdf9;'>
-                <div style='font-size:0.8rem;opacity:0.7'>{product.category}</div>
-                <h3 style='margin-bottom:0.25rem'>{product.name}</h3>
-                <div style='margin-bottom:0.35rem'><strong>{format_price(product.price_egp)}</strong></div>
-                <div style='margin-bottom:0.35rem'>{product.description}</div>
-                <div style='font-size:0.9rem;opacity:0.8'>Skin type: {product.skin_type or 'All skin types'}</div>
-                <div style='font-size:0.9rem;opacity:0.8'>Size: {product.size or 'Standard'}</div>
-                <div style='font-size:0.8rem;margin-top:0.35rem'><strong>{product.badge}</strong></div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-
-    st.markdown("---")
-    st.subheader("Request a recommendation")
-    with st.form("bloome_consultation_form"):
-        c1, c2 = st.columns(2)
-        with c1:
-            customer_name = st.text_input("Your name")
-            email = st.text_input("Email")
-            product_interest = st.selectbox("Product interest", ["Skin Care", "Perfume", "Bundles"])
-        with c2:
-            skin_concern = st.text_input("Skin concern / fragrance preference")
-            budget_egp = st.slider(
-                "Budget (EGP)",
-                min_value=500,
-                max_value=5000,
-                value=1500,
-                step=100)
-            preferred_format = st.selectbox(
-                "Preferred format", [
-                    "Everyday", "Gift", "Premium", "Routine"])
-
-        submitted = st.form_submit_button("Get curated recommendations")
-
-        if submitted:
-            if not customer_name or not email:
-                st.error("Please enter your name and email.")
-            else:
-                details = build_consultation_details(
-                    customer_name, email, product_interest, skin_concern, budget_egp)
-                st.success("Thanks. A Bloome consultant can use this brief to prepare a recommendation.")
-                st.code(details)
-                st.caption(f"Preferred format: {preferred_format}")
 
 
 def show_home():
