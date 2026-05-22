@@ -1,11 +1,15 @@
 """Attack detection engine - identifies and blocks malicious activities."""
+
 from __future__ import annotations
+
 import json
 import re
 from datetime import datetime, timedelta
 from typing import Optional
+
 from sqlalchemy.orm import Session
-from core.db import AttackEvent, SecurityAlert, BlockedIP, FailedLoginAttempt
+
+from core.db import AttackEvent, BlockedIP, FailedLoginAttempt, SecurityAlert
 
 
 class AttackDetector:
@@ -52,23 +56,33 @@ class AttackDetector:
         return False
 
     @staticmethod
-    def detect_brute_force(db: Session, username: str, source_ip: str, threshold: int = 5, window_minutes: int = 10) -> bool:
+    def detect_brute_force(
+        db: Session, username: str, source_ip: str, threshold: int = 5, window_minutes: int = 10
+    ) -> bool:
         """Detect brute force attacks - multiple failed attempts in short time."""
         time_window = datetime.utcnow() - timedelta(minutes=window_minutes)
-        count = db.query(FailedLoginAttempt).filter(
-            FailedLoginAttempt.username == username,
-            FailedLoginAttempt.source_ip == source_ip,
-            FailedLoginAttempt.attempted_at >= time_window,
-        ).count()
+        count = (
+            db.query(FailedLoginAttempt)
+            .filter(
+                FailedLoginAttempt.username == username,
+                FailedLoginAttempt.source_ip == source_ip,
+                FailedLoginAttempt.attempted_at >= time_window,
+            )
+            .count()
+        )
         return count >= threshold
 
     @staticmethod
     def is_ip_blocked(db: Session, ip: str) -> bool:
         """Check if IP is blocked and not expired."""
-        block = db.query(BlockedIP).filter(
-            BlockedIP.ip_address == ip,
-            BlockedIP.is_active == True,
-        ).first()
+        block = (
+            db.query(BlockedIP)
+            .filter(
+                BlockedIP.ip_address == ip,
+                BlockedIP.is_active,
+            )
+            .first()
+        )
 
         if not block:
             return False
@@ -106,7 +120,7 @@ class AttackLogger:
             description=description,
             metadata=json.dumps(metadata) if metadata else None,
             detected_at=datetime.utcnow(),
-            status='detected',
+            status="detected",
         )
         db.add(attack_event)
         db.commit()

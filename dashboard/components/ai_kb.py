@@ -1,9 +1,9 @@
-import os
-import json
 import hashlib
-import re
 import html
-from typing import List, Dict, Tuple
+import json
+import os
+import re
+from typing import Dict, List, Tuple
 
 INDEX_FILE = ".ai_index.json"
 
@@ -53,7 +53,7 @@ SENSITIVE_PATTERNS = [
 
 
 def _is_sensitive_path(path: str) -> bool:
-    low = path.replace('\\\\', '/').lower()
+    low = path.replace("\\\\", "/").lower()
     for p in SENSITIVE_PATTERNS:
         if re.search(p, low):
             return True
@@ -70,7 +70,8 @@ def _iter_text_files(root: str = "."):
         ".mypy_cache",
         ".pytest_cache",
         "__pycache__",
-        ".ruff_cache"}
+        ".ruff_cache",
+    }
     for dirpath, dirnames, filenames in os.walk(root):
         parts = set(dirpath.split(os.sep))
         if parts & skip:
@@ -79,13 +80,13 @@ def _iter_text_files(root: str = "."):
             path = os.path.join(dirpath, fn)
             if _is_sensitive_path(path):
                 continue
-            if fn.endswith(('.md', '.py', '.txt', '.rst', '.cfg', '.toml', '.json')):
+            if fn.endswith((".md", ".py", ".txt", ".rst", ".cfg", ".toml", ".json")):
                 yield path
 
 
 def _chunk_text(text: str, max_size: int = 1200, overlap: int = 200) -> List[str]:
     # Split on sentence boundaries for better snippets
-    sents = re.split(r'(?<=[.!?])\\s+', text)
+    sents = re.split(r"(?<=[.!?])\\s+", text)
     chunks = []
     cur = ""
     for s in sents:
@@ -112,7 +113,7 @@ def _highlight(snippet: str, query: str) -> str:
         try:
             pattern = re.compile(re.escape(t), re.IGNORECASE)
             safe = pattern.sub(r"<mark>\\g<0></mark>", safe)
-        except Exception:
+        except re.error:
             continue
     return safe
 
@@ -126,22 +127,22 @@ def build_index(root: str = ".", force: bool = False) -> Tuple[bool, str]:
     index = []
     for path in files:
         try:
-            with open(path, 'r', encoding='utf-8', errors='ignore') as f:
+            with open(path, "r", encoding="utf-8", errors="ignore") as f:
                 text = f.read()
-        except Exception:
+        except (OSError, UnicodeDecodeError):
             continue
         chunks = _chunk_text(text)
         for j, c in enumerate(chunks):
             item = {
-                'id': hashlib.sha256(f"{path}:{j}".encode()).hexdigest(),
-                'path': path.replace('\\', '/'),
-                'chunk': c[:4000]
+                "id": hashlib.sha256(f"{path}:{j}".encode()).hexdigest(),
+                "path": path.replace("\\", "/"),
+                "chunk": c[:4000],
             }
             index.append(item)
 
     # Try to add embeddings if OpenAI key present
     try:
-        api_key = os.getenv('OPENAI_API_KEY')
+        api_key = os.getenv("OPENAI_API_KEY")
         if api_key:
             # Prefer modern OpenAI client, fallback to legacy SDK.
             try:
@@ -149,24 +150,25 @@ def build_index(root: str = ".", force: bool = False) -> Tuple[bool, str]:
 
                 client = OpenAI(api_key=api_key)
                 for i in range(0, len(index), 50):
-                    batch = [it['chunk'] for it in index[i:i + 50]]
-                    resp = client.embeddings.create(model='text-embedding-3-small', input=batch)
+                    batch = [it["chunk"] for it in index[i : i + 50]]
+                    resp = client.embeddings.create(model="text-embedding-3-small", input=batch)
                     for k, r in enumerate(resp.data):
-                        index[i + k]['embedding'] = r.embedding
-            except Exception:
+                        index[i + k]["embedding"] = r.embedding
+            except ImportError:
                 import openai
 
                 openai.api_key = api_key
                 for i in range(0, len(index), 50):
-                    batch = [it['chunk'] for it in index[i:i + 50]]
-                    resp = openai.Embedding.create(model='text-embedding-3-small', input=batch)
+                    batch = [it["chunk"] for it in index[i : i + 50]]
+                    resp = openai.Embedding.create(model="text-embedding-3-small", input=batch)
                     for k, r in enumerate(resp.data):
-                        index[i + k]['embedding'] = r['embedding']
-    except Exception:
-        # embedding unavailable — proceed without embeddings
-        pass
+                        index[i + k]["embedding"] = r["embedding"]
+    except (ImportError, OSError, RuntimeError, ValueError) as e:
+        import logging
 
-    with open(INDEX_FILE, 'w', encoding='utf-8') as f:
+        logging.getLogger(__name__).debug("Embedding generation skipped: %s", e)
+
+    with open(INDEX_FILE, "w", encoding="utf-8") as f:
         json.dump(index, f)
 
     return True, f"Indexed {len(index)} chunks from {len(files)} files"
@@ -176,9 +178,9 @@ def _load_index() -> List[Dict]:
     if not os.path.exists(INDEX_FILE):
         return []
     try:
-        with open(INDEX_FILE, 'r', encoding='utf-8') as f:
+        with open(INDEX_FILE, "r", encoding="utf-8") as f:
             return json.load(f)
-    except Exception:
+    except (OSError, json.JSONDecodeError):
         return []
 
 
@@ -198,51 +200,48 @@ def query_kb(query: str, top_k: int = 3) -> List[Dict]:
         return []
 
     # Semantic path
-    if 'embedding' in index[0]:
+    if "embedding" in index[0]:
         try:
-            api_key = os.getenv('OPENAI_API_KEY')
+            api_key = os.getenv("OPENAI_API_KEY")
             if not api_key:
                 raise Exception("OPENAI_API_KEY not set")
             try:
                 from openai import OpenAI
 
                 client = OpenAI(api_key=api_key)
-                q_emb = client.embeddings.create(
-                    model='text-embedding-3-small',
-                    input=[query]).data[0].embedding
-            except Exception:
+                q_emb = client.embeddings.create(model="text-embedding-3-small", input=[query]).data[0].embedding
+            except ImportError:
                 import openai
 
                 openai.api_key = api_key
-                q_emb = openai.Embedding.create(
-                    model='text-embedding-3-small',
-                    input=[query]).data[0]['embedding']
+                q_emb = openai.Embedding.create(model="text-embedding-3-small", input=[query]).data[0]["embedding"]
             scored = []
             for item in index:
-                if 'embedding' not in item:
+                if "embedding" not in item:
                     continue
-                score = _cosine(q_emb, item['embedding'])
+                score = _cosine(q_emb, item["embedding"])
                 scored.append((score, item))
             scored.sort(key=lambda x: x[0], reverse=True)
-            return [{'score': s, 'path': it['path'], 'snippet': it['chunk'],
-                     'html': _highlight(it['chunk'], query)} for s, it in scored[:top_k]]
-        except Exception:
+            return [
+                {"score": s, "path": it["path"], "snippet": it["chunk"], "html": _highlight(it["chunk"], query)}
+                for s, it in scored[:top_k]
+            ]
+        except (OSError, RuntimeError, ValueError):
             # fall through to keyword
             pass
 
     # Keyword fallback
-    q = [
-        token for token in re.findall(
-            r"[a-z0-9_]+",
-            query.lower()) if len(token) >= 4 and token not in STOPWORDS]
+    q = [token for token in re.findall(r"[a-z0-9_]+", query.lower()) if len(token) >= 4 and token not in STOPWORDS]
     if not q:
         q = [token for token in re.findall(r"[a-z0-9_]+", query.lower()) if token not in STOPWORDS]
     scored = []
     for item in index:
-        text = item['chunk'].lower()
+        text = item["chunk"].lower()
         cnt = sum(text.count(w) for w in q)
         if cnt > 0:
             scored.append((cnt, item))
     scored.sort(key=lambda x: x[0], reverse=True)
-    return [{'score': s, 'path': it['path'], 'snippet': it['chunk'],
-             'html': _highlight(it['chunk'], query)} for s, it in scored[:top_k]]
+    return [
+        {"score": s, "path": it["path"], "snippet": it["chunk"], "html": _highlight(it["chunk"], query)}
+        for s, it in scored[:top_k]
+    ]

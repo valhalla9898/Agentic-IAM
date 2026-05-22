@@ -7,8 +7,11 @@ from datetime import datetime
 from textwrap import wrap
 from typing import Any, Dict, Iterable, List, Optional
 
-from security_telemetry import build_event_fingerprint, calculate_security_kpis, generate_correlation_id
-
+from security_telemetry import (
+    build_event_fingerprint,
+    calculate_security_kpis,
+    generate_correlation_id,
+)
 
 DEFAULT_SECURITY_PLAYBOOKS: List[Dict[str, Any]] = [
     {
@@ -127,7 +130,9 @@ def correlate_security_cases(
             if alert.get("id") is not None:
                 matched_case["alert_ids"].append(alert.get("id"))
             matched_case["severity_values"].append(str(alert.get("severity", "medium")))
-            if alert.get("created_at") and (not matched_case["last_seen"] or str(alert.get("created_at")) > str(matched_case["last_seen"])):
+            if alert.get("created_at") and (
+                not matched_case["last_seen"] or str(alert.get("created_at")) > str(matched_case["last_seen"])
+            ):
                 matched_case["last_seen"] = alert.get("created_at")
 
     for block in blocked_list:
@@ -152,9 +157,7 @@ def correlate_security_cases(
         else:
             playbook_name = "generic-triage"
 
-        summary = (
-            f"{attack_count} attack event(s), {alert_count} alert(s), {blocked_count} blocked source(s)."
-        )
+        summary = f"{attack_count} attack event(s), {alert_count} alert(s), {blocked_count} blocked source(s)."
         payload = {
             "case_key": case["case_key"],
             "source_ips": sorted(case["source_ips"]),
@@ -227,8 +230,13 @@ def execute_playbook(db: Any, case: Dict[str, Any], playbook: Optional[Dict[str,
                 # Safely grab a representative attack_event_id if present
                 attack_event_id = (case.get("attack_ids") or [None])[0]
                 try:
-                    blocked = db.block_ip(source_ip, f"Playbook {playbook.get('playbook_name')}", attack_event_id=attack_event_id)
-                except Exception:
+                    blocked = db.block_ip(
+                        source_ip, f"Playbook {playbook.get('playbook_name')}", attack_event_id=attack_event_id
+                    )
+                except Exception as e:
+                    import logging
+
+                    logging.getLogger(__name__).debug("block_ip failed: %s", e)
                     blocked = False
                 if blocked:
                     result = {"step": step, "status": "success", "details": f"Blocked {source_ip}"}
@@ -238,7 +246,16 @@ def execute_playbook(db: Any, case: Dict[str, Any], playbook: Optional[Dict[str,
                 if db.resolve_security_alert(alert_id):
                     resolved += 1
             result = {"step": step, "status": "success", "details": f"Resolved {resolved} alert(s)"}
-        elif step in {"Rate limit source", "Step-up MFA", "Preserve evidence", "Notify SOC channel", "Notify SIEM", "Review evidence", "Assign owner", "Validate containment"}:
+        elif step in {
+            "Rate limit source",
+            "Step-up MFA",
+            "Preserve evidence",
+            "Notify SOC channel",
+            "Notify SIEM",
+            "Review evidence",
+            "Assign owner",
+            "Validate containment",
+        }:
             result = {"step": step, "status": "recorded", "details": "Recorded as response action"}
         actions.append(result)
 
@@ -300,7 +317,9 @@ def build_executive_report(
     case_list = list(cases or [])
     kpis = calculate_security_kpis(attacks, alerts, blocked_ips)
     case_metrics = summarize_case_metrics(case_list)
-    top_cases = sorted(case_list, key=lambda item: (item.get("severity", "medium"), item.get("attack_count", 0)), reverse=True)[:5]
+    top_cases = sorted(
+        case_list, key=lambda item: (item.get("severity", "medium"), item.get("attack_count", 0)), reverse=True
+    )[:5]
     report = {
         "report_type": "executive_security_summary",
         "generated_at": datetime.utcnow().isoformat(),
@@ -370,12 +389,14 @@ def render_executive_report_pdf(report: Dict[str, Any]) -> bytes:
     """Render a small but valid PDF document for executive report downloads."""
     lines = _build_pdf_content_lines(report)
     per_page = 40
-    pages: List[List[str]] = [lines[index:index + per_page] for index in range(0, len(lines), per_page)] or [[]]
+    pages: List[List[str]] = [lines[index : index + per_page] for index in range(0, len(lines), per_page)] or [[]]
 
     font_obj = 3 + (len(pages) * 2)
     objects: Dict[int, bytes] = {
         1: b"1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n",
-        2: f"2 0 obj << /Type /Pages /Kids [{' '.join(f'{3 + index * 2} 0 R' for index in range(len(pages)))}] /Count {len(pages)} >> endobj\n".encode("utf-8"),
+        2: f"2 0 obj << /Type /Pages /Kids [{' '.join(f'{3 + index * 2} 0 R' for index in range(len(pages)))}] /Count {len(pages)} >> endobj\n".encode(
+            "utf-8"
+        ),
         font_obj: f"{font_obj} 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj\n".encode("utf-8"),
     }
 
@@ -422,11 +443,8 @@ def render_executive_report_pdf(report: Dict[str, Any]) -> bytes:
         offset = xref_offsets.get(obj_number, 0)
         pdf.extend(f"{offset:010d} 00000 n \n".encode("utf-8"))
     pdf.extend(
-        (
-            "trailer << /Size {size} /Root 1 0 R >>\n"
-            "startxref\n"
-            "{start}\n"
-            "%%EOF\n"
-        ).format(size=font_obj + 1, start=xref_start).encode("utf-8")
+        ("trailer << /Size {size} /Root 1 0 R >>\n" "startxref\n" "{start}\n" "%%EOF\n")
+        .format(size=font_obj + 1, start=xref_start)
+        .encode("utf-8")
     )
     return bytes(pdf)

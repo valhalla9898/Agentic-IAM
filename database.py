@@ -4,23 +4,25 @@ Database Management Module for Agentic-IAM
 Handles SQLite database operations for logging events and storing agent data.
 """
 
-import sqlite3
 import json
+import os
+import sqlite3
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional
-import os
 
 # Optional secret manager integration
 try:
     from secrets.key_vault import secret_manager
-except Exception:
+except ImportError:
     secret_manager = None
 import logging
+
 import bcrypt
+
 try:
     from audit_exporter import append_audit_entry
-except Exception:
+except ImportError:
     append_audit_entry = None
 
 logger = logging.getLogger(__name__)
@@ -295,9 +297,9 @@ class Database:
             # Ensure schema migrations for older DBs: add missing columns
             cursor.execute("PRAGMA table_info(users)")
             existing_cols = [r[1] for r in cursor.fetchall()]
-            if 'full_name' not in existing_cols:
+            if "full_name" not in existing_cols:
                 cursor.execute("ALTER TABLE users ADD COLUMN full_name TEXT DEFAULT ''")
-            if 'status' not in existing_cols:
+            if "status" not in existing_cols:
                 cursor.execute("ALTER TABLE users ADD COLUMN status TEXT DEFAULT 'active'")
 
             # Optional demo seed users for local workshops only.
@@ -312,15 +314,16 @@ class Database:
             logger.info("Database tables initialized successfully")
 
     def record_attack_event(
-            self,
-            attack_type: str,
-            source_ip: str,
-            target_endpoint: Optional[str] = None,
-            payload: Optional[str] = None,
-            severity: str = "medium",
-            status: str = "detected",
-            description: Optional[str] = None,
-            metadata: Optional[dict] = None) -> Optional[int]:
+        self,
+        attack_type: str,
+        source_ip: str,
+        target_endpoint: Optional[str] = None,
+        payload: Optional[str] = None,
+        severity: str = "medium",
+        status: str = "detected",
+        description: Optional[str] = None,
+        metadata: Optional[dict] = None,
+    ) -> Optional[int]:
         """Persist an attack event to the local telemetry store."""
         try:
             with sqlite3.connect(self.db_path) as conn:
@@ -345,19 +348,20 @@ class Database:
                 )
                 conn.commit()
                 return cursor.lastrowid
-        except Exception as exc:
+        except sqlite3.DatabaseError as exc:
             logger.error(f"Error recording attack event: {exc}")
             return None
 
     def record_security_alert(
-            self,
-            alert_type: str,
-            title: str,
-            message: str,
-            severity: str = "medium",
-            source_ip: Optional[str] = None,
-            attack_event_id: Optional[int] = None,
-            is_resolved: bool = False) -> Optional[int]:
+        self,
+        alert_type: str,
+        title: str,
+        message: str,
+        severity: str = "medium",
+        source_ip: Optional[str] = None,
+        attack_event_id: Optional[int] = None,
+        is_resolved: bool = False,
+    ) -> Optional[int]:
         """Persist a security alert to the local telemetry store."""
         try:
             with sqlite3.connect(self.db_path) as conn:
@@ -381,17 +385,18 @@ class Database:
                 )
                 conn.commit()
                 return cursor.lastrowid
-        except Exception as exc:
+        except sqlite3.DatabaseError as exc:
             logger.error(f"Error recording security alert: {exc}")
             return None
 
     def block_ip(
-            self,
-            ip_address: str,
-            reason: str,
-            attack_event_id: Optional[int] = None,
-            duration_seconds: Optional[int] = None,
-            is_active: bool = True) -> bool:
+        self,
+        ip_address: str,
+        reason: str,
+        attack_event_id: Optional[int] = None,
+        duration_seconds: Optional[int] = None,
+        is_active: bool = True,
+    ) -> bool:
         """Record or refresh a blocked IP entry."""
         try:
             expires_at = None
@@ -426,7 +431,7 @@ class Database:
                 )
                 conn.commit()
                 return True
-        except Exception as exc:
+        except sqlite3.DatabaseError as exc:
             logger.error(f"Error blocking IP {ip_address}: {exc}")
             return False
 
@@ -448,18 +453,20 @@ class Database:
                 rows = cursor.fetchall()
                 items = []
                 for row in rows:
-                    items.append({
-                        "id": row[0],
-                        "attack_type": row[1],
-                        "source_ip": row[2],
-                        "target_endpoint": row[3],
-                        "payload": row[4],
-                        "severity": row[5],
-                        "detected_at": row[6],
-                        "status": row[7],
-                        "description": row[8],
-                        "metadata": json.loads(row[9]) if row[9] else {},
-                    })
+                    items.append(
+                        {
+                            "id": row[0],
+                            "attack_type": row[1],
+                            "source_ip": row[2],
+                            "target_endpoint": row[3],
+                            "payload": row[4],
+                            "severity": row[5],
+                            "detected_at": row[6],
+                            "status": row[7],
+                            "description": row[8],
+                            "metadata": json.loads(row[9]) if row[9] else {},
+                        }
+                    )
                 return items
         except Exception as exc:
             logger.error(f"Error listing attack events: {exc}")
@@ -484,18 +491,20 @@ class Database:
                 rows = cursor.fetchall()
                 items = []
                 for row in rows:
-                    items.append({
-                        "id": row[0],
-                        "alert_type": row[1],
-                        "title": row[2],
-                        "message": row[3],
-                        "severity": row[4],
-                        "source_ip": row[5],
-                        "attack_event_id": row[6],
-                        "is_resolved": bool(row[7]),
-                        "created_at": row[8],
-                        "resolved_at": row[9],
-                    })
+                    items.append(
+                        {
+                            "id": row[0],
+                            "alert_type": row[1],
+                            "title": row[2],
+                            "message": row[3],
+                            "severity": row[4],
+                            "source_ip": row[5],
+                            "attack_event_id": row[6],
+                            "is_resolved": bool(row[7]),
+                            "created_at": row[8],
+                            "resolved_at": row[9],
+                        }
+                    )
                 return items
         except Exception as exc:
             logger.error(f"Error listing security alerts: {exc}")
@@ -519,30 +528,33 @@ class Database:
                 rows = cursor.fetchall()
                 items = []
                 for row in rows:
-                    items.append({
-                        "ip": row[0],
-                        "reason": row[1],
-                        "attack_event_id": row[2],
-                        "block_duration_seconds": row[3],
-                        "blocked_at": row[4],
-                        "expires_at": row[5],
-                        "is_active": bool(row[6]),
-                    })
+                    items.append(
+                        {
+                            "ip": row[0],
+                            "reason": row[1],
+                            "attack_event_id": row[2],
+                            "block_duration_seconds": row[3],
+                            "blocked_at": row[4],
+                            "expires_at": row[5],
+                            "is_active": bool(row[6]),
+                        }
+                    )
                 return items
         except Exception as exc:
             logger.error(f"Error listing blocked IPs: {exc}")
             return []
 
     def enqueue_security_notification(
-            self,
-            target_name: str,
-            target_url: str,
-            payload: Dict,
-            status: str = "pending",
-            attempts: int = 0,
-            max_attempts: int = 3,
-            last_error: Optional[str] = None,
-            next_retry_at: Optional[str] = None) -> Optional[int]:
+        self,
+        target_name: str,
+        target_url: str,
+        payload: Dict,
+        status: str = "pending",
+        attempts: int = 0,
+        max_attempts: int = 3,
+        last_error: Optional[str] = None,
+        next_retry_at: Optional[str] = None,
+    ) -> Optional[int]:
         """Store a notification dispatch request for later retry."""
         try:
             with sqlite3.connect(self.db_path) as conn:
@@ -593,32 +605,35 @@ class Database:
                 rows = cursor.fetchall()
                 items = []
                 for row in rows:
-                    items.append({
-                        "id": row[0],
-                        "target_name": row[1],
-                        "target_url": row[2],
-                        "payload": json.loads(row[3]) if row[3] else {},
-                        "status": row[4],
-                        "attempts": row[5],
-                        "max_attempts": row[6],
-                        "last_error": row[7],
-                        "next_retry_at": row[8],
-                        "last_attempt_at": row[9],
-                        "created_at": row[10],
-                        "updated_at": row[11],
-                    })
+                    items.append(
+                        {
+                            "id": row[0],
+                            "target_name": row[1],
+                            "target_url": row[2],
+                            "payload": json.loads(row[3]) if row[3] else {},
+                            "status": row[4],
+                            "attempts": row[5],
+                            "max_attempts": row[6],
+                            "last_error": row[7],
+                            "next_retry_at": row[8],
+                            "last_attempt_at": row[9],
+                            "created_at": row[10],
+                            "updated_at": row[11],
+                        }
+                    )
                 return items
         except Exception as exc:
             logger.error(f"Error listing security notifications: {exc}")
             return []
 
     def update_security_notification(
-            self,
-            notification_id: int,
-            status: str,
-            attempts: int,
-            last_error: Optional[str] = None,
-            next_retry_at: Optional[str] = None) -> bool:
+        self,
+        notification_id: int,
+        status: str,
+        attempts: int,
+        last_error: Optional[str] = None,
+        next_retry_at: Optional[str] = None,
+    ) -> bool:
         """Update queue bookkeeping after a dispatch attempt."""
         try:
             with sqlite3.connect(self.db_path) as conn:
@@ -639,11 +654,8 @@ class Database:
             return False
 
     def record_security_chain_entry(
-            self,
-            chain_name: str,
-            current_hash: str,
-            payload: Dict,
-            previous_hash: Optional[str] = None) -> Optional[int]:
+        self, chain_name: str, current_hash: str, payload: Dict, previous_hash: Optional[str] = None
+    ) -> Optional[int]:
         """Append a tamper-evident hash chain entry for incident records."""
         try:
             with sqlite3.connect(self.db_path) as conn:
@@ -679,24 +691,24 @@ class Database:
                 params.append(limit)
                 cursor.execute(query, params)
                 rows = cursor.fetchall()
-                return [{
-                    "id": row[0],
-                    "chain_name": row[1],
-                    "previous_hash": row[2],
-                    "current_hash": row[3],
-                    "payload": json.loads(row[4]) if row[4] else {},
-                    "created_at": row[5],
-                } for row in rows]
+                return [
+                    {
+                        "id": row[0],
+                        "chain_name": row[1],
+                        "previous_hash": row[2],
+                        "current_hash": row[3],
+                        "payload": json.loads(row[4]) if row[4] else {},
+                        "created_at": row[5],
+                    }
+                    for row in rows
+                ]
         except Exception as exc:
             logger.error(f"Error listing security chain entries: {exc}")
             return []
 
     def record_incident_export(
-            self,
-            export_type: str,
-            export_hash: str,
-            summary: str = "",
-            file_name: Optional[str] = None) -> bool:
+        self, export_type: str, export_hash: str, summary: str = "", file_name: Optional[str] = None
+    ) -> bool:
         """Record that a report/export was generated for traceability."""
         try:
             with sqlite3.connect(self.db_path) as conn:
@@ -715,23 +727,24 @@ class Database:
             return False
 
     def upsert_security_case(
-            self,
-            case_key: str,
-            title: str,
-            severity: str,
-            status: str,
-            summary: str,
-            correlation_id: Optional[str] = None,
-            attack_types: Optional[List[str]] = None,
-            source_ips: Optional[List[str]] = None,
-            attack_ids: Optional[List[int]] = None,
-            alert_ids: Optional[List[int]] = None,
-            blocked_ips: Optional[List[str]] = None,
-            recommended_actions: Optional[List[str]] = None,
-            playbook_name: Optional[str] = None,
-            integrity_hash: Optional[str] = None,
-            first_seen: Optional[str] = None,
-            last_seen: Optional[str] = None) -> Optional[int]:
+        self,
+        case_key: str,
+        title: str,
+        severity: str,
+        status: str,
+        summary: str,
+        correlation_id: Optional[str] = None,
+        attack_types: Optional[List[str]] = None,
+        source_ips: Optional[List[str]] = None,
+        attack_ids: Optional[List[int]] = None,
+        alert_ids: Optional[List[int]] = None,
+        blocked_ips: Optional[List[str]] = None,
+        recommended_actions: Optional[List[str]] = None,
+        playbook_name: Optional[str] = None,
+        integrity_hash: Optional[str] = None,
+        first_seen: Optional[str] = None,
+        last_seen: Optional[str] = None,
+    ) -> Optional[int]:
         """Insert or update a correlated security case."""
         try:
             with sqlite3.connect(self.db_path) as conn:
@@ -810,28 +823,30 @@ class Database:
                 rows = cursor.fetchall()
                 cases = []
                 for row in rows:
-                    cases.append({
-                        "id": row[0],
-                        "case_key": row[1],
-                        "title": row[2],
-                        "status": row[3],
-                        "severity": row[4],
-                        "summary": row[5],
-                        "correlation_id": row[6],
-                        "attack_types": json.loads(row[7]) if row[7] else [],
-                        "source_ips": json.loads(row[8]) if row[8] else [],
-                        "attack_ids": json.loads(row[9]) if row[9] else [],
-                        "alert_ids": json.loads(row[10]) if row[10] else [],
-                        "blocked_ips": json.loads(row[11]) if row[11] else [],
-                        "recommended_actions": json.loads(row[12]) if row[12] else [],
-                        "playbook_name": row[13],
-                        "integrity_hash": row[14],
-                        "first_seen": row[15],
-                        "last_seen": row[16],
-                        "created_at": row[17],
-                        "updated_at": row[18],
-                        "closed_at": row[19],
-                    })
+                    cases.append(
+                        {
+                            "id": row[0],
+                            "case_key": row[1],
+                            "title": row[2],
+                            "status": row[3],
+                            "severity": row[4],
+                            "summary": row[5],
+                            "correlation_id": row[6],
+                            "attack_types": json.loads(row[7]) if row[7] else [],
+                            "source_ips": json.loads(row[8]) if row[8] else [],
+                            "attack_ids": json.loads(row[9]) if row[9] else [],
+                            "alert_ids": json.loads(row[10]) if row[10] else [],
+                            "blocked_ips": json.loads(row[11]) if row[11] else [],
+                            "recommended_actions": json.loads(row[12]) if row[12] else [],
+                            "playbook_name": row[13],
+                            "integrity_hash": row[14],
+                            "first_seen": row[15],
+                            "last_seen": row[16],
+                            "created_at": row[17],
+                            "updated_at": row[18],
+                            "closed_at": row[19],
+                        }
+                    )
                 return cases
         except Exception as exc:
             logger.error(f"Error listing security cases: {exc}")
@@ -857,13 +872,14 @@ class Database:
             return False
 
     def record_security_playbook_run(
-            self,
-            case_id: Optional[int],
-            playbook_name: str,
-            status: str,
-            details: str,
-            auto_applied: bool = False,
-            case_key: Optional[str] = None) -> Optional[int]:
+        self,
+        case_id: Optional[int],
+        playbook_name: str,
+        status: str,
+        details: str,
+        auto_applied: bool = False,
+        case_key: Optional[str] = None,
+    ) -> Optional[int]:
         """Store an auto-response playbook execution record."""
         try:
             with sqlite3.connect(self.db_path) as conn:
@@ -900,18 +916,21 @@ class Database:
                 params.append(limit)
                 cursor.execute(query, params)
                 rows = cursor.fetchall()
-                return [{
-                    "id": row[0],
-                    "case_id": row[1],
-                    "case_key": row[2],
-                    "playbook_name": row[3],
-                    "status": row[4],
-                    "auto_applied": bool(row[5]),
-                    "details": row[6],
-                    "created_at": row[7],
-                    "updated_at": row[8],
-                } for row in rows]
-        except Exception as exc:
+                return [
+                    {
+                        "id": row[0],
+                        "case_id": row[1],
+                        "case_key": row[2],
+                        "playbook_name": row[3],
+                        "status": row[4],
+                        "auto_applied": bool(row[5]),
+                        "details": row[6],
+                        "created_at": row[7],
+                        "updated_at": row[8],
+                    }
+                    for row in rows
+                ]
+        except sqlite3.DatabaseError as exc:
             logger.error(f"Error listing playbook runs: {exc}")
             return []
 
@@ -939,8 +958,7 @@ class Database:
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
-                cursor.execute(
-                    "SELECT setting_value FROM system_settings WHERE setting_key = ?", (key,))
+                cursor.execute("SELECT setting_value FROM system_settings WHERE setting_key = ?", (key,))
                 row = cursor.fetchone()
                 if not row:
                     return default
@@ -948,9 +966,9 @@ class Database:
                 raw_value = row[0]
                 try:
                     return json.loads(raw_value)
-                except Exception:
+                except json.JSONDecodeError:
                     return raw_value
-        except Exception as exc:
+        except sqlite3.DatabaseError as exc:
             logger.error(f"Error getting system setting {key}: {exc}")
             return default
 
@@ -972,7 +990,7 @@ class Database:
                 )
                 conn.commit()
                 return True
-        except Exception as exc:
+        except sqlite3.DatabaseError as exc:
             logger.error(f"Error setting system setting {key}: {exc}")
             return False
 
@@ -981,17 +999,16 @@ class Database:
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
-                cursor.execute(
-                    "SELECT setting_key, setting_value FROM system_settings ORDER BY setting_key")
+                cursor.execute("SELECT setting_key, setting_value FROM system_settings ORDER BY setting_key")
                 rows = cursor.fetchall()
                 settings = {}
                 for key, raw_value in rows:
                     try:
                         settings[key] = json.loads(raw_value)
-                    except Exception:
+                    except json.JSONDecodeError:
                         settings[key] = raw_value
                 return settings
-        except Exception as exc:
+        except sqlite3.DatabaseError as exc:
             logger.error(f"Error listing system settings: {exc}")
             return {}
 
@@ -1002,7 +1019,7 @@ class Database:
                 cursor = conn.cursor()
                 cursor.execute("SELECT 1 FROM users LIMIT 1")
                 return cursor.fetchone() is not None
-        except Exception as exc:
+        except sqlite3.DatabaseError as exc:
             logger.error(f"Error checking users: {exc}")
             return False
 
@@ -1025,20 +1042,18 @@ class Database:
             )
 
     # Agent operations
-    def add_agent(
-            self,
-            agent_id: str,
-            name: str,
-            agent_type: str = "standard",
-            metadata: Dict = None) -> bool:
+    def add_agent(self, agent_id: str, name: str, agent_type: str = "standard", metadata: Dict = None) -> bool:
         """Add new agent to database"""
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("""
+                cursor.execute(
+                    """
                     INSERT INTO agents (id, name, type, metadata)
                     VALUES (?, ?, ?, ?)
-                """, (agent_id, name, agent_type, json.dumps(metadata or {})))
+                """,
+                    (agent_id, name, agent_type, json.dumps(metadata or {})),
+                )
                 conn.commit()
 
                 # Log event
@@ -1061,13 +1076,13 @@ class Database:
                 row = cursor.fetchone()
                 if row:
                     return {
-                        'id': row[0],
-                        'name': row[1],
-                        'type': row[2],
-                        'status': row[3],
-                        'created_at': row[4],
-                        'updated_at': row[5],
-                        'metadata': json.loads(row[6]) if row[6] else {}
+                        "id": row[0],
+                        "name": row[1],
+                        "type": row[2],
+                        "status": row[3],
+                        "created_at": row[4],
+                        "updated_at": row[5],
+                        "metadata": json.loads(row[6]) if row[6] else {},
                     }
         except Exception as e:
             logger.error(f"Error getting agent: {e}")
@@ -1082,15 +1097,17 @@ class Database:
                 rows = cursor.fetchall()
                 agents = []
                 for row in rows:
-                    agents.append({
-                        'id': row[0],
-                        'name': row[1],
-                        'type': row[2],
-                        'status': row[3],
-                        'created_at': row[4],
-                        'updated_at': row[5],
-                        'metadata': json.loads(row[6]) if row[6] else {}
-                    })
+                    agents.append(
+                        {
+                            "id": row[0],
+                            "name": row[1],
+                            "type": row[2],
+                            "status": row[3],
+                            "created_at": row[4],
+                            "updated_at": row[5],
+                            "metadata": json.loads(row[6]) if row[6] else {},
+                        }
+                    )
                 return agents
         except Exception as e:
             logger.error(f"Error listing agents: {e}")
@@ -1105,7 +1122,7 @@ class Database:
                 values = []
 
                 for key, value in kwargs.items():
-                    if key in ['name', 'type', 'status']:
+                    if key in ["name", "type", "status"]:
                         updates.append(f"{key} = ?")
                         values.append(value)
 
@@ -1122,55 +1139,63 @@ class Database:
 
                 self.log_event("agent_updated", agent_id, "update", f"Agent {agent_id} updated")
                 return True
-        except Exception as e:
+        except sqlite3.DatabaseError as e:
             logger.error(f"Error updating agent: {e}")
             return False
 
     # Event logging operations
-    def log_event(self, event_type: str, agent_id: Optional[str] = None,
-                  action: Optional[str] = None, details: Optional[str] = None,
-                  status: str = "success") -> bool:
+    def log_event(
+        self,
+        event_type: str,
+        agent_id: Optional[str] = None,
+        action: Optional[str] = None,
+        details: Optional[str] = None,
+        status: str = "success",
+    ) -> bool:
         """Log an event to database"""
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("""
+                cursor.execute(
+                    """
                     INSERT INTO events (event_type, agent_id, action, details, status)
                     VALUES (?, ?, ?, ?, ?)
-                """, (event_type, agent_id, action, details, status))
+                """,
+                    (event_type, agent_id, action, details, status),
+                )
                 conn.commit()
                 logger.info(f"Event logged: {event_type} for agent {agent_id}")
                 # Try to append to append-only audit ledger for tamper-evidence
                 try:
                     if append_audit_entry:
-                        append_audit_entry({
-                            'event_type': event_type,
-                            'agent_id': agent_id,
-                            'action': action,
-                            'details': details,
-                            'status': status,
-                        })
-                except Exception:
-                    pass
+                        append_audit_entry(
+                            {
+                                "event_type": event_type,
+                                "agent_id": agent_id,
+                                "action": action,
+                                "details": details,
+                                "status": status,
+                            }
+                        )
+                except Exception as e:
+                    logger.debug("append_audit_entry failed: %s", e)
                 return True
-        except Exception as e:
+        except sqlite3.DatabaseError as e:
             logger.error(f"Error logging event: {e}")
             return False
 
-    def create_task(
-            self,
-            agent_id: str,
-            task_type: str,
-            details: str,
-            status: str = "pending") -> bool:
+    def create_task(self, agent_id: str, task_type: str, details: str, status: str = "pending") -> bool:
         """Create a task for an agent."""
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("""
+                cursor.execute(
+                    """
                     INSERT INTO tasks (agent_id, task_type, details, status)
                     VALUES (?, ?, ?, ?)
-                """, (agent_id, task_type, details, status))
+                """,
+                    (agent_id, task_type, details, status),
+                )
                 conn.commit()
 
                 self.log_event(
@@ -1202,15 +1227,17 @@ class Database:
                 rows = cursor.fetchall()
                 tasks = []
                 for row in rows:
-                    tasks.append({
-                        'id': row[0],
-                        'agent_id': row[1],
-                        'task_type': row[2],
-                        'details': row[3],
-                        'status': row[4],
-                        'created_at': row[5],
-                        'updated_at': row[6],
-                    })
+                    tasks.append(
+                        {
+                            "id": row[0],
+                            "agent_id": row[1],
+                            "task_type": row[2],
+                            "details": row[3],
+                            "status": row[4],
+                            "created_at": row[5],
+                            "updated_at": row[6],
+                        }
+                    )
                 return tasks
         except Exception as e:
             logger.error(f"Error listing tasks: {e}")
@@ -1222,31 +1249,39 @@ class Database:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
                 if agent_id:
-                    cursor.execute("""
+                    cursor.execute(
+                        """
                         SELECT * FROM events
                         WHERE agent_id = ?
                         ORDER BY created_at DESC
                         LIMIT ?
-                    """, (agent_id, limit))
+                    """,
+                        (agent_id, limit),
+                    )
                 else:
-                    cursor.execute("""
+                    cursor.execute(
+                        """
                         SELECT * FROM events
                         ORDER BY created_at DESC
                         LIMIT ?
-                    """, (limit,))
+                    """,
+                        (limit,),
+                    )
 
                 rows = cursor.fetchall()
                 events = []
                 for row in rows:
-                    events.append({
-                        'id': row[0],
-                        'event_type': row[1],
-                        'agent_id': row[2],
-                        'action': row[3],
-                        'details': row[4],
-                        'created_at': row[5],
-                        'status': row[6]
-                    })
+                    events.append(
+                        {
+                            "id": row[0],
+                            "event_type": row[1],
+                            "agent_id": row[2],
+                            "action": row[3],
+                            "details": row[4],
+                            "created_at": row[5],
+                            "status": row[6],
+                        }
+                    )
                 return events
         except Exception as e:
             logger.error(f"Error getting events: {e}")
@@ -1258,16 +1293,15 @@ class Database:
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("""
+                cursor.execute(
+                    """
                     INSERT INTO sessions (id, agent_id, metadata)
                     VALUES (?, ?, ?)
-                """, (session_id, agent_id, json.dumps(metadata or {})))
+                """,
+                    (session_id, agent_id, json.dumps(metadata or {})),
+                )
                 conn.commit()
-                self.log_event(
-                    "session_created",
-                    agent_id,
-                    "session_start",
-                    f"Session {session_id} started")
+                self.log_event("session_created", agent_id, "session_start", f"Session {session_id} started")
                 return True
         except Exception as e:
             logger.error(f"Error creating session: {e}")
@@ -1278,22 +1312,21 @@ class Database:
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("""
+                cursor.execute(
+                    """
                     UPDATE sessions
                     SET status = 'ended', ended_at = ?
                     WHERE id = ?
-                """, (datetime.now().isoformat(), session_id))
+                """,
+                    (datetime.now().isoformat(), session_id),
+                )
                 conn.commit()
 
                 # Get agent_id for logging
                 cursor.execute("SELECT agent_id FROM sessions WHERE id = ?", (session_id,))
                 result = cursor.fetchone()
                 if result:
-                    self.log_event(
-                        "session_ended",
-                        result[0],
-                        "session_end",
-                        f"Session {session_id} ended")
+                    self.log_event("session_ended", result[0], "session_end", f"Session {session_id} ended")
 
                 return True
         except Exception as e:
@@ -1305,23 +1338,28 @@ class Database:
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("""
+                cursor.execute(
+                    """
                     SELECT * FROM sessions
                     WHERE agent_id = ?
                     ORDER BY started_at DESC
-                """, (agent_id,))
+                """,
+                    (agent_id,),
+                )
 
                 rows = cursor.fetchall()
                 sessions = []
                 for row in rows:
-                    sessions.append({
-                        'id': row[0],
-                        'agent_id': row[1],
-                        'started_at': row[2],
-                        'ended_at': row[3],
-                        'status': row[4],
-                        'metadata': json.loads(row[5]) if row[5] else {}
-                    })
+                    sessions.append(
+                        {
+                            "id": row[0],
+                            "agent_id": row[1],
+                            "started_at": row[2],
+                            "ended_at": row[3],
+                            "status": row[4],
+                            "metadata": json.loads(row[5]) if row[5] else {},
+                        }
+                    )
                 return sessions
         except Exception as e:
             logger.error(f"Error getting sessions: {e}")
@@ -1332,21 +1370,22 @@ class Database:
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
-                cursor.execute(
-                    "SELECT id, username, email, role, full_name, status, created_at, last_login FROM users")
+                cursor.execute("SELECT id, username, email, role, full_name, status, created_at, last_login FROM users")
                 rows = cursor.fetchall()
                 users = []
                 for row in rows:
-                    users.append({
-                        'id': row[0],
-                        'username': row[1],
-                        'email': row[2],
-                        'role': row[3],
-                        'full_name': row[4],
-                        'status': row[5],
-                        'created_at': row[6],
-                        'last_login': row[7]
-                    })
+                    users.append(
+                        {
+                            "id": row[0],
+                            "username": row[1],
+                            "email": row[2],
+                            "role": row[3],
+                            "full_name": row[4],
+                            "status": row[5],
+                            "created_at": row[6],
+                            "last_login": row[7],
+                        }
+                    )
                 return users
         except Exception as e:
             logger.error(f"Error listing users: {e}")
@@ -1357,10 +1396,13 @@ class Database:
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
-                cursor.execute("""
+                cursor.execute(
+                    """
                     SELECT id, username, email, role, password_hash, full_name, status, created_at, last_login
                     FROM users WHERE username = ?
-                """, (username,))
+                """,
+                    (username,),
+                )
                 row = cursor.fetchone()
                 if row:
                     stored_hash = row[4]
@@ -1368,37 +1410,43 @@ class Database:
                     if isinstance(stored_hash, memoryview):
                         stored_hash = stored_hash.tobytes()
                     if isinstance(stored_hash, str):
-                        stored_hash = stored_hash.encode('utf-8')
-                    if bcrypt.checkpw(password.encode('utf-8'), stored_hash):
+                        stored_hash = stored_hash.encode("utf-8")
+                    if bcrypt.checkpw(password.encode("utf-8"), stored_hash):
                         # Update last login
-                        cursor.execute("""
+                        cursor.execute(
+                            """
                             UPDATE users SET last_login = datetime('now') WHERE id = ?
-                        """, (row[0],))
+                        """,
+                            (row[0],),
+                        )
                         conn.commit()
                         return {
-                            'id': row[0],
-                            'username': row[1],
-                            'email': row[2],
-                            'role': row[3],
-                            'full_name': row[5],
-                            'status': row[6],
-                            'created_at': row[7],
-                            'last_login': row[8]
+                            "id": row[0],
+                            "username": row[1],
+                            "email": row[2],
+                            "role": row[3],
+                            "full_name": row[5],
+                            "status": row[6],
+                            "created_at": row[7],
+                            "last_login": row[8],
                         }
         except Exception as e:
             logger.error(f"Error authenticating user: {e}")
         return None
 
-    def create_user(self, username: str, email: str, password: str, role: str = 'user') -> bool:
+    def create_user(self, username: str, email: str, password: str, role: str = "user") -> bool:
         """Create a new user"""
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
-                password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
-                cursor.execute("""
+                password_hash = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt())
+                cursor.execute(
+                    """
                     INSERT INTO users (username, password_hash, email, role, full_name, status, created_at)
                     VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
-                """, (username, sqlite3.Binary(password_hash), email, role, '', 'active'))
+                """,
+                    (username, sqlite3.Binary(password_hash), email, role, "", "active"),
+                )
                 conn.commit()
                 return True
         except sqlite3.IntegrityError:
@@ -1412,10 +1460,13 @@ class Database:
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
-                password_hash = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt())
-                cursor.execute("""
+                password_hash = bcrypt.hashpw(new_password.encode("utf-8"), bcrypt.gensalt())
+                cursor.execute(
+                    """
                     UPDATE users SET password_hash = ? WHERE id = ?
-                """, (sqlite3.Binary(password_hash), user_id))
+                """,
+                    (sqlite3.Binary(password_hash), user_id),
+                )
                 conn.commit()
                 return cursor.rowcount > 0
         except Exception as e:
@@ -1427,21 +1478,24 @@ class Database:
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
-                cursor.execute("""
+                cursor.execute(
+                    """
                     SELECT id, username, email, role, full_name, status, created_at, last_login
                     FROM users WHERE id = ?
-                """, (user_id,))
+                """,
+                    (user_id,),
+                )
                 row = cursor.fetchone()
                 if row:
                     return {
-                        'id': row[0],
-                        'username': row[1],
-                        'email': row[2],
-                        'role': row[3],
-                        'full_name': row[4],
-                        'status': row[5],
-                        'created_at': row[6],
-                        'last_login': row[7]
+                        "id": row[0],
+                        "username": row[1],
+                        "email": row[2],
+                        "role": row[3],
+                        "full_name": row[4],
+                        "status": row[5],
+                        "created_at": row[6],
+                        "last_login": row[7],
                     }
         except Exception as e:
             logger.error(f"Error getting user by ID: {e}")
@@ -1452,9 +1506,12 @@ class Database:
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
-                cursor.execute("""
+                cursor.execute(
+                    """
                     UPDATE users SET role = ? WHERE id = ?
-                """, (new_role, user_id))
+                """,
+                    (new_role, user_id),
+                )
                 conn.commit()
                 return cursor.rowcount > 0
         except Exception as e:
@@ -1466,9 +1523,12 @@ class Database:
         try:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
-                cursor.execute("""
+                cursor.execute(
+                    """
                     UPDATE users SET status = ? WHERE id = ?
-                """, (new_status, user_id))
+                """,
+                    (new_status, user_id),
+                )
                 conn.commit()
                 return cursor.rowcount > 0
         except Exception as e:
@@ -1503,7 +1563,7 @@ class Database:
                 cursor.execute("DELETE FROM agents WHERE id = ?", (agent_id,))
                 conn.commit()
                 return cursor.rowcount > 0
-        except Exception as e:
+        except sqlite3.DatabaseError as e:
             logger.error(f"Error deleting agent: {e}")
         return False
 
@@ -1513,12 +1573,11 @@ class Database:
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
                 cursor.execute(
-                    "UPDATE agents SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-                    (new_status, agent_id)
+                    "UPDATE agents SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", (new_status, agent_id)
                 )
                 conn.commit()
                 return cursor.rowcount > 0
-        except Exception as e:
+        except sqlite3.DatabaseError as e:
             logger.error(f"Error updating agent status: {e}")
         return False
 
@@ -1536,7 +1595,8 @@ def get_database(db_path: Optional[str] = None) -> Database:
         if not resolved_path and secret_manager:
             try:
                 resolved_path = secret_manager.get_secret("DB_PATH")
-            except Exception:
+            except Exception as e:
+                logger.debug("secret_manager.get_secret(DB_PATH) failed: %s", e)
                 resolved_path = None
 
         if not resolved_path:

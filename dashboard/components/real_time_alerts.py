@@ -1,13 +1,13 @@
 """Enhanced Streamlit component for real-time security alerts and attack visualization."""
-import os
-import json
-import time
-import streamlit as st
-import requests
-from datetime import datetime
-from typing import Optional, List
 
-RESULTS_DIR = os.path.join(os.getcwd(), 'attack_results')
+import json
+import os
+from typing import List
+
+import requests
+import streamlit as st
+
+RESULTS_DIR = os.path.join(os.getcwd(), "attack_results")
 API_BASE = "http://127.0.0.1:8000"
 
 
@@ -49,15 +49,15 @@ def fetch_blocked_ips() -> List[dict]:
 
 def show_attack_simulation_results():
     """Display attack simulation results with real-time alerts."""
-    st.header('🛡️ Attack Simulation & Security Monitoring')
+    st.header("🛡️ Attack Simulation & Security Monitoring")
 
     # Try to load results from file
-    last_meta = os.path.join(RESULTS_DIR, 'last_run.json')
+    last_meta = os.path.join(RESULTS_DIR, "last_run.json")
     simulation_data = None
 
     if os.path.exists(last_meta):
         try:
-            with open(last_meta, 'r', encoding='utf-8') as fh:
+            with open(last_meta, "r", encoding="utf-8") as fh:
                 simulation_data = json.load(fh)
         except Exception as e:
             st.error(f"Failed to load simulation data: {e}")
@@ -84,20 +84,20 @@ def show_attack_simulation_results():
 
     if alerts:
         for alert in alerts[:10]:  # Show top 10
-            severity = alert.get('severity', 'medium').upper()
-            alert_type = alert.get('alert_type', 'unknown')
-            title = alert.get('title', 'Security Alert')
-            message = alert.get('message', '')
-            created_at = alert.get('created_at', 'unknown')
+            severity = alert.get("severity", "medium").upper()
+            alert_type = alert.get("alert_type", "unknown")
+            title = alert.get("title", "Security Alert")
+            message = alert.get("message", "")
+            created_at = alert.get("created_at", "unknown")
 
             # Color based on severity
-            if severity == 'CRITICAL':
+            if severity == "CRITICAL":
                 emoji = "🔴"
                 color = "#FF0000"
-            elif severity == 'HIGH':
+            elif severity == "HIGH":
                 emoji = "🟠"
                 color = "#FF6600"
-            elif severity == 'MEDIUM':
+            elif severity == "MEDIUM":
                 emoji = "🟡"
                 color = "#FFAA00"
             else:
@@ -105,13 +105,16 @@ def show_attack_simulation_results():
                 color = "#00AA00"
 
             # Display alert box
-            st.markdown(f"""
+            st.markdown(
+                f"""
             <div style="border-left: 4px solid {color}; padding: 10px; margin: 10px 0; background-color: #f0f0f0; border-radius: 4px;">
                 <b>{emoji} {title}</b><br/>
                 <small style="color: gray;">{alert_type} | {created_at}</small><br/>
                 {message}
             </div>
-            """, unsafe_allow_html=True)
+            """,
+                unsafe_allow_html=True,
+            )
     else:
         st.info("✅ No active alerts")
 
@@ -122,11 +125,11 @@ def show_attack_simulation_results():
 
     if attacks:
         for attack in attacks[:10]:
-            attack_type = attack.get('attack_type', 'unknown').upper()
-            source_ip = attack.get('source_ip', 'unknown')
-            severity = attack.get('severity', 'medium').upper()
-            status = attack.get('status', 'unknown').upper()
-            detected_at = attack.get('detected_at', 'unknown')
+            attack_type = attack.get("attack_type", "unknown").upper()
+            source_ip = attack.get("source_ip", "unknown")
+            severity = attack.get("severity", "medium").upper()
+            status = attack.get("status", "unknown").upper()
+            detected_at = attack.get("detected_at", "unknown")
 
             col_type, col_ip, col_status = st.columns(3)
             with col_type:
@@ -148,9 +151,9 @@ def show_attack_simulation_results():
 
     if blocked_ips:
         for block in blocked_ips[:10]:
-            ip = block.get('ip', 'unknown')
-            reason = block.get('reason', 'unknown')
-            blocked_at = block.get('blocked_at', 'unknown')
+            ip = block.get("ip", "unknown")
+            reason = block.get("reason", "unknown")
+            blocked_at = block.get("blocked_at", "unknown")
 
             st.warning(f"**{ip}** - {reason} (blocked at {blocked_at})")
     else:
@@ -163,8 +166,8 @@ def show_attack_simulation_results():
         st.subheader("📹 Attack Simulation Recording")
 
         # Look for video
-        video = simulation_data.get('video')
-        demo_video = os.path.join(RESULTS_DIR, 'attack_demo.mp4')
+        video = simulation_data.get("video")
+        demo_video = os.path.join(RESULTS_DIR, "attack_demo.mp4")
 
         # Prefer demo video if available
         if os.path.exists(demo_video):
@@ -178,19 +181,19 @@ def show_attack_simulation_results():
 
         # Display simulation events timeline
         st.subheader("📊 Simulation Event Timeline")
-        events = simulation_data.get('events', [])
+        events = simulation_data.get("events", [])
 
         if events:
             for i, event in enumerate(events, 1):
-                event_type = event.get('event', 'unknown')
-                ts = event.get('ts', 'unknown')
+                event_type = event.get("event", "unknown")
+                ts = event.get("ts", "unknown")
 
                 # Different colors for different event types
-                if 'attack' in event_type.lower():
+                if "attack" in event_type.lower():
                     emoji = "⚔️"
-                elif 'block' in event_type.lower():
+                elif "block" in event_type.lower():
                     emoji = "🛡️"
-                elif 'alert' in event_type.lower():
+                elif "alert" in event_type.lower():
                     emoji = "⚠️"
                 else:
                     emoji = "📍"
@@ -198,7 +201,7 @@ def show_attack_simulation_results():
                 st.markdown(f"{emoji} **{event_type}** - {ts}")
 
                 # Show details if available
-                details = {k: v for k, v in event.items() if k not in ('ts', 'event')}
+                details = {k: v for k, v in event.items() if k not in ("ts", "event")}
                 if details:
                     st.json(details)
         else:
@@ -210,6 +213,7 @@ def show_attack_simulation_results():
     st.divider()
     if st.checkbox("Auto-refresh alerts every 5 seconds"):
         import time
+
         placeholder = st.empty()
         while True:
             with placeholder.container():

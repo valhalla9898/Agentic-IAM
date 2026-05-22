@@ -2,11 +2,12 @@
 FAQ Engine - Smart Question Answering with Multiple Response Options
 Supports Arabic & English with spelling correction and fuzzy matching
 """
+
 import json
 import os
-from difflib import SequenceMatcher
-from typing import List, Dict, Tuple
 import re
+from difflib import SequenceMatcher
+from typing import Dict, List
 
 
 class FAQEngine:
@@ -21,7 +22,7 @@ class FAQEngine:
         """Load FAQ data from JSON file"""
         if os.path.exists(self.faq_file):
             try:
-                with open(self.faq_file, 'r', encoding='utf-8') as f:
+                with open(self.faq_file, "r", encoding="utf-8") as f:
                     return json.load(f)
             except Exception as e:
                 print(f"Error loading FAQ file: {e}")
@@ -32,15 +33,15 @@ class FAQEngine:
         """Build searchable cache of all questions"""
         self.question_cache = {}
         self.categories_list = []
-        for category_obj in self.faq_data.get('categories', []):
-            cat_name = category_obj.get('category', '')
+        for category_obj in self.faq_data.get("categories", []):
+            cat_name = category_obj.get("category", "")
             if cat_name:
                 self.categories_list.append(cat_name)
-            for item in category_obj.get('items', []):
+            for item in category_obj.get("items", []):
                 # Add category info to item for metadata retrieval
-                item['category'] = cat_name
-                q_en = item.get('question_en', '').lower()
-                q_ar = item.get('question_ar', '').lower()
+                item["category"] = cat_name
+                q_en = item.get("question_en", "").lower()
+                q_ar = item.get("question_ar", "").lower()
                 if q_en:
                     self.question_cache[q_en] = item
                 if q_ar:
@@ -48,76 +49,80 @@ class FAQEngine:
 
     def correct_spelling(self, text: str) -> str:
         """Correct common spelling mistakes"""
-        corrections = {
-            # Arabic corrections
-            '': '',
-            '': '',
-            '': '',
-            '': '',
-            '': ' ',
-            '': '',
-            '': '',
-            '': '',
-            '': '',
-            '': '',
+        corrections = [
+            # Arabic corrections (placeholders - review needed)
+            ("", ""),
+            ("", ""),
+            ("", ""),
+            ("", ""),
+            ("", " "),
+            ("", ""),
+            ("", ""),
+            ("", ""),
+            ("", ""),
+            ("", ""),
             # English corrections
-            'paswword': 'password',
-            'pasword': 'password',
-            'authentification': 'authentication',
-            'authnetication': 'authentication',
-            'usere': 'user',
-            'usres': 'users',
-            'agentt': 'agent',
-            'agnet': 'agent',
-            'permissi': 'permission',
-            'permissio': 'permission',
-        }
+            ("paswword", "password"),
+            ("pasword", "password"),
+            ("authentification", "authentication"),
+            ("authnetication", "authentication"),
+            ("usere", "user"),
+            ("usres", "users"),
+            ("agentt", "agent"),
+            ("agnet", "agent"),
+            ("permissi", "permission"),
+            ("permissio", "permission"),
+        ]
 
         result = text.lower()
-        for typo, correct in corrections.items():
-            result = re.sub(r'\b' + typo + r'\b', correct, result)
+        for typo, correct in corrections:
+            if not typo:
+                continue
+            result = re.sub(r"\b" + re.escape(typo) + r"\b", correct, result)
         return result
 
     def translate_to_english(self, text: str) -> str:
         """Translate Arabic to English (simple keyword mapping)"""
-        translation_map = {
-            '': 'login',
-            '': 'register',
-            '': 'user',
-            '': 'agent',
-            '': 'permission',
-            '': 'role',
-            '': 'security',
-            '': 'encryption',
-            ' ': 'password',
-            '': 'authentication',
-            '': 'report',
-            '': 'analytics',
-            '': 'risk',
-            '': 'assessment',
-            '': 'monitoring',
-            '': 'system',
-            '': 'account',
-            '': 'management',
-            '': 'create',
-            '': 'delete',
-            '': 'edit',
-            '': 'view',
-            '': 'search',
-            '': 'filter',
-            '': 'export',
-            '': 'import',
-            '': 'save',
-            '': 'cancel',
-            '': 'confirm',
-            '': 'error',
-            '': 'success',
-            '': 'failed',
-        }
+        translation_map = [
+            ("", "login"),
+            ("", "register"),
+            ("", "user"),
+            ("", "agent"),
+            ("", "permission"),
+            ("", "role"),
+            ("", "security"),
+            ("", "encryption"),
+            (" ", "password"),
+            ("", "authentication"),
+            ("", "report"),
+            ("", "analytics"),
+            ("", "risk"),
+            ("", "assessment"),
+            ("", "monitoring"),
+            ("", "system"),
+            ("", "account"),
+            ("", "management"),
+            ("", "create"),
+            ("", "delete"),
+            ("", "edit"),
+            ("", "view"),
+            ("", "search"),
+            ("", "filter"),
+            ("", "export"),
+            ("", "import"),
+            ("", "save"),
+            ("", "cancel"),
+            ("", "confirm"),
+            ("", "error"),
+            ("", "success"),
+            ("", "failed"),
+        ]
 
         result = text
-        for ar, en in translation_map.items():
-            result = re.sub(r'\b' + ar + r'\b', en, result, flags=re.UNICODE)
+        for ar, en in translation_map:
+            if not ar.strip():
+                continue
+            result = re.sub(r"\b" + re.escape(ar) + r"\b", en, result, flags=re.UNICODE)
         return result
 
     def normalize_question(self, question: str) -> str:
@@ -125,7 +130,7 @@ class FAQEngine:
         # Correct spelling
         corrected = self.correct_spelling(question)
         # Remove extra spaces
-        normalized = ' '.join(corrected.split())
+        normalized = " ".join(corrected.split())
         return normalized
 
     def find_similar_questions(self, user_question: str, top_k: int = 5) -> List[Dict]:
@@ -154,16 +159,18 @@ class FAQEngine:
 
         answers = []
         for item in similar_questions:
-            answer_options = item.get('answers', [])
+            answer_options = item.get("answers", [])
             for i, answer in enumerate(answer_options[:top_k]):
-                answers.append({
-                    'question': item.get('question_en', ''),
-                    'answer': answer.get('text', ''),
-                    'category': item.get('category', 'General'),
-                    'option_num': i + 1,
-                    'related_topics': answer.get('related_topics', []),
-                    'difficulty': answer.get('difficulty', 'beginner'),
-                })
+                answers.append(
+                    {
+                        "question": item.get("question_en", ""),
+                        "answer": answer.get("text", ""),
+                        "category": item.get("category", "General"),
+                        "option_num": i + 1,
+                        "related_topics": answer.get("related_topics", []),
+                        "difficulty": answer.get("difficulty", "beginner"),
+                    }
+                )
 
         return answers[:top_k]
 
@@ -182,7 +189,7 @@ class FAQEngine:
             output.append(f"Level: {answer['difficulty']}")
             output.append(f"\n{answer['answer']}")
 
-            if answer.get('related_topics'):
+            if answer.get("related_topics"):
                 output.append(f"\nRelated Topics: {', '.join(answer['related_topics'])}")
 
             output.append("\n" + "-" * 60)
@@ -198,14 +205,14 @@ class FAQEngine:
         """Get all questions in a specific category"""
         results = []
         for item in self.question_cache.values():
-            if item.get('category') == category:
+            if item.get("category") == category:
                 results.append(item)
         return results
 
     def save_faq(self, data: Dict):
         """Save FAQ data to file"""
         os.makedirs(os.path.dirname(self.faq_file), exist_ok=True)
-        with open(self.faq_file, 'w', encoding='utf-8') as f:
+        with open(self.faq_file, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
 
 

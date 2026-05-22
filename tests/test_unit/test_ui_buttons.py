@@ -1,11 +1,7 @@
-import os
-import json
-import types
 import requests
-import pytest
+import streamlit as st
 
 import app as app_module
-import streamlit as st
 
 
 class FakeDB:
@@ -103,6 +99,7 @@ def test_process_security_notification_queue_posts_and_updates(monkeypatch):
     fake = FakeDB()
     # create queued notification
     note = {"id": 123, "target_name": "webhook", "target_url": "http://example.local/hook", "payload": {}}
+
     def list_notifications(limit=20, status=None):
         return [note]
 
@@ -115,7 +112,7 @@ def test_process_security_notification_queue_posts_and_updates(monkeypatch):
             self.status_code = code
 
     def fake_post(url, json=None, timeout=5):
-        called['url'] = url
+        called["url"] = url
         return DummyResp(200)
 
     monkeypatch.setattr(requests, "post", fake_post)

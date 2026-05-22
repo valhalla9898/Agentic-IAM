@@ -1,9 +1,4 @@
-import os
-from pathlib import Path
-
-import pytest
-
-from database import Database, get_database
+from database import Database
 
 
 def test_database_agent_lifecycle(tmp_path):

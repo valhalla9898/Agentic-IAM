@@ -1,4 +1,5 @@
 """Test fixtures for environment-driven test cases."""
+
 from __future__ import annotations
 
 import json
@@ -30,7 +31,7 @@ def _load_env_vars() -> dict:
     if ENV_VARS_JSON.exists():
         try:
             return json.loads(ENV_VARS_JSON.read_text(encoding="utf-8"))
-        except Exception:
+        except (json.JSONDecodeError, OSError):
             pass
 
     values = _load_env_example()

@@ -3,10 +3,12 @@ Test script to verify the login system functionality
 
 Run this script to test the authentication system without starting the GUI.
 """
-from database import get_database
+
 import sys
 from pathlib import Path
 from uuid import uuid4
+
+from database import get_database
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent))
@@ -27,9 +29,10 @@ def test_authentication():
     print(f"Total users in database: {len(users)}\n")
 
     for user in users:
-        role_icon = "👨‍💼" if user['role'] == 'admin' else "👤"
+        role_icon = "👨‍💼" if user["role"] == "admin" else "👤"
         print(
-            f"{role_icon} {user['username']:<15} | {user['full_name']:<25} | Role: {user['role']:<10} | Status: {user['status']}")
+            f"{role_icon} {user['username']:<15} | {user['full_name']:<25} | Role: {user['role']:<10} | Status: {user['status']}"
+        )
 
     # Ensure isolated users exist for this script run
     admin_username = f"admin_test_{uuid4().hex[:8]}"
@@ -134,7 +137,7 @@ def test_authentication():
     test_user = db.authenticate_user(test_username, "testpass123")
     if test_user:
         # Change password
-        changed = db.change_password(test_user['id'], "newpassword456")
+        changed = db.change_password(test_user["id"], "newpassword456")
         if changed:
             print("✅ Password changed successfully")
 
@@ -160,14 +163,14 @@ def test_authentication():
     print("-" * 50)
     if test_user:
         # Update role
-        role_updated = db.update_user_role(test_user['id'], 'operator')
+        role_updated = db.update_user_role(test_user["id"], "operator")
         if role_updated:
             print("✅ User role updated to 'operator'")
         else:
             print("❌ User role update failed")
 
         # Suspend user
-        suspended = db.update_user_status(test_user['id'], 'suspended')
+        suspended = db.update_user_status(test_user["id"], "suspended")
         if suspended:
             print("✅ User status updated to 'suspended'")
 
@@ -179,11 +182,11 @@ def test_authentication():
                 print("✅ Suspended user correctly blocked from login")
 
             # Reactivate user
-            activated = db.update_user_status(test_user['id'], 'active')
+            activated = db.update_user_status(test_user["id"], "active")
             if activated:
                 print("✅ User reactivated successfully")
 
-        refreshed = db.get_user_by_id(test_user['id'])
+        refreshed = db.get_user_by_id(test_user["id"])
         if refreshed:
             print(f"✅ Verified persisted user role: {refreshed['role']}")
             print(f"✅ Verified persisted user status: {refreshed['status']}")
@@ -195,13 +198,13 @@ def test_authentication():
     print("Test 9: User Deletion")
     print("-" * 50)
     if test_user:
-        deleted = db.delete_user(test_user['id'])
+        deleted = db.delete_user(test_user["id"])
         if deleted:
             print("✅ User deleted successfully")
         else:
             print("❌ User deletion failed")
 
-        deleted_user = db.get_user_by_id(test_user['id'])
+        deleted_user = db.get_user_by_id(test_user["id"])
         if deleted_user is None:
             print("✅ Verified user is no longer in the database")
         else:
@@ -213,9 +216,9 @@ def test_authentication():
     print("-" * 50)
     all_users = db.list_users()
     total = len(all_users)
-    active = len([u for u in all_users if u['status'] == 'active'])
-    admins = len([u for u in all_users if u['role'] == 'admin'])
-    regular = len([u for u in all_users if u['role'] == 'user'])
+    active = len([u for u in all_users if u["status"] == "active"])
+    admins = len([u for u in all_users if u["role"] == "admin"])
+    regular = len([u for u in all_users if u["role"] == "user"])
 
     print(f"Total Users: {total}")
     print(f"Active Users: {active}")
@@ -240,4 +243,5 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\n❌ Error during testing: {e}")
         import traceback
+
         traceback.print_exc()

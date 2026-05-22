@@ -11,17 +11,18 @@ For legacy code, this still works:
     from api.app import app
 """
 
-import api.main as main_module
-import warnings
-import sys
 import importlib
+import sys
+import warnings
 from pathlib import Path
+
+import api.main as main_module
 
 # Show deprecation warning
 warnings.warn(
     "Importing from api.app is deprecated. Please use api.main instead: from api.main import app",
     DeprecationWarning,
-    stacklevel=2
+    stacklevel=2,
 )
 
 # Ensure main.py can be imported
@@ -37,9 +38,5 @@ __all__ = ["app"]
 # Support running as standalone script
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(
-        app,
-        host="127.0.0.1",
-        port=8000,
-        reload=True
-    )
+
+    uvicorn.run(app, host="127.0.0.1", port=8000, reload=True)

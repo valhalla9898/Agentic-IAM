@@ -1,5 +1,3 @@
-import json
-
 from database import Database
 from security_telemetry import (
     calculate_security_kpis,
@@ -76,12 +74,15 @@ def test_database_security_queue_and_chain_persistence(tmp_path):
     assert queue_items
     assert queue_items[0]["target_name"] == "webhook"
 
-    assert db.update_security_notification(
-        notification_id,
-        status="delivered",
-        attempts=1,
-        last_error=None,
-    ) is True
+    assert (
+        db.update_security_notification(
+            notification_id,
+            status="delivered",
+            attempts=1,
+            last_error=None,
+        )
+        is True
+    )
 
     chain_id = db.record_security_chain_entry(
         chain_name="incident-flow",
@@ -94,9 +95,12 @@ def test_database_security_queue_and_chain_persistence(tmp_path):
     assert chain_entries
     assert chain_entries[0]["current_hash"] == "abc123"
 
-    assert db.record_incident_export(
-        export_type="security_demo",
-        export_hash="hash-123",
-        summary="1 attack",
-        file_name="incident.json",
-    ) is True
+    assert (
+        db.record_incident_export(
+            export_type="security_demo",
+            export_hash="hash-123",
+            summary="1 attack",
+            file_name="incident.json",
+        )
+        is True
+    )

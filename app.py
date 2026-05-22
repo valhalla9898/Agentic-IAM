@@ -4,41 +4,30 @@ Agentic-IAM: Streamlit Dashboard Application
 Main entry point for the web-based GUI dashboard with role-based access control.
 """
 
-from utils.security import (
-    InputValidator,
-    RateLimiter,
-    AccountSecurity,
-    AuditLogger,
-    SessionSecurityManager,
-    SQLInjectionProtection,
-)
-from utils.advanced_features import AgentHealthMonitor, AgentAnalytics, ReportGenerator
-from utils.rbac import (
-    Permission,
-    check_permission,
-    is_admin,
-    is_operator,
-    get_current_user_permissions,
-    get_rbac_manager,
-)
-# Bloome storefront removed — related utilities were deleted
-from dashboard.components.risk_assessment import show_risk_assessment
-from dashboard.components.ai_assistant import show_ai_assistant
+import json
+import logging
+import os
+import sqlite3
+import sys
+from datetime import datetime
+from pathlib import Path
+
+import pandas as pd
+import requests
+import streamlit as st
+
+from config.settings import get_settings
 from dashboard.components.agent_selection import (
+    show_agent_details,
+    show_agent_list,
     show_agent_registration,
     show_agent_selector,
-    show_agent_list,
-    show_agent_details,
 )
-from config.settings import get_settings
+from dashboard.components.ai_assistant import show_ai_assistant
+
+# Bloome storefront removed — related utilities were deleted
+from dashboard.components.risk_assessment import show_risk_assessment
 from database import get_database
-from security_telemetry import (
-    DEFAULT_SECURITY_RULES,
-    build_incident_export_payload,
-    calculate_security_kpis,
-    enrich_security_state,
-    generate_correlation_id,
-)
 from security_incident_management import (
     build_executive_report,
     correlate_security_cases,
@@ -47,15 +36,30 @@ from security_incident_management import (
     render_executive_report_pdf,
     summarize_case_metrics,
 )
-import streamlit as st
-import requests
-import os
-import sys
-import json
-import sqlite3
-from pathlib import Path
-import pandas as pd
-from datetime import datetime
+from security_telemetry import (
+    DEFAULT_SECURITY_RULES,
+    build_incident_export_payload,
+    calculate_security_kpis,
+    enrich_security_state,
+    generate_correlation_id,
+)
+from utils.advanced_features import AgentAnalytics, AgentHealthMonitor, ReportGenerator
+from utils.rbac import (
+    Permission,
+    check_permission,
+    get_current_user_permissions,
+    get_rbac_manager,
+    is_admin,
+    is_operator,
+)
+from utils.security import (
+    AccountSecurity,
+    AuditLogger,
+    InputValidator,
+    RateLimiter,
+    SessionSecurityManager,
+    SQLInjectionProtection,
+)
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent))
@@ -148,7 +152,10 @@ def _load_demo_security_state() -> dict:
         with open(DEMO_SECURITY_STATE_PATH, "r", encoding="utf-8") as fh:
             data = json.load(fh)
         return data if isinstance(data, dict) else {}
-    except Exception:
+    except (json.JSONDecodeError, OSError) as e:
+        import logging
+
+        logging.getLogger(__name__).debug("Failed to load demo security state: %s", e)
         return {}
 
 
@@ -198,7 +205,7 @@ def _get_dashboard_db():
     """Return the active dashboard database when session state is available."""
     try:
         return st.session_state.db
-    except Exception:
+    except AttributeError:
         return None
 
 
@@ -229,12 +236,14 @@ def _dispatch_security_notifications(payload: dict) -> list[dict]:
                     max_attempts=3,
                     last_error=f"HTTP {response.status_code}",
                 )
-            results.append({
-                "target": target["name"],
-                "url": target["url"],
-                "status_code": response.status_code,
-                "delivered": response.status_code < 400,
-            })
+            results.append(
+                {
+                    "target": target["name"],
+                    "url": target["url"],
+                    "status_code": response.status_code,
+                    "delivered": response.status_code < 400,
+                }
+            )
         except Exception as exc:
             if hasattr(db, "enqueue_security_notification"):
                 db.enqueue_security_notification(
@@ -246,12 +255,14 @@ def _dispatch_security_notifications(payload: dict) -> list[dict]:
                     max_attempts=3,
                     last_error=str(exc),
                 )
-            results.append({
-                "target": target["name"],
-                "url": target["url"],
-                "delivered": False,
-                "error": str(exc),
-            })
+            results.append(
+                {
+                    "target": target["name"],
+                    "url": target["url"],
+                    "delivered": False,
+                    "error": str(exc),
+                }
+            )
     return results
 
 
@@ -352,13 +363,15 @@ def _direct_sql_record_security_demo(state: dict) -> None:
         attack_ids = []
         for attack in state.get("attacks", []):
             attack_metadata = dict(attack.get("metadata", {})) if isinstance(attack.get("metadata"), dict) else {}
-            attack_metadata.update({
-                "correlation_id": attack.get("correlation_id"),
-                "event_hash": attack.get("event_hash"),
-                "threat_intel": attack.get("threat_intel", {}),
-                "matched_rules": attack.get("matched_rules", []),
-                "recommended_actions": attack.get("recommended_actions", []),
-            })
+            attack_metadata.update(
+                {
+                    "correlation_id": attack.get("correlation_id"),
+                    "event_hash": attack.get("event_hash"),
+                    "threat_intel": attack.get("threat_intel", {}),
+                    "matched_rules": attack.get("matched_rules", []),
+                    "recommended_actions": attack.get("recommended_actions", []),
+                }
+            )
             cursor.execute(
                 """
                 INSERT INTO attack_events (
@@ -420,7 +433,9 @@ def _direct_sql_record_security_demo(state: dict) -> None:
             )
 
         try:
-            cases = correlate_security_cases(state.get("attacks", []), state.get("active", []), state.get("blocked_ips", []))
+            cases = correlate_security_cases(
+                state.get("attacks", []), state.get("active", []), state.get("blocked_ips", [])
+            )
             for case in cases:
                 cursor.execute(
                     """
@@ -467,9 +482,18 @@ def _direct_sql_record_security_demo(state: dict) -> None:
                         case.get("last_seen"),
                     ),
                 )
-                case_row = cursor.execute("SELECT id FROM security_cases WHERE case_key = ?", (case.get("case_key"),)).fetchone()
+                case_row = cursor.execute(
+                    "SELECT id FROM security_cases WHERE case_key = ?", (case.get("case_key"),)
+                ).fetchone()
                 case_id = case_row[0] if case_row else None
-                playbook = next((item for item in get_security_playbooks() if item.get("playbook_name") == case.get("playbook_name")), None)
+                playbook = next(
+                    (
+                        item
+                        for item in get_security_playbooks()
+                        if item.get("playbook_name") == case.get("playbook_name")
+                    ),
+                    None,
+                )
                 if playbook and case_id is not None:
                     cursor.execute(
                         """
@@ -486,8 +510,8 @@ def _direct_sql_record_security_demo(state: dict) -> None:
                             json.dumps({"steps": playbook.get("steps", []), "case": case.get("case_key")}),
                         ),
                     )
-        except Exception:
-            pass
+        except Exception as e:
+            logging.getLogger(__name__).debug("Suppressed exception while persisting case/playbook: %s", e)
 
         conn.commit()
 
@@ -497,19 +521,25 @@ def _persist_security_demo_state(state: dict) -> dict:
     db = _get_dashboard_db()
     if db and isinstance(state, dict):
         state = enrich_security_state(state, DEFAULT_SECURITY_RULES)
-        if not hasattr(db, "record_attack_event") or not hasattr(db, "record_security_alert") or not hasattr(db, "block_ip"):
+        if (
+            not hasattr(db, "record_attack_event")
+            or not hasattr(db, "record_security_alert")
+            or not hasattr(db, "block_ip")
+        ):
             _direct_sql_record_security_demo(state)
         else:
             attack_ids = []
             for attack in state.get("attacks", []):
                 attack_metadata = dict(attack.get("metadata", {})) if isinstance(attack.get("metadata"), dict) else {}
-                attack_metadata.update({
-                    "correlation_id": attack.get("correlation_id"),
-                    "event_hash": attack.get("event_hash"),
-                    "threat_intel": attack.get("threat_intel", {}),
-                    "matched_rules": attack.get("matched_rules", []),
-                    "recommended_actions": attack.get("recommended_actions", []),
-                })
+                attack_metadata.update(
+                    {
+                        "correlation_id": attack.get("correlation_id"),
+                        "event_hash": attack.get("event_hash"),
+                        "threat_intel": attack.get("threat_intel", {}),
+                        "matched_rules": attack.get("matched_rules", []),
+                        "recommended_actions": attack.get("recommended_actions", []),
+                    }
+                )
                 attack_id = db.record_attack_event(
                     attack_type=attack.get("attack_type", "unknown"),
                     source_ip=attack.get("source_ip", "unknown"),
@@ -547,21 +577,25 @@ def _persist_security_demo_state(state: dict) -> dict:
                 "security_incident_demo_generated",
                 agent_id="system",
                 action="containment",
-                details=json.dumps({
-                    "attack_count": len(state.get("attacks", [])),
-                    "alert_count": len(state.get("active", [])),
-                    "blocked_count": len(state.get("blocked_ips", [])),
-                }),
+                details=json.dumps(
+                    {
+                        "attack_count": len(state.get("attacks", [])),
+                        "alert_count": len(state.get("active", [])),
+                        "blocked_count": len(state.get("blocked_ips", [])),
+                    }
+                ),
             )
 
             try:
                 db.set_system_setting("security_telemetry_last_generated", state.get("generated_at"))
                 db.set_system_setting("security_rules", DEFAULT_SECURITY_RULES)
                 db.set_system_setting("security_last_fingerprint", state.get("integrity_hash"))
-            except Exception:
-                pass
+            except Exception as e:
+                logging.getLogger(__name__).debug("Suppressed exception while setting system setting: %s", e)
 
-            cases = correlate_security_cases(state.get("attacks", []), state.get("active", []), state.get("blocked_ips", []))
+            cases = correlate_security_cases(
+                state.get("attacks", []), state.get("active", []), state.get("blocked_ips", [])
+            )
             state["cases"] = cases
             if hasattr(db, "upsert_security_case"):
                 for case in cases:
@@ -585,13 +619,24 @@ def _persist_security_demo_state(state: dict) -> dict:
                     )
 
                 for case in cases:
-                    playbook = next((item for item in get_security_playbooks() if item.get("playbook_name") == case.get("playbook_name")), None)
+                    playbook = next(
+                        (
+                            item
+                            for item in get_security_playbooks()
+                            if item.get("playbook_name") == case.get("playbook_name")
+                        ),
+                        None,
+                    )
                     if playbook and playbook.get("auto_execute"):
                         execute_playbook(db, case, playbook)
 
             if hasattr(db, "record_security_chain_entry") and state.get("integrity_hash"):
                 try:
-                    previous_entries = db.list_security_chain_entries(limit=1, chain_name="incident-flow") if hasattr(db, "list_security_chain_entries") else []
+                    previous_entries = (
+                        db.list_security_chain_entries(limit=1, chain_name="incident-flow")
+                        if hasattr(db, "list_security_chain_entries")
+                        else []
+                    )
                     previous_hash = previous_entries[0]["current_hash"] if previous_entries else None
                     db.record_security_chain_entry(
                         chain_name="incident-flow",
@@ -603,35 +648,43 @@ def _persist_security_demo_state(state: dict) -> dict:
                         },
                         previous_hash=previous_hash,
                     )
-                except Exception:
-                    pass
+                except Exception as e:
+                    logging.getLogger(__name__).debug("Suppressed exception in playbook-run insertion: %s", e)
 
             if hasattr(db, "record_incident_export"):
                 try:
-                    kpis = calculate_security_kpis(state.get("attacks", []), state.get("active", []), state.get("blocked_ips", []))
-                    export_payload = build_incident_export_payload(state, state.get("attacks", []), state.get("active", []), state.get("blocked_ips", []), kpis)
+                    kpis = calculate_security_kpis(
+                        state.get("attacks", []), state.get("active", []), state.get("blocked_ips", [])
+                    )
+                    export_payload = build_incident_export_payload(
+                        state, state.get("attacks", []), state.get("active", []), state.get("blocked_ips", []), kpis
+                    )
                     db.record_incident_export(
                         export_type="security_demo",
                         export_hash=export_payload.get("export_hash", ""),
                         summary=f"{len(state.get('attacks', []))} attacks, {len(state.get('active', []))} alerts, {len(state.get('blocked_ips', []))} blocks",
                         file_name="attack_flow_export.json",
                     )
-                except Exception:
-                    pass
+                except Exception as e:
+                    import logging
+
+                    logging.getLogger(__name__).debug("Suppressed exception while recording incident export: %s", e)
 
     _write_demo_security_state(state)
-    _dispatch_security_notifications({
-        "event": "security_incident_demo_generated",
-        "generated_at": state.get("generated_at"),
-        "incident_id": state.get("incident_id"),
-        "correlation_id": state.get("correlation_id"),
-        "attacks": state.get("attacks", []),
-        "alerts": state.get("active", []),
-        "blocked_ips": state.get("blocked_ips", []),
-        "cases": state.get("cases", []),
-        "integrity_hash": state.get("integrity_hash"),
-        "source": "Agentic-IAM dashboard",
-    })
+    _dispatch_security_notifications(
+        {
+            "event": "security_incident_demo_generated",
+            "generated_at": state.get("generated_at"),
+            "incident_id": state.get("incident_id"),
+            "correlation_id": state.get("correlation_id"),
+            "attacks": state.get("attacks", []),
+            "alerts": state.get("active", []),
+            "blocked_ips": state.get("blocked_ips", []),
+            "cases": state.get("cases", []),
+            "integrity_hash": state.get("integrity_hash"),
+            "source": "Agentic-IAM dashboard",
+        }
+    )
     return state
 
 
@@ -641,8 +694,8 @@ def _load_security_rules(db) -> list[dict]:
         rules = db.get_system_setting("security_rules", DEFAULT_SECURITY_RULES)
         if isinstance(rules, list) and rules:
             return rules
-    except Exception:
-        pass
+    except Exception as e:
+        logging.getLogger(__name__).debug("Failed to load security rules, using defaults: %s", e)
     return DEFAULT_SECURITY_RULES
 
 
@@ -652,7 +705,9 @@ def _process_security_notification_queue(db) -> list[dict]:
     if not db or not hasattr(db, "list_security_notifications") or not hasattr(db, "update_security_notification"):
         return results
 
-    queued = db.list_security_notifications(limit=20, status="queued") + db.list_security_notifications(limit=20, status="retry")
+    queued = db.list_security_notifications(limit=20, status="queued") + db.list_security_notifications(
+        limit=20, status="retry"
+    )
     for item in queued:
         payload = item.get("payload", {})
         try:
@@ -786,10 +841,8 @@ def _load_demo_onboarding_values() -> None:
         }
 
     st.session_state.onboarding_company_name = demo_values.get("company_name", "Valhalla")
-    st.session_state.onboarding_environment_name = demo_values.get(
-        "deployment_environment", "development")
-    st.session_state.onboarding_identity_provider = demo_values.get(
-        "identity_provider", "Local Accounts")
+    st.session_state.onboarding_environment_name = demo_values.get("deployment_environment", "development")
+    st.session_state.onboarding_identity_provider = demo_values.get("identity_provider", "Local Accounts")
     st.session_state.onboarding_app_url = demo_values.get("app_url", "")
     st.session_state.onboarding_api_url = demo_values.get("api_url", "")
     st.session_state.onboarding_database_type = demo_values.get("database_type", "SQLite")
@@ -826,8 +879,7 @@ def show_onboarding(inline: bool = False):
             _load_demo_onboarding_values()
             st.rerun()
     with demo_col2:
-        st.caption(
-            "Use the demo preset for a fast live presentation, or fill the form manually for a real setup.")
+        st.caption("Use the demo preset for a fast live presentation, or fill the form manually for a real setup.")
 
     with st.form("onboarding_form"):
         col1, col2 = st.columns(2)
@@ -838,22 +890,22 @@ def show_onboarding(inline: bool = False):
             environment_name = st.selectbox(
                 "Deployment Environment",
                 environment_options,
-                index=environment_options.index(st.session_state.onboarding_environment_name)
-                if st.session_state.onboarding_environment_name in environment_options
-                else 0,
+                index=(
+                    environment_options.index(st.session_state.onboarding_environment_name)
+                    if st.session_state.onboarding_environment_name in environment_options
+                    else 0
+                ),
                 key="onboarding_environment_name",
             )
-            identity_options = [
-                "Local Accounts",
-                "Microsoft Entra ID",
-                "LDAP / Active Directory",
-                "Other SSO"]
+            identity_options = ["Local Accounts", "Microsoft Entra ID", "LDAP / Active Directory", "Other SSO"]
             identity_provider = st.selectbox(
                 "Identity Provider",
                 identity_options,
-                index=identity_options.index(st.session_state.onboarding_identity_provider)
-                if st.session_state.onboarding_identity_provider in identity_options
-                else 0,
+                index=(
+                    identity_options.index(st.session_state.onboarding_identity_provider)
+                    if st.session_state.onboarding_identity_provider in identity_options
+                    else 0
+                ),
                 key="onboarding_identity_provider",
             )
             app_url = st.text_input("Company App URL", key="onboarding_app_url")
@@ -864,14 +916,14 @@ def show_onboarding(inline: bool = False):
             database_type = st.selectbox(
                 "Database Type",
                 db_type_options,
-                index=db_type_options.index(st.session_state.onboarding_database_type)
-                if st.session_state.onboarding_database_type in db_type_options
-                else 0,
+                index=(
+                    db_type_options.index(st.session_state.onboarding_database_type)
+                    if st.session_state.onboarding_database_type in db_type_options
+                    else 0
+                ),
                 key="onboarding_database_type",
             )
-            database_url = st.text_input(
-                "Database Connection String",
-                key="onboarding_database_url")
+            database_url = st.text_input("Database Connection String", key="onboarding_database_url")
             enable_sso = st.checkbox("Enable Single Sign-On later", key="onboarding_enable_sso")
 
         st.markdown("---")
@@ -884,14 +936,8 @@ def show_onboarding(inline: bool = False):
             admin_email = st.text_input("Admin Email", key="onboarding_admin_email")
 
         with admin_col2:
-            admin_password = st.text_input(
-                "Admin Password",
-                type="password",
-                key="onboarding_admin_password")
-            confirm_password = st.text_input(
-                "Confirm Password",
-                type="password",
-                key="onboarding_confirm_password")
+            admin_password = st.text_input("Admin Password", type="password", key="onboarding_admin_password")
+            confirm_password = st.text_input("Confirm Password", type="password", key="onboarding_confirm_password")
 
         submitted = st.form_submit_button("✅ Save Setup and Continue")
 
@@ -941,9 +987,11 @@ def show_onboarding(inline: bool = False):
 
             admin_exists = False
             try:
-                admin_exists = any(user["username"] == admin_username.strip()
-                                   for user in db.list_users())
-            except Exception:
+                admin_exists = any(user["username"] == admin_username.strip() for user in db.list_users())
+            except Exception as e:
+                import logging
+
+                logging.getLogger(__name__).debug("Failed to check existing admins: %s", e)
                 admin_exists = False
 
             if not admin_exists:
@@ -977,12 +1025,16 @@ def get_requested_page() -> str | None:
             page = query_page[0] if query_page else None
         else:
             page = query_page
-    except Exception:
+    except Exception as e:
+        import logging
+
+        logging.getLogger(__name__).debug("Failed to read query params from st.query_params: %s", e)
         try:
             params = st.experimental_get_query_params()
             values = params.get("page", [])
             page = values[0] if values else None
-        except Exception:
+        except Exception as e2:
+            logging.getLogger(__name__).debug("Failed to read query params from experimental_get_query_params: %s", e2)
             page = None
 
     # Save to session state so it persists after login
@@ -1199,8 +1251,7 @@ def main():
         # Navigation - use stored value or first available page
         current_page = st.session_state.get("main_navigation", available_pages[0])
         try:
-            page_index = available_pages.index(
-                current_page) if current_page in available_pages else 0
+            page_index = available_pages.index(current_page) if current_page in available_pages else 0
         except ValueError:
             page_index = 0
 
@@ -1307,9 +1358,6 @@ def main():
         st.warning(f"Page '{page}' not implemented yet")
 
 
-
-
-
 def show_home():
     """Show home page with role-based content"""
     st.title("🏠 Agentic-IAM Control Center")
@@ -1357,17 +1405,12 @@ def show_home():
     with insight_col1:
         st.subheader("Operational Snapshot")
         snapshot_rows = [
-            {
-                "Area": "Tenant", "Value": settings.get(
-                    "company_name", "Not configured")}, {
-                "Area": "Environment", "Value": settings.get(
-                    "deployment_environment", "development")}, {
-                        "Area": "Identity Provider", "Value": settings.get(
-                            "identity_provider", "Local Accounts")}, {
-                                "Area": "App URL", "Value": settings.get(
-                                    "app_url", "Not configured")}, {
-                                        "Area": "API URL", "Value": settings.get(
-                                            "api_url", "Not configured")}, ]
+            {"Area": "Tenant", "Value": settings.get("company_name", "Not configured")},
+            {"Area": "Environment", "Value": settings.get("deployment_environment", "development")},
+            {"Area": "Identity Provider", "Value": settings.get("identity_provider", "Local Accounts")},
+            {"Area": "App URL", "Value": settings.get("app_url", "Not configured")},
+            {"Area": "API URL", "Value": settings.get("api_url", "Not configured")},
+        ]
         st.dataframe(pd.DataFrame(snapshot_rows), width="stretch", hide_index=True)
 
     with insight_col2:
@@ -1383,7 +1426,8 @@ def show_home():
     # Recent critical signals
     recent_events = db.get_events(limit=25)
     critical_events = [
-        event for event in recent_events
+        event
+        for event in recent_events
         if event.get("status") != "success" or event.get("event_type", "").startswith("security_")
     ]
 
@@ -1391,13 +1435,15 @@ def show_home():
         st.subheader("Recent Critical Signals")
         alert_rows = []
         for event in critical_events[:8]:
-            alert_rows.append({
-                "Time": event.get("created_at", ""),
-                "Type": event.get("event_type", ""),
-                "Agent": event.get("agent_id", "system"),
-                "Status": event.get("status", ""),
-                "Details": event.get("details", ""),
-            })
+            alert_rows.append(
+                {
+                    "Time": event.get("created_at", ""),
+                    "Type": event.get("event_type", ""),
+                    "Agent": event.get("agent_id", "system"),
+                    "Status": event.get("status", ""),
+                    "Details": event.get("details", ""),
+                }
+            )
         st.dataframe(pd.DataFrame(alert_rows), width="stretch", hide_index=True)
     else:
         st.success("No recent critical signals detected")
@@ -1595,9 +1641,9 @@ def show_page_audit_log():
     if events:
         df = pd.DataFrame(events)
         df["created_at"] = pd.to_datetime(df["created_at"]).dt.strftime("%Y-%m-%d %H:%M:%S")
-        df = df[
-            ["event_type", "agent_id", "action", "details", "created_at", "status"]
-        ].sort_values("created_at", ascending=False)
+        df = df[["event_type", "agent_id", "action", "details", "created_at", "status"]].sort_values(
+            "created_at", ascending=False
+        )
 
         # Color code by status
         st.dataframe(df, width="stretch", hide_index=True)
@@ -1619,17 +1665,15 @@ def show_page_incident_response():
     events = db.get_events(limit=250)
     failed_events = [event for event in events if event.get("status") != "success"]
     suspicious_events = [
-        event for event in events if any(
-            term in f"{event.get('event_type', '')} {event.get('details', '')}".lower() for term in [
-                "error",
-                "fail",
-                "denied",
-                "locked",
-                "suspicious",
-                "blocked"])]
+        event
+        for event in events
+        if any(
+            term in f"{event.get('event_type', '')} {event.get('details', '')}".lower()
+            for term in ["error", "fail", "denied", "locked", "suspicious", "blocked"]
+        )
+    ]
 
-    incident_candidates = failed_events + \
-        [event for event in suspicious_events if event not in failed_events]
+    incident_candidates = failed_events + [event for event in suspicious_events if event not in failed_events]
 
     col1, col2, col3, col4 = st.columns(4)
     with col1:
@@ -1673,14 +1717,16 @@ def show_page_incident_response():
             elif any(term in details_blob for term in ["error", "fail"]):
                 severity = "Medium"
 
-            incident_rows.append({
-                "Severity": severity,
-                "Time": event.get("created_at", ""),
-                "Type": event.get("event_type", ""),
-                "Agent": event.get("agent_id", "system"),
-                "Action": event.get("action", ""),
-                "Details": event.get("details", ""),
-            })
+            incident_rows.append(
+                {
+                    "Severity": severity,
+                    "Time": event.get("created_at", ""),
+                    "Type": event.get("event_type", ""),
+                    "Agent": event.get("agent_id", "system"),
+                    "Action": event.get("action", ""),
+                    "Details": event.get("details", ""),
+                }
+            )
 
         st.dataframe(pd.DataFrame(incident_rows), width="stretch", hide_index=True)
     else:
@@ -1731,40 +1777,24 @@ def show_page_integrations():
         col1, col2 = st.columns(2)
 
         with col1:
-            entra_enabled = st.checkbox(
-                "Enable Microsoft Entra ID", value=bool(
-                    settings.get(
-                        "entra_enabled", False)))
-            entra_tenant_id = st.text_input(
-                "Entra Tenant ID", value=settings.get(
-                    "entra_tenant_id", ""))
-            entra_client_id = st.text_input(
-                "Entra Client ID", value=settings.get(
-                    "entra_client_id", ""))
+            entra_enabled = st.checkbox("Enable Microsoft Entra ID", value=bool(settings.get("entra_enabled", False)))
+            entra_tenant_id = st.text_input("Entra Tenant ID", value=settings.get("entra_tenant_id", ""))
+            entra_client_id = st.text_input("Entra Client ID", value=settings.get("entra_client_id", ""))
             ldap_enabled = st.checkbox(
-                "Enable LDAP / Active Directory",
-                value=bool(
-                    settings.get(
-                        "ldap_enabled",
-                        False)))
+                "Enable LDAP / Active Directory", value=bool(settings.get("ldap_enabled", False))
+            )
             ldap_server = st.text_input("LDAP Server", value=settings.get("ldap_server", ""))
 
         with col2:
             webhooks_enabled = st.checkbox(
-                "Enable Webhook Notifications", value=bool(
-                    settings.get(
-                        "webhooks_enabled", False)))
+                "Enable Webhook Notifications", value=bool(settings.get("webhooks_enabled", False))
+            )
             webhook_url = st.text_input("Webhook URL", value=settings.get("webhook_url", ""))
-            siem_enabled = st.checkbox(
-                "Enable SIEM / SOC Feed",
-                value=bool(
-                    settings.get(
-                        "siem_enabled",
-                        False)))
+            siem_enabled = st.checkbox("Enable SIEM / SOC Feed", value=bool(settings.get("siem_enabled", False)))
             siem_endpoint = st.text_input("SIEM Endpoint", value=settings.get("siem_endpoint", ""))
             integration_owner = st.text_input(
-                "Integration Owner", value=settings.get(
-                    "integration_owner", "security-team"))
+                "Integration Owner", value=settings.get("integration_owner", "security-team")
+            )
 
         saved = st.form_submit_button("💾 Save Integrations")
 
@@ -1802,9 +1832,7 @@ def show_page_reports():
     health_monitor = AgentHealthMonitor(db)
     analytics = AgentAnalytics(db)
 
-    tab1, tab2, tab3, tab4 = st.tabs(
-        ["System Report", "Agent Report", "Security Report", "Analytics"]
-    )
+    tab1, tab2, tab3, tab4 = st.tabs(["System Report", "Agent Report", "Security Report", "Analytics"])
 
     with tab1:
         st.subheader("System Health Report")
@@ -1839,9 +1867,7 @@ def show_page_reports():
         agents = db.list_agents()
 
         if agents:
-            selected_agent = st.selectbox(
-                "Select Agent", [a["name"] for a in agents], key="agent_report"
-            )
+            selected_agent = st.selectbox("Select Agent", [a["name"] for a in agents], key="agent_report")
             selected_agent_obj = next((a for a in agents if a["name"] == selected_agent), None)
 
             if selected_agent_obj:
@@ -1877,9 +1903,7 @@ def show_page_reports():
             with col1:
                 st.metric("Total Events", report.get("audit_trail", {}).get("total_events", 0))
             with col2:
-                st.metric(
-                    "Audit Events", report.get("audit_trail", {}).get("significant_events", 0)
-                )
+                st.metric("Audit Events", report.get("audit_trail", {}).get("significant_events", 0))
             with col3:
                 st.metric("Active Users", report.get("users_summary", {}).get("active_users", 0))
 
@@ -1899,7 +1923,9 @@ def show_page_reports():
             st.info("No live security telemetry found yet")
         else:
             demo_state = _load_demo_security_state() or {}
-            exec_report = build_executive_report(demo_state if isinstance(demo_state, dict) else {}, cases, attacks, alerts, blocked_ips)
+            exec_report = build_executive_report(
+                demo_state if isinstance(demo_state, dict) else {}, cases, attacks, alerts, blocked_ips
+            )
             exec_cols = st.columns(4)
             with exec_cols[0]:
                 st.metric("Cases", exec_report.get("case_metrics", {}).get("total_cases", 0))
@@ -2078,9 +2104,7 @@ def show_page_user_management():
                 cols = st.columns([3, 1, 1])
                 pending_delete_key = f"pending_user_delete_{u['id']}"
                 with cols[0]:
-                    st.write(
-                        f"**{u['username']}** — {u['email']} — role: {u['role']} — status: {u['status']}"
-                    )
+                    st.write(f"**{u['username']}** — {u['email']} — role: {u['role']} — status: {u['status']}")
                 with cols[1]:
                     if st.button(f"Deactivate {u['username']}", key=f"deact_{u['id']}"):
                         ok = db.update_user_status(u["id"], "suspended")
@@ -2095,13 +2119,10 @@ def show_page_user_management():
                         st.rerun()
 
                 if st.session_state.get(pending_delete_key):
-                    st.warning(
-                        f"Are you sure you want to delete user {u['username']}? This cannot be undone.")
+                    st.warning(f"Are you sure you want to delete user {u['username']}? This cannot be undone.")
                     confirm_col, cancel_col = st.columns(2)
                     with confirm_col:
-                        if st.button(
-                            f"✅ Confirm Delete {u['username']}",
-                                key=f"confirm_deluser_{u['id']}"):
+                        if st.button(f"✅ Confirm Delete {u['username']}", key=f"confirm_deluser_{u['id']}"):
                             ok = db.delete_user(u["id"])
                             still_exists = db.get_user_by_id(u["id"])
                             if ok and not still_exists:
@@ -2109,8 +2130,7 @@ def show_page_user_management():
                                 st.session_state[pending_delete_key] = False
                                 st.rerun()
                             elif ok and still_exists:
-                                st.error(
-                                    f"Delete reported success, but user {u['username']} still exists")
+                                st.error(f"Delete reported success, but user {u['username']} still exists")
                             else:
                                 st.error(f"Failed to delete user {u['username']}")
                     with cancel_col:
@@ -2130,17 +2150,23 @@ def show_page_user_management():
                 edited_role = st.selectbox(
                     "Edit role",
                     ["user", "operator", "admin"],
-                    index=["user", "operator", "admin"].index(selected_user["role"])
-                    if selected_user["role"] in ["user", "operator", "admin"] else 0,
-                    key=f"edit_role_{selected_user['id']}"
+                    index=(
+                        ["user", "operator", "admin"].index(selected_user["role"])
+                        if selected_user["role"] in ["user", "operator", "admin"]
+                        else 0
+                    ),
+                    key=f"edit_role_{selected_user['id']}",
                 )
             with edit_col2:
                 edited_status = st.selectbox(
                     "Edit status",
                     ["active", "suspended"],
-                    index=["active", "suspended"].index(selected_user["status"])
-                    if selected_user["status"] in ["active", "suspended"] else 0,
-                    key=f"edit_status_{selected_user['id']}"
+                    index=(
+                        ["active", "suspended"].index(selected_user["status"])
+                        if selected_user["status"] in ["active", "suspended"]
+                        else 0
+                    ),
+                    key=f"edit_status_{selected_user['id']}",
                 )
 
             if st.button("💾 Save User Changes", key=f"save_user_{selected_user['id']}"):
@@ -2158,8 +2184,7 @@ def show_page_user_management():
                     st.success(f"User {selected_user['username']} updated successfully")
                     st.rerun()
                 elif role_ok and status_ok:
-                    st.error(
-                        f"Update reported success, but user {selected_user['username']} did not persist")
+                    st.error(f"Update reported success, but user {selected_user['username']} did not persist")
                 else:
                     st.error(f"Failed to update user {selected_user['username']}")
 
@@ -2226,9 +2251,7 @@ def show_page_system_config():
 
         db_type = st.selectbox("Database Type", ["SQLite", "PostgreSQL", "MySQL"])
         db_host = st.text_input("Database Host", "localhost" if db_type != "SQLite" else "N/A")
-        db_port = st.number_input(
-            "Database Port", 3306 if db_type == "MySQL" else 5432, disabled=(db_type == "SQLite")
-        )
+        db_port = st.number_input("Database Port", 3306 if db_type == "MySQL" else 5432, disabled=(db_type == "SQLite"))
 
         st.caption(f"Database target: {db_type} @ {db_host}:{int(db_port)}")
 
@@ -2245,7 +2268,8 @@ def show_page_system_config():
 
         st.caption(
             f"Security config: SSL={'on' if enable_ssl else 'off'}, 2FA={'on' if enable_2fa else 'off'}, "
-            f"policy={password_policy}, session duration={session_duration}h")
+            f"policy={password_policy}, session duration={session_duration}h"
+        )
 
         if st.button("💾 Save Security Config"):
             st.success("✅ Security configuration saved!")
@@ -2411,9 +2435,7 @@ def show_page_analytics():
 
                 event_types = activity.get("event_types", {})
                 if event_types:
-                    event_type_df = pd.DataFrame(
-                        list(event_types.items()), columns=["Event Type", "Count"]
-                    )
+                    event_type_df = pd.DataFrame(list(event_types.items()), columns=["Event Type", "Count"])
                     st.bar_chart(event_type_df.set_index("Event Type"))
                 else:
                     st.info("No events for this agent in the selected period")
@@ -2523,13 +2545,15 @@ def show_page_health_center():
         health_rows = []
         for agent in agents[:15]:
             health = health_monitor.get_agent_health(agent["id"])
-            health_rows.append({
-                "Agent": health.get("agent_name", agent["id"]),
-                "Status": health.get("status", "unknown"),
-                "Health": f"{health.get('health_score', 0)}%",
-                "Sessions": health.get("active_sessions", 0),
-                "Last Activity": health.get("last_activity", "Never"),
-            })
+            health_rows.append(
+                {
+                    "Agent": health.get("agent_name", agent["id"]),
+                    "Status": health.get("status", "unknown"),
+                    "Health": f"{health.get('health_score', 0)}%",
+                    "Sessions": health.get("active_sessions", 0),
+                    "Last Activity": health.get("last_activity", "Never"),
+                }
+            )
         st.dataframe(pd.DataFrame(health_rows), width="stretch", hide_index=True)
     else:
         st.info("No agents registered yet")
@@ -2547,14 +2571,16 @@ def show_page_activity_timeline():
 
     timeline_rows = []
     for event in events[:50]:
-        timeline_rows.append({
-            "Time": event.get("created_at", ""),
-            "Type": event.get("event_type", "unknown"),
-            "Agent": event.get("agent_id", "system"),
-            "Action": event.get("action", ""),
-            "Status": event.get("status", "success"),
-            "Details": event.get("details", ""),
-        })
+        timeline_rows.append(
+            {
+                "Time": event.get("created_at", ""),
+                "Type": event.get("event_type", "unknown"),
+                "Agent": event.get("agent_id", "system"),
+                "Action": event.get("action", ""),
+                "Status": event.get("status", "success"),
+                "Details": event.get("details", ""),
+            }
+        )
 
     st.dataframe(pd.DataFrame(timeline_rows), width="stretch", hide_index=True)
 
@@ -2572,8 +2598,8 @@ def _fetch_security_alerts(endpoint: str, fallback: list | None = None):
                     value = payload.get(key)
                     if isinstance(value, list) and value:
                         return value
-    except Exception:
-        pass
+    except Exception as e:
+        logging.getLogger(__name__).debug("Failed to fetch local alerts endpoint %s: %s", endpoint, e)
 
     db = _get_dashboard_db()
     if db:
@@ -2590,7 +2616,8 @@ def _fetch_security_alerts(endpoint: str, fallback: list | None = None):
             try:
                 if "limit=" in endpoint:
                     limit = int(endpoint.split("limit=")[-1].split("&")[0])
-            except Exception:
+            except (ValueError, IndexError) as e:
+                logging.getLogger(__name__).debug("Failed to parse limit from endpoint '%s': %s", endpoint, e)
                 limit = 20
             records = db.list_security_alerts(limit=limit, active_only=False)
             if records:
@@ -2606,56 +2633,58 @@ def _fetch_security_alerts(endpoint: str, fallback: list | None = None):
                 with sqlite3.connect(db.db_path) as conn:
                     cursor = conn.cursor()
                     if endpoint == "attacks":
-                        cursor.execute(
-                            """
+                        cursor.execute("""
                             SELECT id, attack_type, source_ip, target_endpoint, payload,
                                    severity, detected_at, status, description, metadata
                             FROM attack_events ORDER BY detected_at DESC LIMIT 100
-                            """
-                        )
+                            """)
                         rows = cursor.fetchall()
                         if rows:
-                            return [{
-                                "id": row[0],
-                                "attack_type": row[1],
-                                "source_ip": row[2],
-                                "target_endpoint": row[3],
-                                "payload": row[4],
-                                "severity": row[5],
-                                "detected_at": row[6],
-                                "status": row[7],
-                                "description": row[8],
-                                "metadata": json.loads(row[9]) if row[9] else {},
-                            } for row in rows]
+                            return [
+                                {
+                                    "id": row[0],
+                                    "attack_type": row[1],
+                                    "source_ip": row[2],
+                                    "target_endpoint": row[3],
+                                    "payload": row[4],
+                                    "severity": row[5],
+                                    "detected_at": row[6],
+                                    "status": row[7],
+                                    "description": row[8],
+                                    "metadata": json.loads(row[9]) if row[9] else {},
+                                }
+                                for row in rows
+                            ]
                     elif endpoint.startswith("active"):
-                        cursor.execute(
-                            """
+                        cursor.execute("""
                             SELECT id, alert_type, title, message, severity, source_ip,
                                    attack_event_id, is_resolved, created_at, resolved_at
                             FROM security_alerts WHERE is_resolved = 0
                             ORDER BY created_at DESC LIMIT 100
-                            """
-                        )
+                            """)
                         rows = cursor.fetchall()
                         if rows:
-                            return [{
-                                "id": row[0],
-                                "alert_type": row[1],
-                                "title": row[2],
-                                "message": row[3],
-                                "severity": row[4],
-                                "source_ip": row[5],
-                                "attack_event_id": row[6],
-                                "is_resolved": bool(row[7]),
-                                "created_at": row[8],
-                                "resolved_at": row[9],
-                            } for row in rows]
+                            return [
+                                {
+                                    "id": row[0],
+                                    "alert_type": row[1],
+                                    "title": row[2],
+                                    "message": row[3],
+                                    "severity": row[4],
+                                    "source_ip": row[5],
+                                    "attack_event_id": row[6],
+                                    "is_resolved": bool(row[7]),
+                                    "created_at": row[8],
+                                    "resolved_at": row[9],
+                                }
+                                for row in rows
+                            ]
                     elif endpoint.startswith("recent"):
                         limit = 20
                         try:
                             if "limit=" in endpoint:
                                 limit = int(endpoint.split("limit=")[-1].split("&")[0])
-                        except Exception:
+                        except (ValueError, IndexError):
                             limit = 20
                         cursor.execute(
                             """
@@ -2667,39 +2696,43 @@ def _fetch_security_alerts(endpoint: str, fallback: list | None = None):
                         )
                         rows = cursor.fetchall()
                         if rows:
-                            return [{
-                                "id": row[0],
-                                "alert_type": row[1],
-                                "title": row[2],
-                                "message": row[3],
-                                "severity": row[4],
-                                "source_ip": row[5],
-                                "attack_event_id": row[6],
-                                "is_resolved": bool(row[7]),
-                                "created_at": row[8],
-                                "resolved_at": row[9],
-                            } for row in rows]
+                            return [
+                                {
+                                    "id": row[0],
+                                    "alert_type": row[1],
+                                    "title": row[2],
+                                    "message": row[3],
+                                    "severity": row[4],
+                                    "source_ip": row[5],
+                                    "attack_event_id": row[6],
+                                    "is_resolved": bool(row[7]),
+                                    "created_at": row[8],
+                                    "resolved_at": row[9],
+                                }
+                                for row in rows
+                            ]
                     elif endpoint in {"blocked-ips", "blocked_ips"}:
-                        cursor.execute(
-                            """
+                        cursor.execute("""
                             SELECT ip_address, reason, attack_event_id, block_duration_seconds,
                                    blocked_at, expires_at, is_active
                             FROM blocked_ips WHERE is_active = 1 ORDER BY blocked_at DESC
-                            """
-                        )
+                            """)
                         rows = cursor.fetchall()
                         if rows:
-                            return [{
-                                "ip": row[0],
-                                "reason": row[1],
-                                "attack_event_id": row[2],
-                                "block_duration_seconds": row[3],
-                                "blocked_at": row[4],
-                                "expires_at": row[5],
-                                "is_active": bool(row[6]),
-                            } for row in rows]
-            except Exception:
-                pass
+                            return [
+                                {
+                                    "ip": row[0],
+                                    "reason": row[1],
+                                    "attack_event_id": row[2],
+                                    "block_duration_seconds": row[3],
+                                    "blocked_at": row[4],
+                                    "expires_at": row[5],
+                                    "is_active": bool(row[6]),
+                                }
+                                for row in rows
+                            ]
+            except Exception as e:
+                logging.getLogger(__name__).debug("Failed to query local security tables: %s", e)
 
     demo_state = _load_demo_security_state()
     if isinstance(demo_state, dict):
@@ -2719,7 +2752,8 @@ def _parse_attack_metadata(raw_metadata):
             parsed = json.loads(raw_metadata)
             if isinstance(parsed, dict):
                 return parsed
-        except Exception:
+        except json.JSONDecodeError as e:
+            logging.getLogger(__name__).debug("Failed to parse attack metadata: %s", e)
             return {}
     return {}
 
@@ -2768,7 +2802,9 @@ def show_page_attack_forensics():
 
     demo_banner = st.container()
     with demo_banner:
-        st.info("Demo mode is available for local screenshots and walkthroughs. It uses synthetic telemetry, blocked IPs, and auto-containment records.")
+        st.info(
+            "Demo mode is available for local screenshots and walkthroughs. It uses synthetic telemetry, blocked IPs, and auto-containment records."
+        )
         demo_col1, demo_col2 = st.columns(2)
         with demo_col1:
             if st.button("Generate Demo Incident", width="stretch"):
@@ -2787,7 +2823,9 @@ def show_page_attack_forensics():
     blocked_ips = _fetch_security_alerts("blocked-ips")
 
     if not attacks and not active_alerts and not blocked_ips:
-        st.warning("No security telemetry available. Generate a demo incident or start the API server to load attack data.")
+        st.warning(
+            "No security telemetry available. Generate a demo incident or start the API server to load attack data."
+        )
         return
 
     critical_count = sum(1 for attack in attacks if str(attack.get("severity", "")).lower() == "critical")
@@ -2841,20 +2879,22 @@ def show_page_attack_forensics():
             actor = metadata.get("username") or metadata.get("user") or attack.get("source_ip", "unknown")
             stop_reason = _summarize_attack_status(attack, blocked_ips)
             blocked = attack.get("status") == "blocked"
-            forensic_rows.append({
-                "Time": attack.get("detected_at", ""),
-                "Attack": attack.get("attack_type", "unknown"),
-                "Actor": actor,
-                "Source IP": attack.get("source_ip", "unknown"),
-                "Target": attack.get("target_endpoint", "unknown"),
-                "Status": attack.get("status", "detected"),
-                "Stopped By": stop_reason,
-                "Estimated Impact": _estimate_loss_impact(
-                    attack.get("attack_type", "unknown"),
-                    attack.get("severity", "medium"),
-                    blocked,
-                ),
-            })
+            forensic_rows.append(
+                {
+                    "Time": attack.get("detected_at", ""),
+                    "Attack": attack.get("attack_type", "unknown"),
+                    "Actor": actor,
+                    "Source IP": attack.get("source_ip", "unknown"),
+                    "Target": attack.get("target_endpoint", "unknown"),
+                    "Status": attack.get("status", "detected"),
+                    "Stopped By": stop_reason,
+                    "Estimated Impact": _estimate_loss_impact(
+                        attack.get("attack_type", "unknown"),
+                        attack.get("severity", "medium"),
+                        blocked,
+                    ),
+                }
+            )
 
         st.dataframe(pd.DataFrame(forensic_rows), width="stretch", hide_index=True)
 
@@ -2877,7 +2917,9 @@ def show_page_attack_forensics():
             st.write(f"**Source IP:** {selected_attack.get('source_ip', 'unknown')}")
             st.write(f"**Target:** {selected_attack.get('target_endpoint', 'unknown')}")
         with detail_cols[2]:
-            st.write(f"**Estimated Impact:** {_estimate_loss_impact(selected_attack.get('attack_type', 'unknown'), selected_attack.get('severity', 'medium'), selected_attack.get('status') == 'blocked')}")
+            st.write(
+                f"**Estimated Impact:** {_estimate_loss_impact(selected_attack.get('attack_type', 'unknown'), selected_attack.get('severity', 'medium'), selected_attack.get('status') == 'blocked')}"
+            )
             st.write(f"**Response:** {_summarize_attack_status(selected_attack, blocked_ips)}")
             st.write(f"**Loss Avoided:** {'Yes' if selected_attack.get('status') == 'blocked' else 'Partial'}")
 
@@ -2932,14 +2974,16 @@ def show_page_alert_center():
     if active_alerts:
         alert_rows = []
         for alert in active_alerts[:50]:
-            alert_rows.append({
-                "Time": alert.get("created_at", ""),
-                "Severity": alert.get("severity", "medium"),
-                "Type": alert.get("alert_type", "unknown"),
-                "Source IP": alert.get("source_ip", ""),
-                "Title": alert.get("title", ""),
-                "Message": alert.get("message", ""),
-            })
+            alert_rows.append(
+                {
+                    "Time": alert.get("created_at", ""),
+                    "Severity": alert.get("severity", "medium"),
+                    "Type": alert.get("alert_type", "unknown"),
+                    "Source IP": alert.get("source_ip", ""),
+                    "Title": alert.get("title", ""),
+                    "Message": alert.get("message", ""),
+                }
+            )
 
         st.dataframe(pd.DataFrame(alert_rows), width="stretch", hide_index=True)
     else:
@@ -2949,7 +2993,9 @@ def show_page_alert_center():
         st.markdown("---")
         st.subheader("Recent Alert Feed")
         for alert in recent_alerts[:10]:
-            st.write(f"**{alert.get('severity', 'medium').upper()}** - {alert.get('title', 'Alert')} ({alert.get('source_ip', 'n/a')})")
+            st.write(
+                f"**{alert.get('severity', 'medium').upper()}** - {alert.get('title', 'Alert')} ({alert.get('source_ip', 'n/a')})"
+            )
             st.caption(alert.get("message", ""))
 
 
@@ -2976,14 +3022,26 @@ def show_page_attack_flow():
             st.rerun()
 
     demo_state = _load_demo_security_state() or _build_demo_security_state()
-    attacks = _fetch_security_alerts("attacks") or (demo_state.get("attacks", []) if isinstance(demo_state, dict) else [])
+    attacks = _fetch_security_alerts("attacks") or (
+        demo_state.get("attacks", []) if isinstance(demo_state, dict) else []
+    )
     alerts = _fetch_security_alerts("active") or (demo_state.get("active", []) if isinstance(demo_state, dict) else [])
-    blocks = _fetch_security_alerts("blocked-ips") or (demo_state.get("blocked_ips", []) if isinstance(demo_state, dict) else [])
-    cases = db.list_security_cases(limit=25) if db and hasattr(db, "list_security_cases") else (demo_state.get("cases", []) if isinstance(demo_state, dict) else [])
+    blocks = _fetch_security_alerts("blocked-ips") or (
+        demo_state.get("blocked_ips", []) if isinstance(demo_state, dict) else []
+    )
+    cases = (
+        db.list_security_cases(limit=25)
+        if db and hasattr(db, "list_security_cases")
+        else (demo_state.get("cases", []) if isinstance(demo_state, dict) else [])
+    )
     stages = _build_attack_flow_stages()
     kpis = calculate_security_kpis(attacks, alerts, blocks)
-    export_payload = build_incident_export_payload(demo_state if isinstance(demo_state, dict) else {}, attacks, alerts, blocks, kpis)
-    executive_report = build_executive_report(demo_state if isinstance(demo_state, dict) else {}, cases, attacks, alerts, blocks)
+    export_payload = build_incident_export_payload(
+        demo_state if isinstance(demo_state, dict) else {}, attacks, alerts, blocks, kpis
+    )
+    executive_report = build_executive_report(
+        demo_state if isinstance(demo_state, dict) else {}, cases, attacks, alerts, blocks
+    )
     chain_hash = (demo_state or {}).get("integrity_hash", "")
 
     col1, col2, col3, col4, col5, col6, col7 = st.columns(7)
@@ -3059,20 +3117,24 @@ def show_page_attack_flow():
         st.write(f"- Attack type: {attacks[0].get('attack_type', 'unknown') if attacks else 'unknown'}")
         st.write(f"- Source IP: {attacks[0].get('source_ip', 'unknown') if attacks else 'unknown'}")
         st.write(f"- Final status: {_summarize_attack_status(attacks[0], blocks) if attacks else 'contained'}")
-        st.write(f"- Estimated impact: {_estimate_loss_impact(attacks[0].get('attack_type', 'unknown') if attacks else 'unknown', attacks[0].get('severity', 'medium') if attacks else 'medium', True)}")
+        st.write(
+            f"- Estimated impact: {_estimate_loss_impact(attacks[0].get('attack_type', 'unknown') if attacks else 'unknown', attacks[0].get('severity', 'medium') if attacks else 'medium', True)}"
+        )
 
         st.markdown("---")
         st.subheader("Evidence")
-        st.json({
-            "attack_count": len(attacks),
-            "alert_count": len(alerts),
-            "blocked_ips": [item.get("ip") for item in blocks],
-            "integrity_hash": chain_hash,
-            "block_rate": kpis.get("block_rate", 0.0),
-            "mttd_minutes": kpis.get("mttd_minutes", 0.0),
-            "mttr_minutes": kpis.get("mttr_minutes", 0.0),
-            "source": "demo_security_state.json",
-        })
+        st.json(
+            {
+                "attack_count": len(attacks),
+                "alert_count": len(alerts),
+                "blocked_ips": [item.get("ip") for item in blocks],
+                "integrity_hash": chain_hash,
+                "block_rate": kpis.get("block_rate", 0.0),
+                "mttd_minutes": kpis.get("mttd_minutes", 0.0),
+                "mttr_minutes": kpis.get("mttr_minutes", 0.0),
+                "source": "demo_security_state.json",
+            }
+        )
 
         snapshot_payload = {
             "generated_at": datetime.utcnow().isoformat() + "Z",
@@ -3094,13 +3156,15 @@ def show_page_attack_flow():
 
         snapshot_rows = []
         for attack in attacks:
-            snapshot_rows.append({
-                "Type": attack.get("attack_type", "unknown"),
-                "Source IP": attack.get("source_ip", "unknown"),
-                "Status": attack.get("status", "detected"),
-                "Correlation ID": attack.get("correlation_id", ""),
-                "Threat Score": attack.get("threat_intel", {}).get("risk_score", 0),
-            })
+            snapshot_rows.append(
+                {
+                    "Type": attack.get("attack_type", "unknown"),
+                    "Source IP": attack.get("source_ip", "unknown"),
+                    "Status": attack.get("status", "detected"),
+                    "Correlation ID": attack.get("correlation_id", ""),
+                    "Threat Score": attack.get("threat_intel", {}).get("risk_score", 0),
+                }
+            )
         if snapshot_rows:
             st.download_button(
                 "Download Attack CSV",
@@ -3145,14 +3209,16 @@ def show_page_attack_flow():
             st.subheader("Correlated Cases")
             case_rows = []
             for case in cases[:10]:
-                case_rows.append({
-                    "Case": case.get("title", "Case"),
-                    "Status": case.get("status", "open"),
-                    "Severity": case.get("severity", "medium"),
-                    "Playbook": case.get("playbook_name", "generic-triage"),
-                    "Sources": ", ".join(case.get("source_ips", [])[:3]),
-                    "Summary": case.get("summary", ""),
-                })
+                case_rows.append(
+                    {
+                        "Case": case.get("title", "Case"),
+                        "Status": case.get("status", "open"),
+                        "Severity": case.get("severity", "medium"),
+                        "Playbook": case.get("playbook_name", "generic-triage"),
+                        "Sources": ", ".join(case.get("source_ips", [])[:3]),
+                        "Summary": case.get("summary", ""),
+                    }
+                )
             st.dataframe(pd.DataFrame(case_rows), width="stretch", hide_index=True)
 
     st.markdown("---")
@@ -3217,17 +3283,18 @@ def show_page_security_operations():
     playbook_runs = db.list_security_playbook_runs(limit=25) if hasattr(db, "list_security_playbook_runs") else []
     security_rules = _load_security_rules(db)
     notification_queue = db.list_security_notifications(limit=25) if hasattr(db, "list_security_notifications") else []
-    chain_entries = db.list_security_chain_entries(limit=10, chain_name="incident-flow") if hasattr(db, "list_security_chain_entries") else []
+    chain_entries = (
+        db.list_security_chain_entries(limit=10, chain_name="incident-flow")
+        if hasattr(db, "list_security_chain_entries")
+        else []
+    )
     kpis = calculate_security_kpis(attacks, active_alerts, blocked_ips)
     case_metrics = summarize_case_metrics(cases)
 
     failed_events = [e for e in events if e.get("status") != "success"]
     auth_events = [
-        e for e in events if e.get(
-            "event_type",
-            "").startswith("user_") or e.get(
-            "event_type",
-            "").startswith("agent_")]
+        e for e in events if e.get("event_type", "").startswith("user_") or e.get("event_type", "").startswith("agent_")
+    ]
 
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -3279,52 +3346,60 @@ def show_page_security_operations():
         st.subheader("Active Detection Rules")
         rule_rows = []
         for rule in security_rules:
-            rule_rows.append({
-                "Rule": rule.get("rule_key", "custom"),
-                "Title": rule.get("title", "Security rule"),
-                "Pattern": rule.get("pattern", ""),
-                "Severity": rule.get("severity", "medium"),
-                "Action": rule.get("response_action", "monitor"),
-            })
+            rule_rows.append(
+                {
+                    "Rule": rule.get("rule_key", "custom"),
+                    "Title": rule.get("title", "Security rule"),
+                    "Pattern": rule.get("pattern", ""),
+                    "Severity": rule.get("severity", "medium"),
+                    "Action": rule.get("response_action", "monitor"),
+                }
+            )
         st.dataframe(pd.DataFrame(rule_rows), width="stretch", hide_index=True)
 
     if notification_queue:
         st.subheader("Notification Queue")
         queue_rows = []
         for item in notification_queue:
-            queue_rows.append({
-                "Time": item.get("created_at", ""),
-                "Target": item.get("target_name", ""),
-                "Status": item.get("status", ""),
-                "Attempts": item.get("attempts", 0),
-                "Last Error": item.get("last_error", ""),
-            })
+            queue_rows.append(
+                {
+                    "Time": item.get("created_at", ""),
+                    "Target": item.get("target_name", ""),
+                    "Status": item.get("status", ""),
+                    "Attempts": item.get("attempts", 0),
+                    "Last Error": item.get("last_error", ""),
+                }
+            )
         st.dataframe(pd.DataFrame(queue_rows), width="stretch", hide_index=True)
 
     if chain_entries:
         st.subheader("Integrity Chain")
         chain_rows = []
         for entry in chain_entries:
-            chain_rows.append({
-                "Time": entry.get("created_at", ""),
-                "Chain": entry.get("chain_name", ""),
-                "Previous Hash": str(entry.get("previous_hash", ""))[:12],
-                "Current Hash": str(entry.get("current_hash", ""))[:12],
-            })
+            chain_rows.append(
+                {
+                    "Time": entry.get("created_at", ""),
+                    "Chain": entry.get("chain_name", ""),
+                    "Previous Hash": str(entry.get("previous_hash", ""))[:12],
+                    "Current Hash": str(entry.get("current_hash", ""))[:12],
+                }
+            )
         st.dataframe(pd.DataFrame(chain_rows), width="stretch", hide_index=True)
 
     if cases:
         st.subheader("Correlated Cases")
         case_rows = []
         for case in cases[:20]:
-            case_rows.append({
-                "Case": case.get("title", "Case"),
-                "Status": case.get("status", "open"),
-                "Severity": case.get("severity", "medium"),
-                "Playbook": case.get("playbook_name", "generic-triage"),
-                "Sources": ", ".join(case.get("source_ips", [])[:3]),
-                "Actions": ", ".join(case.get("recommended_actions", [])[:4]),
-            })
+            case_rows.append(
+                {
+                    "Case": case.get("title", "Case"),
+                    "Status": case.get("status", "open"),
+                    "Severity": case.get("severity", "medium"),
+                    "Playbook": case.get("playbook_name", "generic-triage"),
+                    "Sources": ", ".join(case.get("source_ips", [])[:3]),
+                    "Actions": ", ".join(case.get("recommended_actions", [])[:4]),
+                }
+            )
         st.dataframe(pd.DataFrame(case_rows), width="stretch", hide_index=True)
 
         selected_case = st.selectbox(
@@ -3332,7 +3407,14 @@ def show_page_security_operations():
             options=cases,
             format_func=lambda item: f"{item.get('title', 'Case')} | {item.get('severity', 'medium')} | {item.get('status', 'open')}",
         )
-        selected_playbook = next((item for item in get_security_playbooks() if item.get("playbook_name") == selected_case.get("playbook_name")), get_security_playbooks()[-1])
+        selected_playbook = next(
+            (
+                item
+                for item in get_security_playbooks()
+                if item.get("playbook_name") == selected_case.get("playbook_name")
+            ),
+            get_security_playbooks()[-1],
+        )
         play_col1, play_col2 = st.columns(2)
         with play_col1:
             if st.button("Execute Recommended Playbook", width="stretch"):
@@ -3351,26 +3433,30 @@ def show_page_security_operations():
         st.subheader("Recent Playbook Runs")
         run_rows = []
         for run in playbook_runs[:15]:
-            run_rows.append({
-                "Time": run.get("created_at", ""),
-                "Case": run.get("case_key", ""),
-                "Playbook": run.get("playbook_name", ""),
-                "Status": run.get("status", ""),
-                "Auto": run.get("auto_applied", False),
-            })
+            run_rows.append(
+                {
+                    "Time": run.get("created_at", ""),
+                    "Case": run.get("case_key", ""),
+                    "Playbook": run.get("playbook_name", ""),
+                    "Status": run.get("status", ""),
+                    "Auto": run.get("auto_applied", False),
+                }
+            )
         st.dataframe(pd.DataFrame(run_rows), width="stretch", hide_index=True)
 
     if failed_events:
         st.subheader("Recent Failed Events")
         security_rows = []
         for event in failed_events[:20]:
-            security_rows.append({
-                "Time": event.get("created_at", ""),
-                "Type": event.get("event_type", ""),
-                "Agent": event.get("agent_id", "system"),
-                "Action": event.get("action", ""),
-                "Details": event.get("details", ""),
-            })
+            security_rows.append(
+                {
+                    "Time": event.get("created_at", ""),
+                    "Type": event.get("event_type", ""),
+                    "Agent": event.get("agent_id", "system"),
+                    "Action": event.get("action", ""),
+                    "Details": event.get("details", ""),
+                }
+            )
         st.dataframe(pd.DataFrame(security_rows), width="stretch", hide_index=True)
     else:
         st.success("No failed security events in the recent window")
@@ -3408,13 +3494,15 @@ def show_page_automation_center():
     if tasks:
         task_rows = []
         for task in tasks:
-            task_rows.append({
-                "Time": task.get("created_at", ""),
-                "Agent": task.get("agent_id", ""),
-                "Task": task.get("task_type", ""),
-                "Status": task.get("status", ""),
-                "Details": task.get("details", ""),
-            })
+            task_rows.append(
+                {
+                    "Time": task.get("created_at", ""),
+                    "Agent": task.get("agent_id", ""),
+                    "Task": task.get("task_type", ""),
+                    "Status": task.get("status", ""),
+                    "Details": task.get("details", ""),
+                }
+            )
         st.dataframe(pd.DataFrame(task_rows), width="stretch", hide_index=True)
     else:
         st.info("No tasks created yet")

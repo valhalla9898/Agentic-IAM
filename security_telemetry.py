@@ -13,7 +13,6 @@ import uuid
 from datetime import datetime
 from typing import Any, Dict, Iterable, List, Optional
 
-
 DEFAULT_SECURITY_RULES: List[Dict[str, Any]] = [
     {
         "rule_key": "sql-injection-block",
@@ -68,11 +67,11 @@ def _parse_datetime(value: Any) -> Optional[datetime]:
     ):
         try:
             return datetime.fromisoformat(candidate)
-        except Exception:
+        except ValueError:
             continue
     try:
         return datetime.strptime(text, "%Y-%m-%d %H:%M:%S")
-    except Exception:
+    except ValueError:
         return None
 
 
@@ -89,12 +88,12 @@ def _match_rule_value(value: Any, rule_pattern: str, threshold: int) -> bool:
         try:
             minimum = int(rule_pattern.split("attempts>=")[-1].split("|")[0])
             return int(value) >= minimum
-        except Exception:
+        except (ValueError, TypeError):
             return False
 
     try:
         return int(value) >= threshold
-    except Exception:
+    except (ValueError, TypeError):
         return False
 
 
@@ -107,7 +106,9 @@ def _get_nested_value(payload: Dict[str, Any], path: str) -> Any:
     return current
 
 
-def build_threat_intel_profile(source_ip: str, attack_type: str, metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+def build_threat_intel_profile(
+    source_ip: str, attack_type: str, metadata: Optional[Dict[str, Any]] = None
+) -> Dict[str, Any]:
     """Return a small threat-intel enrichment profile for the incident."""
     metadata = metadata or {}
     actor = metadata.get("username") or metadata.get("user") or "unknown"
@@ -150,7 +151,9 @@ def build_threat_intel_profile(source_ip: str, attack_type: str, metadata: Optio
     }
 
 
-def evaluate_security_rules(attack: Dict[str, Any], rules: Optional[Iterable[Dict[str, Any]]] = None) -> List[Dict[str, Any]]:
+def evaluate_security_rules(
+    attack: Dict[str, Any], rules: Optional[Iterable[Dict[str, Any]]] = None
+) -> List[Dict[str, Any]]:
     """Return rule matches for a single attack payload."""
     rules_to_use = list(rules or DEFAULT_SECURITY_RULES)
     matches: List[Dict[str, Any]] = []
@@ -257,7 +260,9 @@ def enrich_security_state(state: Dict[str, Any], rules: Optional[Iterable[Dict[s
     total_attacks = len(attacks)
     blocked_count = sum(1 for attack in attacks if str(attack.get("status", "")).lower() == "blocked")
     critical_count = sum(1 for attack in attacks if str(attack.get("severity", "")).lower() == "critical")
-    top_intel = max((attack.get("threat_intel", {}) for attack in attacks), key=lambda item: item.get("risk_score", 0), default={})
+    top_intel = max(
+        (attack.get("threat_intel", {}) for attack in attacks), key=lambda item: item.get("risk_score", 0), default={}
+    )
     enriched["executive_summary"] = {
         "threat_level": "critical" if critical_count else "high" if blocked_count else "medium",
         "attack_count": total_attacks,
@@ -267,9 +272,7 @@ def enrich_security_state(state: Dict[str, Any], rules: Optional[Iterable[Dict[s
         "top_risk_score": top_intel.get("risk_score", 0),
         "top_reputation": top_intel.get("reputation", "unknown"),
         "recommended_actions": list(
-            dict.fromkeys(
-                [action for attack in attacks for action in attack.get("recommended_actions", [])][:6]
-            )
+            dict.fromkeys([action for attack in attacks for action in attack.get("recommended_actions", [])][:6])
         ),
     }
 
@@ -277,27 +280,38 @@ def enrich_security_state(state: Dict[str, Any], rules: Optional[Iterable[Dict[s
         "incident_id": incident_id,
         "correlation_id": enriched["correlation_id"],
         "executive_summary": enriched["executive_summary"],
-        "attacks": [{
-            "correlation_id": item.get("correlation_id"),
-            "event_hash": item.get("event_hash"),
-            "status": item.get("status"),
-        } for item in attacks],
-        "alerts": [{
-            "correlation_id": item.get("correlation_id"),
-            "event_hash": item.get("event_hash"),
-            "severity": item.get("severity"),
-        } for item in alerts],
-        "blocked_ips": [{
-            "correlation_id": item.get("correlation_id"),
-            "event_hash": item.get("event_hash"),
-            "ip": item.get("ip"),
-        } for item in blocked_ips],
+        "attacks": [
+            {
+                "correlation_id": item.get("correlation_id"),
+                "event_hash": item.get("event_hash"),
+                "status": item.get("status"),
+            }
+            for item in attacks
+        ],
+        "alerts": [
+            {
+                "correlation_id": item.get("correlation_id"),
+                "event_hash": item.get("event_hash"),
+                "severity": item.get("severity"),
+            }
+            for item in alerts
+        ],
+        "blocked_ips": [
+            {
+                "correlation_id": item.get("correlation_id"),
+                "event_hash": item.get("event_hash"),
+                "ip": item.get("ip"),
+            }
+            for item in blocked_ips
+        ],
     }
     enriched["integrity_hash"] = build_event_fingerprint(fingerprint_source)
     return enriched
 
 
-def calculate_security_kpis(attacks: Iterable[Dict[str, Any]], alerts: Iterable[Dict[str, Any]], blocked_ips: Iterable[Dict[str, Any]]) -> Dict[str, Any]:
+def calculate_security_kpis(
+    attacks: Iterable[Dict[str, Any]], alerts: Iterable[Dict[str, Any]], blocked_ips: Iterable[Dict[str, Any]]
+) -> Dict[str, Any]:
     """Calculate response metrics used in the security views."""
     attacks_list = list(attacks or [])
     alerts_list = list(alerts or [])
@@ -332,14 +346,20 @@ def calculate_security_kpis(attacks: Iterable[Dict[str, Any]], alerts: Iterable[
         "active_alert_count": active_alert_count,
         "blocked_count": blocked_count,
         "block_rate": round((blocked_count / attack_count) * 100, 1) if attack_count else 0.0,
-        "false_positive_rate": round(
-            max(0.0, (len(alerts_list) - blocked_count) / len(alerts_list) * 100), 1
-        ) if alerts_list else 0.0,
+        "false_positive_rate": (
+            round(max(0.0, (len(alerts_list) - blocked_count) / len(alerts_list) * 100), 1) if alerts_list else 0.0
+        ),
         "mttd_minutes": round(sum(mttd_values) / len(mttd_values), 2) if mttd_values else 0.0,
         "mttr_minutes": round(sum(mttr_values) / len(mttr_values), 2) if mttr_values else 0.0,
-        "first_detected_at": min((dt for dt in detected_datetimes if dt), default=None).isoformat() if any(detected_datetimes) else None,
-        "latest_alert_at": max((dt for dt in alert_datetimes if dt), default=None).isoformat() if any(alert_datetimes) else None,
-        "latest_block_at": max((dt for dt in blocked_datetimes if dt), default=None).isoformat() if any(blocked_datetimes) else None,
+        "first_detected_at": (
+            min((dt for dt in detected_datetimes if dt), default=None).isoformat() if any(detected_datetimes) else None
+        ),
+        "latest_alert_at": (
+            max((dt for dt in alert_datetimes if dt), default=None).isoformat() if any(alert_datetimes) else None
+        ),
+        "latest_block_at": (
+            max((dt for dt in blocked_datetimes if dt), default=None).isoformat() if any(blocked_datetimes) else None
+        ),
     }
 
 

@@ -1,9 +1,11 @@
 """Security middleware for detecting and blocking attacks in real-time."""
-from fastapi import Request
-from datetime import datetime, timedelta
+
+from datetime import datetime
 from typing import Callable
+
+from fastapi import Request
+
 from core.attack_detection import AttackDetector, AttackLogger
-from sqlalchemy.orm import Session
 
 
 class AttackDetectionMiddleware:
@@ -21,19 +23,24 @@ class AttackDetectionMiddleware:
         # Get database session
         try:
             db = next(self.get_db())
-        except Exception:
+        except (StopIteration, TypeError) as e:
+            # get_db may not yield in some contexts; continue without DB
+            import logging
+
+            logging.getLogger(__name__).debug("Failed to obtain DB session in AttackDetectionMiddleware: %s", e)
             db = None
 
         # Check if IP is blocked
         if db and AttackDetector.is_ip_blocked(db, client_ip):
             print(f"[!] Blocked IP detected: {client_ip}")
             from fastapi.responses import JSONResponse
+
             return JSONResponse(
                 status_code=403,
                 content={
                     "detail": "IP address is blocked due to suspicious activity",
-                    "timestamp": datetime.utcnow().isoformat()
-                }
+                    "timestamp": datetime.utcnow().isoformat(),
+                },
             )
 
         # Check for attack patterns in URL and parameters
@@ -58,19 +65,21 @@ class AttackDetectionMiddleware:
         if request.method in ["POST", "PUT", "PATCH"]:
             try:
                 body = await request.body()
-                body_str = body.decode('utf-8', errors='ignore')
+                body_str = body.decode("utf-8", errors="ignore")
 
                 if AttackDetector.detect_sql_injection(body_str):
                     suspicious = True
                     attack_type = "sql_injection"
-                    description = f"SQL injection pattern detected in request body"
+                    description = "SQL injection pattern detected in request body"
 
                 if AttackDetector.detect_xss(body_str):
                     suspicious = True
                     attack_type = "xss"
-                    description = f"XSS pattern detected in request body"
-            except Exception:
-                pass
+                    description = "XSS pattern detected in request body"
+            except (UnicodeDecodeError, ValueError) as e:
+                import logging
+
+                logging.getLogger(__name__).debug("Failed to read request body for attack detection: %s", e)
 
         # Log suspicious activity
         if suspicious and db and attack_type:
@@ -85,7 +94,7 @@ class AttackDetectionMiddleware:
                 target_endpoint=url_path,
                 severity="high",
                 description=description,
-                metadata={"method": request.method}
+                metadata={"method": request.method},
             )
 
             # Create alert
@@ -96,7 +105,7 @@ class AttackDetectionMiddleware:
                 message=f"Detected {attack_type} attack from {client_ip}. Endpoint: {url_path}",
                 severity="high",
                 source_ip=client_ip,
-                attack_event_id=attack.id
+                attack_event_id=attack.id,
             )
 
             # Block IP for 1 hour (3600 seconds)
@@ -105,7 +114,7 @@ class AttackDetectionMiddleware:
                 ip=client_ip,
                 reason=f"Automatic block: {attack_type} detected",
                 duration_seconds=3600,
-                attack_event_id=attack.id
+                attack_event_id=attack.id,
             )
 
             # Create mitigation alert
@@ -116,18 +125,19 @@ class AttackDetectionMiddleware:
                 message=f"IP {client_ip} has been blocked for 1 hour due to {attack_type} attack attempt.",
                 severity="high",
                 source_ip=client_ip,
-                attack_event_id=attack.id
+                attack_event_id=attack.id,
             )
 
             # Reject the request
             from fastapi.responses import JSONResponse
+
             return JSONResponse(
                 status_code=403,
                 content={
                     "detail": "Request blocked due to security policy",
                     "attack_type": attack_type,
-                    "timestamp": datetime.utcnow().isoformat()
-                }
+                    "timestamp": datetime.utcnow().isoformat(),
+                },
             )
 
         # Continue to next middleware/route
@@ -153,7 +163,10 @@ class LoginAttemptMiddleware:
         # Get database session
         try:
             db = next(self.get_db())
-        except Exception:
+        except (StopIteration, TypeError) as e:
+            import logging
+
+            logging.getLogger(__name__).debug("Failed to obtain DB session in LoginAttemptMiddleware: %s", e)
             return await call_next(request)
 
         # Extract username from request (if POST)
@@ -161,12 +174,15 @@ class LoginAttemptMiddleware:
         if request.method == "POST":
             try:
                 body = await request.body()
-                body_str = body.decode('utf-8', errors='ignore')
+                body_str = body.decode("utf-8", errors="ignore")
                 import json
+
                 data = json.loads(body_str)
                 username = data.get("username", "unknown")
-            except Exception:
-                pass
+            except (UnicodeDecodeError, ValueError) as e:
+                import logging
+
+                logging.getLogger(__name__).debug("Failed to parse login request body: %s", e)
 
         # Process the request
         response = await call_next(request)
@@ -175,12 +191,8 @@ class LoginAttemptMiddleware:
         # Log failed attempt
         if response.status_code in [401, 403]:
             from core.attack_detection import AttackLogger
-            AttackLogger.log_failed_login(
-                db,
-                username=username,
-                source_ip=client_ip,
-                reason="invalid_credentials"
-            )
+
+            AttackLogger.log_failed_login(db, username=username, source_ip=client_ip, reason="invalid_credentials")
 
             # Check for brute force
             if AttackDetector.detect_brute_force(db, username, client_ip, threshold=5, window_minutes=10):
@@ -194,7 +206,7 @@ class LoginAttemptMiddleware:
                     target_endpoint="/auth/login",
                     severity="high",
                     description=f"Brute force attack on user {username}",
-                    metadata={"username": username}
+                    metadata={"username": username},
                 )
 
                 # Create alert
@@ -205,7 +217,7 @@ class LoginAttemptMiddleware:
                     message=f"Multiple failed login attempts for user '{username}' from {client_ip}",
                     severity="high",
                     source_ip=client_ip,
-                    attack_event_id=attack.id
+                    attack_event_id=attack.id,
                 )
 
                 # Block IP
@@ -214,7 +226,7 @@ class LoginAttemptMiddleware:
                     ip=client_ip,
                     reason="Brute force attack detected",
                     duration_seconds=3600,
-                    attack_event_id=attack.id
+                    attack_event_id=attack.id,
                 )
 
                 # Mitigation alert
@@ -225,7 +237,7 @@ class LoginAttemptMiddleware:
                     message=f"IP {client_ip} has been blocked for 1 hour due to brute force attempts.",
                     severity="high",
                     source_ip=client_ip,
-                    attack_event_id=attack.id
+                    attack_event_id=attack.id,
                 )
 
         return response

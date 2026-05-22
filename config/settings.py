@@ -2,9 +2,10 @@
 
 Lightweight settings object used by tests and application startup.
 """
+
 import os
-from typing import Optional, List
 from pathlib import Path
+from typing import List, Optional
 
 
 class Settings:
@@ -16,9 +17,7 @@ class Settings:
 
     def __init__(self, **overrides):
         # Environment
-        self.environment: str = overrides.get(
-            "environment", os.getenv(
-                "ENVIRONMENT", "development"))
+        self.environment: str = overrides.get("environment", os.getenv("ENVIRONMENT", "development"))
         self.debug: bool = overrides.get("debug", os.getenv("DEBUG", "false").lower() == "true")
 
         # API
@@ -52,8 +51,7 @@ class Settings:
 
         # CORS
         self.enable_cors: bool = overrides.get("enable_cors", True)
-        self.cors_origins: List[str] = overrides.get(
-            "cors_origins", ["http://localhost:3000", "http://localhost:8501"])
+        self.cors_origins: List[str] = overrides.get("cors_origins", ["http://localhost:3000", "http://localhost:8501"])
 
         # Logging
         self.log_level: str = overrides.get("log_level", os.getenv("LOG_LEVEL", "INFO"))
@@ -61,21 +59,21 @@ class Settings:
 
         # Security
         self.require_tls: bool = overrides.get("require_tls", False)
-        self.secret_key: str = overrides.get("secret_key", os.getenv(
-            "SECRET_KEY", "your-secret-key-change-in-production"))
+        self.secret_key: str = overrides.get(
+            "secret_key", os.getenv("SECRET_KEY", "your-secret-key-change-in-production")
+        )
         self.encryption_key: str = overrides.get(
-            "encryption_key", os.getenv(
-                "ENCRYPTION_KEY", "your-encryption-key-32-chars-long!"))
+            "encryption_key", os.getenv("ENCRYPTION_KEY", "your-encryption-key-32-chars-long!")
+        )
         # TLS / mTLS
         self.enable_mtls: bool = overrides.get("enable_mtls", False)
         # mTLS configuration
-        self.mtls_cert_path: Optional[str] = overrides.get(
-            "mtls_cert_path", os.getenv("MTLS_CERT_PATH", None))
-        self.mtls_key_path: Optional[str] = overrides.get(
-            "mtls_key_path", os.getenv("MTLS_KEY_PATH", None))
+        self.mtls_cert_path: Optional[str] = overrides.get("mtls_cert_path", os.getenv("MTLS_CERT_PATH", None))
+        self.mtls_key_path: Optional[str] = overrides.get("mtls_key_path", os.getenv("MTLS_KEY_PATH", None))
         # endpoints that require mTLS (path prefixes)
         self.mtls_required_endpoints: List[str] = overrides.get(
-            "mtls_required_endpoints", ["/api/admin", "/api/operator"])
+            "mtls_required_endpoints", ["/api/admin", "/api/operator"]
+        )
 
         # Session defaults
         self.session_ttl: int = int(overrides.get("session_ttl", 3600))
@@ -94,12 +92,9 @@ class Settings:
         self.enable_audit_logging: bool = overrides.get("enable_audit_logging", True)
 
         # File paths
-        self.agent_registry_path: str = overrides.get(
-            "agent_registry_path", "./data/agent_registry")
-        self.credential_storage_path: str = overrides.get(
-            "credential_storage_path", "./data/credentials")
-        self.credential_encryption_key: str = overrides.get(
-            "credential_encryption_key", self.encryption_key)
+        self.agent_registry_path: str = overrides.get("agent_registry_path", "./data/agent_registry")
+        self.credential_storage_path: str = overrides.get("credential_storage_path", "./data/credentials")
+        self.credential_encryption_key: str = overrides.get("credential_encryption_key", self.encryption_key)
         self.audit_log_path: str = overrides.get("audit_log_path", "./logs/audit.log")
         self.database_path: str = overrides.get("database_path", self._default_database_path())
         self.database_url: str = overrides.get(
@@ -117,8 +112,7 @@ class Settings:
 
         # Admin / signing keys
         # Optional admin API key for protecting admin endpoints and alerts.
-        self.admin_api_key: Optional[str] = overrides.get(
-            "admin_api_key", os.getenv("ADMIN_API_KEY", None))
+        self.admin_api_key: Optional[str] = overrides.get("admin_api_key", os.getenv("ADMIN_API_KEY", None))
         # Key used to sign static report URLs. Defaults to the admin key when not provided.
         self.static_url_signing_key: Optional[str] = overrides.get(
             "static_url_signing_key", os.getenv("STATIC_URL_SIGNING_KEY", self.admin_api_key)
@@ -146,11 +140,9 @@ class Settings:
         # Prevent insecure production startup with placeholder secrets.
         if self.is_production:
             if self._is_placeholder_secret(self.secret_key):
-                raise ValueError(
-                    "SECRET_KEY must be set to a strong non-placeholder value in production")
+                raise ValueError("SECRET_KEY must be set to a strong non-placeholder value in production")
             if self._is_placeholder_secret(self.encryption_key):
-                raise ValueError(
-                    "ENCRYPTION_KEY must be set to a strong non-placeholder value in production")
+                raise ValueError("ENCRYPTION_KEY must be set to a strong non-placeholder value in production")
 
     @staticmethod
     def _is_placeholder_secret(value: Optional[str]) -> bool:
@@ -184,6 +176,7 @@ class Settings:
         # This is a best-effort, non-fatal operation so tests/local runs are unaffected.
         try:
             from secrets.key_vault import secret_manager
+
             sm = secret_manager
             _sk = sm.get_secret("SECRET_KEY")
             if _sk:
@@ -196,9 +189,11 @@ class Settings:
             _oidc = sm.get_secret("OIDC_CLIENT_SECRET")
             if _oidc:
                 self.oidc_client_secret = _oidc
-        except Exception:
-            # Silent fallback to environment or defaults
-            pass
+        except ImportError:
+            # Secret manager not available; fallback to env/defaults
+            import logging
+
+            logging.getLogger(__name__).debug("Secret manager not available; using defaults/environment")
 
     def _default_database_path(self) -> str:
         db_dir = os.getenv("AGENTIC_IAM_DATA_DIR")

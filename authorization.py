@@ -3,7 +3,12 @@
 Wraps a policy engine (Casbin when available) and falls back to the
 lightweight `agent_identity.AuthorizationManager`.
 """
-from agent_identity import AuthorizationManager as BaseAuthz, AuthorizationDecision, Session, RiskLevel
+
+import logging
+
+from agent_identity import AuthorizationDecision
+from agent_identity import AuthorizationManager as BaseAuthz
+from agent_identity import RiskLevel, Session
 from authz import is_allowed
 
 
@@ -12,17 +17,17 @@ class AuthorizationManager(BaseAuthz):
         # Context may include subject (user) or role
         subject = None
         if context:
-            subject = context.get('subject') or context.get('user')
+            subject = context.get("subject") or context.get("user")
         # If policy engine available, consult it
         try:
             if is_allowed(subject or agent_id, resource, action):
-                return AuthorizationDecision(True, 'allowed by policy')
-        except Exception:
-            pass
+                return AuthorizationDecision(True, "allowed by policy")
+        except Exception as e:
+            logging.getLogger(__name__).debug("Policy engine error in is_allowed: %s", e)
 
         # Fallback to base implementation
         base = BaseAuthz()
         return await base.authorize(agent_id, resource, action, context)
 
 
-__all__ = ['AuthorizationManager', 'AuthorizationDecision', 'Session', 'RiskLevel']
+__all__ = ["AuthorizationManager", "AuthorizationDecision", "Session", "RiskLevel"]

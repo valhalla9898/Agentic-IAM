@@ -14,11 +14,12 @@ Features:
 - Automated trust score synchronization
 """
 
-import logging
 import json
-from typing import Dict, List, Optional, Any
+import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from typing import Any, Dict, List, Optional
+
 import boto3
 from azure.identity import DefaultAzureCredential
 from google.auth import default as gcp_default
@@ -30,6 +31,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class CloudIdentity:
     """Represents an identity in a cloud provider"""
+
     provider: str
     identity_id: str
     roles: List[str]
@@ -40,6 +42,7 @@ class CloudIdentity:
 @dataclass
 class FederatedAgent:
     """Represents an agent with multi-cloud federation"""
+
     agent_id: str
     did: Optional[str]
     cloud_identities: Dict[str, CloudIdentity]
@@ -53,61 +56,62 @@ class CloudProvider(ABC):
     @abstractmethod
     def authenticate(self, credentials: Dict[str, Any]) -> CloudIdentity:
         """Authenticate with the cloud provider"""
-        pass
 
     @abstractmethod
     def get_roles(self, identity_id: str) -> List[str]:
         """Get roles for an identity"""
-        pass
 
     @abstractmethod
     def get_permissions(self, identity_id: str) -> List[str]:
         """Get permissions for an identity"""
-        pass
 
     @abstractmethod
     def create_federated_identity(self, agent_id: str, did: str) -> str:
         """Create a federated identity for an agent"""
-        pass
 
 
 class AWSProvider(CloudProvider):
     """AWS IAM provider implementation"""
 
-    def __init__(self, region: str = 'us-east-1'):
+    def __init__(self, region: str = "us-east-1"):
         self.region = region
         self.iam_client = None
 
     def _get_client(self):
         if not self.iam_client:
-            self.iam_client = boto3.client('iam', region_name=self.region)
+            self.iam_client = boto3.client("iam", region_name=self.region)
         return self.iam_client
 
     def authenticate(self, credentials: Dict[str, Any]) -> CloudIdentity:
         """Authenticate using AWS credentials"""
         try:
             # Use provided credentials or assume role
-            if 'access_key' in credentials:
+            if "access_key" in credentials:
                 session = boto3.Session(
-                    aws_access_key_id=credentials['access_key'],
-                    aws_secret_access_key=credentials['secret_key'],
-                    region_name=self.region
+                    aws_access_key_id=credentials["access_key"],
+                    aws_secret_access_key=credentials["secret_key"],
+                    region_name=self.region,
                 )
-                self.iam_client = session.client('iam')
+                self.iam_client = session.client("iam")
             else:
                 # Use instance profile or environment
-                self.iam_client = boto3.client('iam', region_name=self.region)
+                self.iam_client = boto3.client("iam", region_name=self.region)
 
             # Get current user/role
-            identity = self.iam_client.get_user() if 'User' in str(
-                self.iam_client.get_user()) else self.iam_client.get_caller_identity()
+            identity = (
+                self.iam_client.get_user()
+                if "User" in str(self.iam_client.get_user())
+                else self.iam_client.get_caller_identity()
+            )
 
             return CloudIdentity(
-                provider='aws',
-                identity_id=identity['User']['UserName'] if 'User' in identity else identity['Arn'].split('/')[-1],
-                roles=self.get_roles(identity['User']['UserName'] if 'User' in identity else identity['Arn']),
-                permissions=self.get_permissions(identity['User']['UserName'] if 'User' in identity else identity['Arn']),
-                metadata={'arn': identity.get('Arn'), 'account': identity.get('Account')}
+                provider="aws",
+                identity_id=identity["User"]["UserName"] if "User" in identity else identity["Arn"].split("/")[-1],
+                roles=self.get_roles(identity["User"]["UserName"] if "User" in identity else identity["Arn"]),
+                permissions=self.get_permissions(
+                    identity["User"]["UserName"] if "User" in identity else identity["Arn"]
+                ),
+                metadata={"arn": identity.get("Arn"), "account": identity.get("Account")},
             )
         except Exception as e:
             logger.error(f"AWS authentication failed: {e}")
@@ -119,7 +123,7 @@ class AWSProvider(CloudProvider):
             client = self._get_client()
             roles = client.list_roles()
             # Filter roles that this identity can assume
-            return [role['RoleName'] for role in roles['Roles']]
+            return [role["RoleName"] for role in roles["Roles"]]
         except Exception as e:
             logger.error(f"Failed to get AWS roles: {e}")
             return []
@@ -131,14 +135,9 @@ class AWSProvider(CloudProvider):
             # Get attached policies
             policies = client.list_attached_user_policies(UserName=identity_id)
             permissions = []
-            for policy in policies['AttachedPolicies']:
-                policy_doc = client.get_policy_version(
-                    PolicyArn=policy['PolicyArn'],
-                    VersionId='v1'
-                )
-                permissions.extend(
-                    self._extract_permissions(
-                        policy_doc['PolicyVersion']['Document']))
+            for policy in policies["AttachedPolicies"]:
+                policy_doc = client.get_policy_version(PolicyArn=policy["PolicyArn"], VersionId="v1")
+                permissions.extend(self._extract_permissions(policy_doc["PolicyVersion"]["Document"]))
             return permissions
         except Exception as e:
             logger.error(f"Failed to get AWS permissions: {e}")
@@ -147,9 +146,9 @@ class AWSProvider(CloudProvider):
     def _extract_permissions(self, policy_doc: Dict) -> List[str]:
         """Extract permissions from policy document"""
         permissions = []
-        for statement in policy_doc.get('Statement', []):
-            if statement.get('Effect') == 'Allow':
-                actions = statement.get('Action', [])
+        for statement in policy_doc.get("Statement", []):
+            if statement.get("Effect") == "Allow":
+                actions = statement.get("Action", [])
                 if isinstance(actions, str):
                     actions = [actions]
                 permissions.extend(actions)
@@ -163,23 +162,21 @@ class AWSProvider(CloudProvider):
             # Create assume role policy for DID-based federation
             trust_policy = {
                 "Version": "2012-10-17",
-                "Statement": [{
-                    "Effect": "Allow",
-                    "Principal": {"Federated": "cognito-identity.amazonaws.com"},
-                    "Action": "sts:AssumeRoleWithWebIdentity",
-                    "Condition": {
-                        "StringEquals": {
-                            "cognito-identity.amazonaws.com:aud": did
-                        }
+                "Statement": [
+                    {
+                        "Effect": "Allow",
+                        "Principal": {"Federated": "cognito-identity.amazonaws.com"},
+                        "Action": "sts:AssumeRoleWithWebIdentity",
+                        "Condition": {"StringEquals": {"cognito-identity.amazonaws.com:aud": did}},
                     }
-                }]
+                ],
             }
 
             role_name = f"agentic-iam-{agent_id}"
             client.create_role(
                 RoleName=role_name,
                 AssumeRolePolicyDocument=json.dumps(trust_policy),
-                Description=f"Federated role for Agentic-IAM agent {agent_id}"
+                Description=f"Federated role for Agentic-IAM agent {agent_id}",
             )
 
             return f"arn:aws:iam::account:role/{role_name}"
@@ -202,11 +199,11 @@ class AzureProvider(CloudProvider):
             from azure.identity import ClientSecretCredential
             from msgraph import GraphServiceClient
 
-            if 'client_id' in credentials:
+            if "client_id" in credentials:
                 self.credential = ClientSecretCredential(
                     tenant_id=self.tenant_id,
-                    client_id=credentials['client_id'],
-                    client_secret=credentials['client_secret']
+                    client_id=credentials["client_id"],
+                    client_secret=credentials["client_secret"],
                 )
 
             self.graph_client = GraphServiceClient(self.credential)
@@ -216,11 +213,11 @@ class AzureProvider(CloudProvider):
             user_id = user.id
 
             return CloudIdentity(
-                provider='azure',
+                provider="azure",
                 identity_id=user_id,
                 roles=self.get_roles(user_id),
                 permissions=self.get_permissions(user_id),
-                metadata={'display_name': user.display_name, 'mail': user.mail}
+                metadata={"display_name": user.display_name, "mail": user.mail},
             )
         except Exception as e:
             logger.error(f"Azure authentication failed: {e}")
@@ -243,7 +240,7 @@ class AzureProvider(CloudProvider):
             member_of = self.graph_client.users.by_user_id(identity_id).member_of.get()
             permissions = []
             for group in member_of.value:
-                if hasattr(group, 'app_roles'):
+                if hasattr(group, "app_roles"):
                     permissions.extend([role.value for role in group.app_roles])
             return permissions
         except Exception as e:
@@ -259,9 +256,9 @@ class AzureProvider(CloudProvider):
                 "signInAudience": "AzureADMyOrg",
                 "web": {
                     "redirectUris": [f"https://agentic-iam.io/callback/{agent_id}"],
-                    "logoutUrl": f"https://agentic-iam.io/logout/{agent_id}"
+                    "logoutUrl": f"https://agentic-iam.io/logout/{agent_id}",
                 },
-                "identifierUris": [did]
+                "identifierUris": [did],
             }
 
             result = self.graph_client.applications.post(app)
@@ -291,23 +288,19 @@ class GCPProvider(CloudProvider):
 
             # Get current service account or user
             credentials, project = gcp_default()
-            signer = iam.Signer(
-                request=credentials,
-                credentials=credentials
-            )
+            signer = iam.Signer(request=credentials, credentials=credentials)
 
             # Get service account info
             account_info = self._get_client().sign_blob(
-                name=f"projects/-/serviceAccounts/{credentials.service_account_email}",
-                payload=b"test"
+                name=f"projects/-/serviceAccounts/{credentials.service_account_email}", payload=b"test"
             )
 
             return CloudIdentity(
-                provider='gcp',
+                provider="gcp",
                 identity_id=credentials.service_account_email or credentials._service_account_email,
                 roles=self.get_roles(credentials.service_account_email),
                 permissions=self.get_permissions(credentials.service_account_email),
-                metadata={'project': project}
+                metadata={"project": project},
             )
         except Exception as e:
             logger.error(f"GCP authentication failed: {e}")
@@ -319,7 +312,7 @@ class GCPProvider(CloudProvider):
             from google.cloud import resourcemanager
 
             client = resourcemanager.ProjectsClient()
-            project = client.get_project(self.project_id)
+            client.get_project(self.project_id)
 
             # Get IAM policy
             policy = client.get_iam_policy(f"projects/{self.project_id}")
@@ -339,9 +332,9 @@ class GCPProvider(CloudProvider):
             roles = self.get_roles(identity_id)
             # This is a simplified mapping - in practice, you'd query the IAM API
             permission_map = {
-                'roles/editor': ['resourcemanager.projects.get', 'storage.objects.get'],
-                'roles/viewer': ['resourcemanager.projects.get'],
-                'roles/owner': ['resourcemanager.projects.get', 'resourcemanager.projects.delete']
+                "roles/editor": ["resourcemanager.projects.get", "storage.objects.get"],
+                "roles/viewer": ["resourcemanager.projects.get"],
+                "roles/owner": ["resourcemanager.projects.get", "resourcemanager.projects.delete"],
             }
             permissions = []
             for role in roles:
@@ -357,17 +350,15 @@ class GCPProvider(CloudProvider):
             from google.cloud import iam_admin_v1
 
             client = iam_admin_v1.IAMClient()
-            account_name = f"projects/{self.project_id}/serviceAccounts/agentic-iam-{agent_id}@iam.gserviceaccount.com"
+            f"projects/{self.project_id}/serviceAccounts/agentic-iam-{agent_id}@iam.gserviceaccount.com"
 
             account = iam_admin_v1.ServiceAccount(
                 display_name=f"Agentic-IAM Agent {agent_id}",
-                description=f"Federated service account for agent {agent_id}"
+                description=f"Federated service account for agent {agent_id}",
             )
 
             response = client.create_service_account(
-                name=f"projects/{self.project_id}",
-                account_id=f"agentic-iam-{agent_id}",
-                service_account=account
+                name=f"projects/{self.project_id}", account_id=f"agentic-iam-{agent_id}", service_account=account
             )
 
             return response.email
@@ -387,8 +378,7 @@ class MultiCloudFederator:
         """Add a cloud provider"""
         self.providers[name] = provider
 
-    def authenticate_agent(self, agent_id: str, cloud_provider: str,
-                           credentials: Dict[str, Any]) -> CloudIdentity:
+    def authenticate_agent(self, agent_id: str, cloud_provider: str, credentials: Dict[str, Any]) -> CloudIdentity:
         """Authenticate an agent with a specific cloud provider"""
         if cloud_provider not in self.providers:
             raise ValueError(f"Unknown cloud provider: {cloud_provider}")
@@ -403,7 +393,7 @@ class MultiCloudFederator:
                 did=None,
                 cloud_identities={},
                 trust_score=0.5,
-                last_sync=str(__import__('datetime').datetime.now())
+                last_sync=str(__import__("datetime").datetime.now()),
             )
 
         self.federated_agents[agent_id].cloud_identities[cloud_provider] = identity
@@ -458,7 +448,7 @@ class MultiCloudFederator:
         agent = self.federated_agents[agent_id]
         # In a real implementation, this would sync with each cloud's trust systems
         # For now, just update the timestamp
-        agent.last_sync = str(__import__('datetime').datetime.now())
+        agent.last_sync = str(__import__("datetime").datetime.now())
         logger.info(f"Synchronized trust scores for agent {agent_id}")
 
 
@@ -467,22 +457,22 @@ if __name__ == "__main__":
     federator = MultiCloudFederator()
 
     # Add providers
-    federator.add_provider('aws', AWSProvider())
-    federator.add_provider('azure', AzureProvider(tenant_id='your-tenant-id'))
-    federator.add_provider('gcp', GCPProvider(project_id='your-project-id'))
+    federator.add_provider("aws", AWSProvider())
+    federator.add_provider("azure", AzureProvider(tenant_id="your-tenant-id"))
+    federator.add_provider("gcp", GCPProvider(project_id="your-project-id"))
 
     # Authenticate agent across clouds
     try:
-        aws_identity = federator.authenticate_agent('agent-123', 'aws', {})
-        azure_identity = federator.authenticate_agent('agent-123', 'azure', {})
+        aws_identity = federator.authenticate_agent("agent-123", "aws", {})
+        azure_identity = federator.authenticate_agent("agent-123", "azure", {})
 
         # Get unified permissions
-        permissions = federator.get_unified_permissions('agent-123')
+        permissions = federator.get_unified_permissions("agent-123")
         print(f"Unified permissions: {permissions}")
 
         # Create federated identities
         did = "did:agentic:123456"
-        federated_ids = federator.create_federated_identity('agent-123', did, ['aws', 'azure'])
+        federated_ids = federator.create_federated_identity("agent-123", did, ["aws", "azure"])
         print(f"Federated identities created: {federated_ids}")
 
     except Exception as e:

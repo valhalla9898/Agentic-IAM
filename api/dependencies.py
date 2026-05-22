@@ -1,8 +1,7 @@
 from fastapi import HTTPException
-from typing import Optional
 
-from core.agentic_iam import AgenticIAM
 from config.settings import Settings
+from core.agentic_iam import AgenticIAM
 
 
 async def get_iam() -> AgenticIAM:

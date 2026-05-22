@@ -1,11 +1,14 @@
 """Security alerts and attack response router."""
+
 from datetime import datetime
-from typing import Optional, List
-from fastapi import APIRouter, HTTPException, Depends, Request
-from sqlalchemy.orm import Session
+from typing import List, Optional
+
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/alerts", tags=["security"])
+
 
 # Dependency to get DB session (will be configured in main app)
 def get_db() -> Session:
@@ -47,9 +50,8 @@ class SecurityAlertResponse(BaseModel):
 async def get_active_alerts(db: Session = Depends(get_db)):
     """Get all active (unresolved) security alerts."""
     from core.db import SecurityAlert
-    alerts = db.query(SecurityAlert).filter(SecurityAlert.is_resolved == False).order_by(
-        SecurityAlert.created_at.desc()
-    ).all()
+
+    alerts = db.query(SecurityAlert).filter(~SecurityAlert.is_resolved).order_by(SecurityAlert.created_at.desc()).all()
     return alerts
 
 
@@ -57,9 +59,8 @@ async def get_active_alerts(db: Session = Depends(get_db)):
 async def get_recent_alerts(limit: int = 10, db: Session = Depends(get_db)):
     """Get recent security alerts."""
     from core.db import SecurityAlert
-    alerts = db.query(SecurityAlert).order_by(
-        SecurityAlert.created_at.desc()
-    ).limit(limit).all()
+
+    alerts = db.query(SecurityAlert).order_by(SecurityAlert.created_at.desc()).limit(limit).all()
     return alerts
 
 
@@ -67,9 +68,8 @@ async def get_recent_alerts(limit: int = 10, db: Session = Depends(get_db)):
 async def get_attack_events(db: Session = Depends(get_db)):
     """Get all detected attack events."""
     from core.db import AttackEvent
-    events = db.query(AttackEvent).order_by(
-        AttackEvent.detected_at.desc()
-    ).all()
+
+    events = db.query(AttackEvent).order_by(AttackEvent.detected_at.desc()).all()
     return events
 
 
@@ -77,7 +77,8 @@ async def get_attack_events(db: Session = Depends(get_db)):
 async def get_blocked_ips(db: Session = Depends(get_db)):
     """Get list of currently blocked IPs."""
     from core.db import BlockedIP
-    blocked = db.query(BlockedIP).filter(BlockedIP.is_active == True).all()
+
+    blocked = db.query(BlockedIP).filter(BlockedIP.is_active).all()
     return [{"ip": b.ip_address, "reason": b.reason, "blocked_at": b.blocked_at} for b in blocked]
 
 
@@ -85,6 +86,7 @@ async def get_blocked_ips(db: Session = Depends(get_db)):
 async def resolve_alert(alert_id: int, db: Session = Depends(get_db)):
     """Mark an alert as resolved."""
     from core.db import SecurityAlert
+
     alert = db.query(SecurityAlert).filter(SecurityAlert.id == alert_id).first()
     if not alert:
         raise HTTPException(status_code=404, detail="Alert not found")
@@ -98,8 +100,8 @@ async def resolve_alert(alert_id: int, db: Session = Depends(get_db)):
 @router.post("/attacks/{attack_id}/block-ip")
 async def block_attacker_ip(attack_id: int, duration_seconds: Optional[int] = None, db: Session = Depends(get_db)):
     """Block the IP address of a detected attack."""
-    from core.db import AttackEvent, BlockedIP
     from core.attack_detection import AttackLogger
+    from core.db import AttackEvent
 
     attack = db.query(AttackEvent).filter(AttackEvent.id == attack_id).first()
     if not attack:
@@ -111,14 +113,10 @@ async def block_attacker_ip(attack_id: int, duration_seconds: Optional[int] = No
         ip=attack.source_ip,
         reason=f"Blocked due to {attack.attack_type}",
         duration_seconds=duration_seconds,
-        attack_event_id=attack_id
+        attack_event_id=attack_id,
     )
 
-    attack.status = 'blocked'
+    attack.status = "blocked"
     db.commit()
 
-    return {
-        "status": "blocked",
-        "ip": attack.source_ip,
-        "expires_at": block.expires_at
-    }
+    return {"status": "blocked", "ip": attack.source_ip, "expires_at": block.expires_at}

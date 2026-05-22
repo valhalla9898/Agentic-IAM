@@ -1,25 +1,28 @@
 """
 Pytest configuration and shared fixtures for Agentic-IAM tests
 """
+
+import asyncio
+import os
+import shutil
+import socket
+import subprocess
+import sys
+import tempfile
+import time
+from datetime import datetime
+from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock
+from urllib.error import URLError
+from urllib.request import urlopen
+
+import pytest
+import pytest_asyncio
+from fastapi.testclient import TestClient
+
 from api.main import app
 from config.settings import Settings
 from core.agentic_iam import AgenticIAM
-from fastapi.testclient import TestClient
-import asyncio
-import os
-import socket
-import subprocess
-import tempfile
-import pytest
-import pytest_asyncio
-import shutil
-from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock
-from datetime import datetime
-from urllib.error import URLError
-from urllib.request import urlopen
-import sys
-import time
 
 # Add project modules to path
 sys.path.insert(0, str(Path(__file__).parent))
@@ -27,7 +30,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 try:
     from secrets.key_vault import secret_manager
-except Exception:
+except ImportError:
+
     class _Shim:
         def get_secret(self, name):
             return None
@@ -68,7 +72,7 @@ def _url_is_reachable(url):
     try:
         with urlopen(url, timeout=2):
             return True
-    except Exception:
+    except URLError:
         return False
 
 
@@ -88,8 +92,7 @@ def _start_streamlit_for_e2e(config):
     env = os.environ.copy()
     env["STREAMLIT_URL"] = url
     env["STREAMLIT_SERVER_PORT"] = str(port)
-    log_file = tempfile.NamedTemporaryFile(
-        prefix="agentic_iam_streamlit_", suffix=".log", delete=False)
+    log_file = tempfile.NamedTemporaryFile(prefix="agentic_iam_streamlit_", suffix=".log", delete=False)
     log_path = Path(log_file.name)
 
     process = subprocess.Popen(
@@ -118,9 +121,7 @@ def _start_streamlit_for_e2e(config):
     try:
         _wait_for_streamlit(url, process)
     except Exception as exc:
-        log_text = log_path.read_text(
-            encoding="utf-8",
-            errors="ignore") if log_path.exists() else ""
+        log_text = log_path.read_text(encoding="utf-8", errors="ignore") if log_path.exists() else ""
         raise RuntimeError(f"Failed to start Streamlit for E2E at {url}. Log:\n{log_text}") from exc
 
 
@@ -132,7 +133,7 @@ def _stop_streamlit_for_e2e(config):
     process.terminate()
     try:
         process.wait(timeout=10)
-    except Exception:
+    except subprocess.TimeoutExpired:
         process.kill()
     finally:
         config._agentic_iam_streamlit_process = None
@@ -140,7 +141,7 @@ def _stop_streamlit_for_e2e(config):
         if log_path and Path(log_path).exists():
             try:
                 Path(log_path).unlink()
-            except Exception:
+            except OSError:
                 pass
         config._agentic_iam_streamlit_log = None
 
@@ -178,10 +179,9 @@ def test_settings(temp_dir):
         enable_federated_auth=False,  # Disable for tests
         enable_mfa=False,  # Disable for tests
         secret_key=secret_manager.get_secret("SECRET_KEY") or "test-secret-key-32-characters-long",
-        encryption_key=secret_manager.get_secret(
-            "ENCRYPTION_KEY") or "test-encryption-key-32-chars!!",
-        credential_encryption_key=secret_manager.get_secret(
-            "CREDENTIAL_ENCRYPTION_KEY") or "test-credential-key-32-chars!!"
+        encryption_key=secret_manager.get_secret("ENCRYPTION_KEY") or "test-encryption-key-32-chars!!",
+        credential_encryption_key=secret_manager.get_secret("CREDENTIAL_ENCRYPTION_KEY")
+        or "test-credential-key-32-chars!!",
     )
 
 
@@ -213,6 +213,7 @@ def mock_iam(test_settings):
     # `await mock_iam.shutdown()` execute the shutdown sequence on the
     # mocked subcomponents (their `shutdown` AsyncMocks will be awaited).
     from core.agentic_iam import AgenticIAM as _AgenticIAM
+
     iam.shutdown = _AgenticIAM.shutdown.__get__(iam, _AgenticIAM)
 
     # Provide default async manager behaviors used by real bound methods.
@@ -222,8 +223,7 @@ def mock_iam(test_settings):
         return AuthenticationResult(True, agent_id or "agent:test-001", method or "jwt", 0.8)
 
     iam.authentication_manager.authenticate = AsyncMock(side_effect=_auth_side_effect)
-    iam.authorization_manager.authorize = AsyncMock(
-        return_value=MagicMock(allow=True, reason="authorized"))
+    iam.authorization_manager.authorize = AsyncMock(return_value=MagicMock(allow=True, reason="authorized"))
     iam.authorization_manager.assign_permissions = AsyncMock(return_value=True)
     iam.session_manager.create_session = AsyncMock(return_value="session_001")
     iam.session_manager.get_active_session_count = MagicMock(return_value=0)
@@ -234,8 +234,7 @@ def mock_iam(test_settings):
     iam.session_manager.get_session = MagicMock(return_value=None)
     iam.agent_registry.list_agents = MagicMock(return_value=[])
     iam.agent_registry.get_agent = MagicMock(return_value=None)
-    iam.agent_registry.register_agent = MagicMock(
-        return_value=MagicMock(registration_id="reg_default"))
+    iam.agent_registry.register_agent = MagicMock(return_value=MagicMock(registration_id="reg_default"))
     iam.agent_registry.delete_agent = MagicMock(return_value=True)
     iam.credential_manager.store_agent_credentials = AsyncMock(return_value=True)
     iam.audit_manager.log_event = AsyncMock(return_value=True)
@@ -279,6 +278,7 @@ def client(mock_iam):
         return mock_iam.settings
 
     from api.dependencies import get_iam, get_settings
+
     app.dependency_overrides[get_iam] = get_test_iam
     app.dependency_overrides[get_settings] = get_test_settings
 
@@ -297,11 +297,8 @@ def sample_agent_data():
         "agent_type": "service",
         "description": "Test agent for unit tests",
         "capabilities": ["read", "write"],
-        "metadata": {
-            "environment": "test",
-            "version": "1.0.0"
-        },
-        "initial_permissions": ["agent:read", "system:status"]
+        "metadata": {"environment": "test", "version": "1.0.0"},
+        "initial_permissions": ["agent:read", "system:status"],
     }
 
 
@@ -311,12 +308,9 @@ def sample_auth_request():
     return {
         "agent_id": "agent:test-001",
         "method": "jwt",
-        "credentials": {
-            "username": "test-agent",
-            "password": "test-password"
-        },
+        "credentials": {"username": "test-agent", "password": "test-password"},
         "source_ip": "127.0.0.1",
-        "user_agent": "test-client/1.0"
+        "user_agent": "test-client/1.0",
     }
 
 
@@ -327,11 +321,7 @@ def sample_agent_identity():
 
     return AgentIdentity.generate(
         agent_id="agent:test-001",
-        metadata={
-            "type": "service",
-            "description": "Test agent",
-            "capabilities": ["read", "write"]
-        }
+        metadata={"type": "service", "description": "Test agent", "capabilities": ["read", "write"]},
     )
 
 
@@ -340,23 +330,14 @@ def sample_trust_score():
     """Sample trust score for testing"""
     from agent_intelligence import TrustScore
 
-    trust_score = TrustScore(
-        overall_score=0.85,
-        risk_level="low",
-        confidence=0.92
-    )
+    trust_score = TrustScore(overall_score=0.85, risk_level="low", confidence=0.92)
     # Add additional attributes for extended testing
     trust_score.agent_id = "agent:test-001"
-    trust_score.component_scores = {
-        "authentication": 0.9,
-        "authorization": 0.8,
-        "behavior": 0.85,
-        "network": 0.88
-    }
+    trust_score.component_scores = {"authentication": 0.9, "authorization": 0.8, "behavior": 0.85, "network": 0.88}
     trust_score.last_updated = datetime.utcnow()
     trust_score.factors = [
         {"type": "successful_auth", "weight": 0.3, "value": 0.95},
-        {"type": "session_duration", "weight": 0.2, "value": 0.8}
+        {"type": "session_duration", "weight": 0.2, "value": 0.8},
     ]
     return trust_score
 
@@ -372,10 +353,7 @@ def sample_session():
         trust_level=0.85,
         auth_method="jwt",
         ttl=3600,
-        metadata={
-            "source_ip": "127.0.0.1",
-            "user_agent": "test-client/1.0"
-        }
+        metadata={"source_ip": "127.0.0.1", "user_agent": "test-client/1.0"},
     )
     # Add additional attributes for extended testing
     session.status = SessionStatus("active")
@@ -398,10 +376,7 @@ def sample_audit_event():
         outcome="success",
         source_ip="127.0.0.1",
         user_agent="test-client/1.0",
-        details={
-            "method": "jwt",
-            "duration": 150
-        }
+        details={"method": "jwt", "duration": 150},
     )
 
 
@@ -409,6 +384,7 @@ def sample_audit_event():
 def mock_redis():
     """Mock Redis for testing"""
     import fakeredis
+
     return fakeredis.FakeRedis()
 
 
@@ -516,6 +492,7 @@ def pytest_sessionfinish(session, exitstatus):
 def setup_asyncio():
     """Setup asyncio for testing"""
     import nest_asyncio
+
     nest_asyncio.apply()
 
 
@@ -526,4 +503,5 @@ def cleanup_after_test():
     yield
     # Cleanup any global state
     import logging
+
     logging.getLogger().handlers.clear()

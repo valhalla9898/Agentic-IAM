@@ -1,8 +1,10 @@
 """Authorization wrapper using Casbin policy engine (optional)."""
+
 try:
     import casbin
+
     CASBIN_AVAILABLE = True
-except Exception:
+except ImportError:
     CASBIN_AVAILABLE = False
 
 import os
@@ -16,8 +18,8 @@ def get_enforcer():
         return _enforcer
     if not CASBIN_AVAILABLE:
         return None
-    model = os.path.join(os.path.dirname(__file__), 'casbin_model.conf')
-    policy = os.path.join(os.path.dirname(__file__), 'policies', 'policy.csv')
+    model = os.path.join(os.path.dirname(__file__), "casbin_model.conf")
+    policy = os.path.join(os.path.dirname(__file__), "policies", "policy.csv")
     _enforcer = casbin.Enforcer(model, policy)
     return _enforcer
 
@@ -26,6 +28,5 @@ def is_allowed(subject: str, obj: str, action: str) -> bool:
     enforcer = get_enforcer()
     if not enforcer:
         # Fallback: simple allow for wildcard
-        return subject == 'admin' or '*' in (subject, obj, action)
+        return subject == "admin" or "*" in (subject, obj, action)
     return enforcer.enforce(subject, obj, action)
-

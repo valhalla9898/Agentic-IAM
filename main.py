@@ -5,19 +5,21 @@ Central orchestrator that manages the Agentic-IAM platform, integrating all
 components including the FastAPI backend, Streamlit dashboard, and core
 Agent Identity Framework modules.
 """
-from utils.logger import setup_logging
-from config.settings import Settings
-from core.agentic_iam import AgenticIAM
+
 import asyncio
-import signal
-import sys
 import logging
+import multiprocessing as mp
+import signal
+import subprocess
+import sys
 from pathlib import Path
 from typing import Optional
-import multiprocessing as mp
+
 import uvicorn
-import subprocess
-import logging
+
+from config.settings import Settings
+from core.agentic_iam import AgenticIAM
+from utils.logger import setup_logging
 
 # Add core modules to path
 sys.path.append(str(Path(__file__).parent / "core"))
@@ -66,9 +68,7 @@ class AgenticIAMPlatform:
     def __init__(self):
         self.settings = Settings()
         self.logger = setup_logging(
-            log_level=self.settings.log_level,
-            log_file=self.settings.log_file,
-            enable_console=True
+            log_level=self.settings.log_level, log_file=self.settings.log_file, enable_console=True
         )
         self.iam: Optional[AgenticIAM] = None
         self.api_process: Optional[mp.Process] = None
@@ -93,7 +93,7 @@ class AgenticIAMPlatform:
                 host=self.settings.api_host,
                 port=self.settings.api_port,
                 log_level=self.settings.log_level.lower(),
-                access_log=True
+                access_log=True,
             )
         except Exception as e:
             self.logger.error(f"API server error: {e}")
@@ -102,12 +102,19 @@ class AgenticIAMPlatform:
         """Start the Streamlit dashboard"""
         try:
             import subprocess
+
             cmd = [
-                sys.executable, "-m", "streamlit", "run",
+                sys.executable,
+                "-m",
+                "streamlit",
+                "run",
                 "dashboard/main.py",
-                "--server.port", str(self.settings.dashboard_port),
-                "--server.address", self.settings.dashboard_host,
-                "--browser.gatherUsageStats", "false"
+                "--server.port",
+                str(self.settings.dashboard_port),
+                "--server.address",
+                self.settings.dashboard_host,
+                "--browser.gatherUsageStats",
+                "false",
             ]
             subprocess.run(cmd, cwd=Path(__file__).parent)
         except Exception as e:
@@ -127,8 +134,7 @@ class AgenticIAMPlatform:
                 args=(self.settings.api_host, self.settings.api_port, self.settings.log_level.lower()),
             )
             self.api_process.start()
-            self.logger.info(
-                f"API server started on {self.settings.api_host}:{self.settings.api_port}")
+            self.logger.info(f"API server started on {self.settings.api_host}:{self.settings.api_port}")
 
         # Start dashboard in separate process
         if self.settings.enable_dashboard:
@@ -137,8 +143,7 @@ class AgenticIAMPlatform:
                 args=(self.settings.dashboard_host, self.settings.dashboard_port, str(Path(__file__).parent)),
             )
             self.dashboard_process.start()
-            self.logger.info(
-                f"Dashboard started on {self.settings.dashboard_host}:{self.settings.dashboard_port}")
+            self.logger.info(f"Dashboard started on {self.settings.dashboard_host}:{self.settings.dashboard_port}")
 
         self.logger.info("Platform started successfully")
 
