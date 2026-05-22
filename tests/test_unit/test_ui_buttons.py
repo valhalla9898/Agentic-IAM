@@ -98,12 +98,7 @@ def test_persist_demo_state_uses_db_methods(monkeypatch, tmp_path):
 def test_process_security_notification_queue_posts_and_updates(monkeypatch):
     fake = FakeDB()
     # create queued notification
-    note = {
-        "id": 123,
-        "target_name": "webhook",
-        "target_url": "http://example.local/hook",
-        "payload": {},
-    }
+    note = {"id": 123, "target_name": "webhook", "target_url": "http://example.local/hook", "payload": {}}
 
     def list_notifications(limit=20, status=None):
         return [note]

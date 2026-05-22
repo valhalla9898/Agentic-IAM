@@ -76,12 +76,7 @@ class DatabaseMigrator:
                 """))
 
                 return [
-                    {
-                        "migration_id": row[0],
-                        "migration_name": row[1],
-                        "applied_at": row[2],
-                        "checksum": row[3],
-                    }
+                    {"migration_id": row[0], "migration_name": row[1], "applied_at": row[2], "checksum": row[3]}
                     for row in result.fetchall()
                 ]
 
@@ -103,10 +98,7 @@ class DatabaseMigrator:
 
         for migration_name, sql, rollback_sql in migrations:
             await self.apply_migration(
-                migration_id=f"core_{migration_name}",
-                migration_name=migration_name,
-                sql=sql,
-                rollback_sql=rollback_sql,
+                migration_id=f"core_{migration_name}", migration_name=migration_name, sql=sql, rollback_sql=rollback_sql
             )
 
     def _create_agents_schema(self) -> tuple:
@@ -483,12 +475,7 @@ class DatabaseMigrator:
         return hashlib.sha256(content.encode()).hexdigest()
 
     async def apply_migration(
-        self,
-        migration_id: str,
-        migration_name: str,
-        sql: str,
-        rollback_sql: str = "",
-        metadata: Dict[str, Any] = None,
+        self, migration_id: str, migration_name: str, sql: str, rollback_sql: str = "", metadata: Dict[str, Any] = None
     ):
         """Apply a database migration"""
         checksum = self._calculate_checksum(sql)
@@ -616,9 +603,7 @@ class DatabaseMigrator:
                 import subprocess
 
                 result = subprocess.run(
-                    ["pg_dump", self.settings.database_url, "-f", str(backup_file)],
-                    capture_output=True,
-                    text=True,
+                    ["pg_dump", self.settings.database_url, "-f", str(backup_file)], capture_output=True, text=True
                 )
 
                 if result.returncode != 0:
@@ -645,10 +630,7 @@ async def main():
 
     parser = argparse.ArgumentParser(description="Agentic-IAM Database Migration Tool")
     parser.add_argument(
-        "--action",
-        choices=["migrate", "rollback", "status", "backup"],
-        default="migrate",
-        help="Migration action",
+        "--action", choices=["migrate", "rollback", "status", "backup"], default="migrate", help="Migration action"
     )
     parser.add_argument("--migration-id", help="Specific migration ID for rollback")
     parser.add_argument("--backup-name", help="Backup name")
@@ -657,9 +639,7 @@ async def main():
     args = parser.parse_args()
 
     # Setup logging
-    logging.basicConfig(
-        level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    )
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
     try:
         # Load settings
@@ -694,9 +674,7 @@ async def main():
             if status["applied_migrations"]:
                 print("\nApplied Migrations:")
                 for migration in status["applied_migrations"][-5:]:  # Last 5
-                    print(
-                        f"  - {migration['migration_id']}: {migration['migration_name']} ({migration['applied_at']})"
-                    )
+                    print(f"  - {migration['migration_id']}: {migration['migration_name']} ({migration['applied_at']})")
 
         elif args.action == "backup":
             print("💾 Creating database backup...")

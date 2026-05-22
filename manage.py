@@ -14,24 +14,12 @@ def run_migrations():
 
 
 def run_celery_worker():
-    cmd = [
-        "celery",
-        "-A",
-        "celery_worker.celery_app",
-        "worker",
-        "--loglevel=info",
-        "-Q",
-        "rotation",
-    ]
+    cmd = ["celery", "-A", "celery_worker.celery_app", "worker", "--loglevel=info", "-Q", "rotation"]
     subprocess.check_call(cmd)
 
 
 def rotate_once():
-    cmd = [
-        sys.executable,
-        "-c",
-        "from tasks.rotate_credentials import rotate_credentials; print(rotate_credentials())",
-    ]
+    cmd = [sys.executable, "-c", "from tasks.rotate_credentials import rotate_credentials; print(rotate_credentials())"]
     subprocess.check_call(cmd)
 
 

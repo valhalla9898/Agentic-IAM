@@ -70,12 +70,7 @@ def paginate_data(data: List[Dict], page_size: int, page_number: int) -> Dict:
     start_idx = (page_number - 1) * page_size
     end_idx = start_idx + page_size
 
-    return {
-        "data": data[start_idx:end_idx],
-        "page": page_number,
-        "total_pages": total_pages,
-        "total_items": len(data),
-    }
+    return {"data": data[start_idx:end_idx], "page": page_number, "total_pages": total_pages, "total_items": len(data)}
 
 
 def render_pagination(pagination: Dict, key: str = "page"):
@@ -89,9 +84,7 @@ def render_pagination(pagination: Dict, key: str = "page"):
                 st.rerun()
 
     with col2:
-        st.markdown(
-            f"**Page {pagination['page']} of {pagination['total_pages']}**", unsafe_allow_html=True
-        )
+        st.markdown(f"**Page {pagination['page']} of {pagination['total_pages']}**", unsafe_allow_html=True)
 
     with col3:
         if pagination["page"] < pagination["total_pages"]:

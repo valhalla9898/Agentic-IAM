@@ -17,9 +17,7 @@ def main():
 
     # Create a lightweight IAM instance using only the registry
     iam = AgenticIAM(settings)
-    iam.agent_registry = AgentRegistry(
-        storage_path=settings.agent_registry_path, enable_persistence=True
-    )
+    iam.agent_registry = AgentRegistry(storage_path=settings.agent_registry_path, enable_persistence=True)
     iam.is_initialized = True
 
     # Test agent data (from your sample)
@@ -35,9 +33,7 @@ def main():
     # Generate identity and register
     agent_identity = AgentIdentity.generate(agent_id, metadata)
     reg_id = iam.agent_registry.register_agent(
-        agent_identity,
-        endpoints=["https://payment.example.com"],
-        capabilities=metadata["capabilities"],
+        agent_identity, endpoints=["https://payment.example.com"], capabilities=metadata["capabilities"]
     )
 
     print("Registered agent:", agent_id)

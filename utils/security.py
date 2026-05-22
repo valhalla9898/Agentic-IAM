@@ -253,9 +253,7 @@ class AccountSecurity:
 
         # Lock account if too many failures
         if len(self.failed_attempts[username]) >= self.max_failed_attempts:
-            self.locked_accounts[username] = datetime.utcnow() + timedelta(
-                seconds=self.lockout_duration
-            )
+            self.locked_accounts[username] = datetime.utcnow() + timedelta(seconds=self.lockout_duration)
             logger.error(f"Account locked due to failed attempts: {username}")
 
     def record_successful_login(self, username: str):
@@ -313,12 +311,7 @@ class AuditLogger:
 
     @staticmethod
     def log_security_event(
-        event_type: str,
-        user: str,
-        action: str,
-        resource: str,
-        result: str,
-        details: Optional[str] = None,
+        event_type: str, user: str, action: str, resource: str, result: str, details: Optional[str] = None
     ):
         """Log security-relevant event"""
         timestamp = datetime.utcnow().isoformat()
@@ -361,11 +354,7 @@ class AuditLogger:
     def log_permission_denied(username: str, resource: str, action: str):
         """Log permission denied event"""
         AuditLogger.log_security_event(
-            event_type="permission_denied",
-            user=username,
-            action=action,
-            resource=resource,
-            result="denied",
+            event_type="permission_denied", user=username, action=action, resource=resource, result="denied"
         )
 
     @staticmethod

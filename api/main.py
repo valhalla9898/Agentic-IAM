@@ -118,11 +118,7 @@ async def lifespan(app: FastAPI):
         settings_instance = Settings()
 
         # Setup logging
-        setup_logging(
-            log_level=settings_instance.log_level,
-            log_file=settings_instance.log_file,
-            enable_console=True,
-        )
+        setup_logging(log_level=settings_instance.log_level, log_file=settings_instance.log_file, enable_console=True)
 
         # Initialize IAM system
         iam_instance = AgenticIAM(settings_instance)
@@ -186,9 +182,7 @@ def setup_middleware(app: FastAPI):
 
     # Trusted host middleware
     if settings.is_production:
-        app.add_middleware(
-            TrustedHostMiddleware, allowed_hosts=[settings.api_host, "localhost", "127.0.0.1"]
-        )
+        app.add_middleware(TrustedHostMiddleware, allowed_hosts=[settings.api_host, "localhost", "127.0.0.1"])
 
     # Security headers middleware
     @app.middleware("http")
@@ -245,8 +239,7 @@ def setup_middleware(app: FastAPI):
                     key = request.headers.get("x-api-key") or request.headers.get("X-API-KEY")
                     if not key or key != admin_key:
                         return JSONResponse(
-                            status_code=401,
-                            content={"detail": "Unauthorized - missing or invalid API key"},
+                            status_code=401, content={"detail": "Unauthorized - missing or invalid API key"}
                         )
                     break
         return await call_next(request)
@@ -272,18 +265,12 @@ def setup_middleware(app: FastAPI):
                     now = int(time.time())
                     exp = int(expires)
                     if now > exp:
-                        return JSONResponse(
-                            status_code=401, content={"detail": "URL signature expired"}
-                        )
+                        return JSONResponse(status_code=401, content={"detail": "URL signature expired"})
 
                     msg = f"{path}|{expires}".encode("utf-8")
-                    expected = hmac.new(
-                        signing_key.encode("utf-8"), msg, hashlib.sha256
-                    ).hexdigest()
+                    expected = hmac.new(signing_key.encode("utf-8"), msg, hashlib.sha256).hexdigest()
                     if not hmac.compare_digest(expected, sig):
-                        return JSONResponse(
-                            status_code=401, content={"detail": "Invalid URL signature"}
-                        )
+                        return JSONResponse(status_code=401, content={"detail": "Invalid URL signature"})
                 except (ValueError, TypeError):
                     return JSONResponse(status_code=401, content={"detail": "Invalid signed URL"})
         return await call_next(request)
@@ -307,9 +294,7 @@ def setup_middleware(app: FastAPI):
                     if forwarded_cert or client_cert:
                         return await call_next(request)
 
-                    return JSONResponse(
-                        status_code=403, content={"detail": "mTLS required for this endpoint"}
-                    )
+                    return JSONResponse(status_code=403, content={"detail": "mTLS required for this endpoint"})
         return await call_next(request)
 
 
@@ -338,9 +323,7 @@ def setup_routers(app: FastAPI):
 
     # Intelligence & trust scoring
     if intelligence is not None:
-        app.include_router(
-            intelligence.router, prefix="/api/v1/intelligence", tags=["Intelligence & Trust"]
-        )
+        app.include_router(intelligence.router, prefix="/api/v1/intelligence", tags=["Intelligence & Trust"])
 
     # Audit & compliance
     if audit is not None:
@@ -478,9 +461,7 @@ def _setup_reports_and_alerts_routers(app: FastAPI):
 
         return {
             "status": "ok",
-            "file": os.path.relpath(
-                path, start=os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-            ),
+            "file": os.path.relpath(path, start=os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))),
         }
 
     @alerts_router.get("/list")
@@ -534,22 +515,14 @@ def setup_exception_handlers(app: FastAPI):
         logger = get_logger("api.errors")
         logger.error(
             f"Unhandled Exception: {str(exc)}",
-            extra={
-                "exception_type": type(exc).__name__,
-                "url": str(request.url),
-                "method": request.method,
-            },
+            extra={"exception_type": type(exc).__name__, "url": str(request.url), "method": request.method},
             exc_info=True,
         )
 
         return JSONResponse(
             status_code=500,
             content={
-                "error": {
-                    "code": 500,
-                    "message": "Internal server error",
-                    "type": "InternalServerError",
-                },
+                "error": {"code": 500, "message": "Internal server error", "type": "InternalServerError"},
                 "request": {"method": request.method, "url": str(request.url)},
             },
         )

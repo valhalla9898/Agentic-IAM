@@ -68,10 +68,7 @@ print("Execute playbook result keys:", list(res.keys()))
 report_state = {
     "incident_id": "demo_incident_001",
     "correlation_id": case.get("case_key"),
-    "executive_summary": {
-        "threat_level": "high",
-        "recommended_actions": case.get("recommended_actions", []),
-    },
+    "executive_summary": {"threat_level": "high", "recommended_actions": case.get("recommended_actions", [])},
     "integrity_hash": case.get("integrity_hash"),
 }
 report = build_executive_report(report_state, [case], attacks, alerts, blocked)

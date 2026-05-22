@@ -131,8 +131,7 @@ def correlate_security_cases(
                 matched_case["alert_ids"].append(alert.get("id"))
             matched_case["severity_values"].append(str(alert.get("severity", "medium")))
             if alert.get("created_at") and (
-                not matched_case["last_seen"]
-                or str(alert.get("created_at")) > str(matched_case["last_seen"])
+                not matched_case["last_seen"] or str(alert.get("created_at")) > str(matched_case["last_seen"])
             ):
                 matched_case["last_seen"] = alert.get("created_at")
 
@@ -148,9 +147,7 @@ def correlate_security_cases(
         alert_count = len(case["alert_ids"])
         blocked_count = len(case["blocked_ips"])
         severity = _case_severity(case["severity_values"])
-        status = (
-            "closed" if blocked_count and alert_count else "contained" if blocked_count else "open"
-        )
+        status = "closed" if blocked_count and alert_count else "contained" if blocked_count else "open"
         attack_types = sorted(case["attack_types"])
         recommended_actions = sorted(case["recommended_actions"])
         if any(item == "sql_injection" for item in attack_types):
@@ -219,9 +216,7 @@ def choose_playbook(case: Dict[str, Any]) -> Dict[str, Any]:
     return fallback if "fallback" in locals() else DEFAULT_SECURITY_PLAYBOOKS[-1]
 
 
-def execute_playbook(
-    db: Any, case: Dict[str, Any], playbook: Optional[Dict[str, Any]] = None
-) -> Dict[str, Any]:
+def execute_playbook(db: Any, case: Dict[str, Any], playbook: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """Apply a response playbook and record the run to the database."""
     playbook = playbook or choose_playbook(case)
     actions = []
@@ -236,9 +231,7 @@ def execute_playbook(
                 attack_event_id = (case.get("attack_ids") or [None])[0]
                 try:
                     blocked = db.block_ip(
-                        source_ip,
-                        f"Playbook {playbook.get('playbook_name')}",
-                        attack_event_id=attack_event_id,
+                        source_ip, f"Playbook {playbook.get('playbook_name')}", attack_event_id=attack_event_id
                     )
                 except Exception as e:
                     import logging
@@ -299,13 +292,9 @@ def summarize_case_metrics(cases: Iterable[Dict[str, Any]]) -> Dict[str, Any]:
     case_list = list(cases or [])
     total = len(case_list)
     open_cases = sum(1 for case in case_list if str(case.get("status", "")).lower() == "open")
-    contained_cases = sum(
-        1 for case in case_list if str(case.get("status", "")).lower() == "contained"
-    )
+    contained_cases = sum(1 for case in case_list if str(case.get("status", "")).lower() == "contained")
     closed_cases = sum(1 for case in case_list if str(case.get("status", "")).lower() == "closed")
-    critical_cases = sum(
-        1 for case in case_list if str(case.get("severity", "")).lower() == "critical"
-    )
+    critical_cases = sum(1 for case in case_list if str(case.get("severity", "")).lower() == "critical")
     blocked_total = sum(int(case.get("blocked_count", 0) or 0) for case in case_list)
     return {
         "total_cases": total,
@@ -329,9 +318,7 @@ def build_executive_report(
     kpis = calculate_security_kpis(attacks, alerts, blocked_ips)
     case_metrics = summarize_case_metrics(case_list)
     top_cases = sorted(
-        case_list,
-        key=lambda item: (item.get("severity", "medium"), item.get("attack_count", 0)),
-        reverse=True,
+        case_list, key=lambda item: (item.get("severity", "medium"), item.get("attack_count", 0)), reverse=True
     )[:5]
     report = {
         "report_type": "executive_security_summary",
@@ -402,9 +389,7 @@ def render_executive_report_pdf(report: Dict[str, Any]) -> bytes:
     """Render a small but valid PDF document for executive report downloads."""
     lines = _build_pdf_content_lines(report)
     per_page = 40
-    pages: List[List[str]] = [
-        lines[index : index + per_page] for index in range(0, len(lines), per_page)
-    ] or [[]]
+    pages: List[List[str]] = [lines[index : index + per_page] for index in range(0, len(lines), per_page)] or [[]]
 
     font_obj = 3 + (len(pages) * 2)
     objects: Dict[int, bytes] = {
@@ -412,9 +397,7 @@ def render_executive_report_pdf(report: Dict[str, Any]) -> bytes:
         2: f"2 0 obj << /Type /Pages /Kids [{' '.join(f'{3 + index * 2} 0 R' for index in range(len(pages)))}] /Count {len(pages)} >> endobj\n".encode(
             "utf-8"
         ),
-        font_obj: f"{font_obj} 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj\n".encode(
-            "utf-8"
-        ),
+        font_obj: f"{font_obj} 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj\n".encode("utf-8"),
     }
 
     next_page_obj = 3

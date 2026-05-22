@@ -131,31 +131,19 @@ class AgenticIAMPlatform:
         if self.settings.enable_api:
             self.api_process = mp.Process(
                 target=_run_api_server,
-                args=(
-                    self.settings.api_host,
-                    self.settings.api_port,
-                    self.settings.log_level.lower(),
-                ),
+                args=(self.settings.api_host, self.settings.api_port, self.settings.log_level.lower()),
             )
             self.api_process.start()
-            self.logger.info(
-                f"API server started on {self.settings.api_host}:{self.settings.api_port}"
-            )
+            self.logger.info(f"API server started on {self.settings.api_host}:{self.settings.api_port}")
 
         # Start dashboard in separate process
         if self.settings.enable_dashboard:
             self.dashboard_process = mp.Process(
                 target=_run_dashboard_server,
-                args=(
-                    self.settings.dashboard_host,
-                    self.settings.dashboard_port,
-                    str(Path(__file__).parent),
-                ),
+                args=(self.settings.dashboard_host, self.settings.dashboard_port, str(Path(__file__).parent)),
             )
             self.dashboard_process.start()
-            self.logger.info(
-                f"Dashboard started on {self.settings.dashboard_host}:{self.settings.dashboard_port}"
-            )
+            self.logger.info(f"Dashboard started on {self.settings.dashboard_host}:{self.settings.dashboard_port}")
 
         self.logger.info("Platform started successfully")
 

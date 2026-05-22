@@ -47,10 +47,7 @@ class IntelligenceEngine:
         if SKLEARN_AVAILABLE:
             # Minimal model — in production train on historical audit features
             self.model = Pipeline(
-                [
-                    ("scale", StandardScaler()),
-                    ("rf", RandomForestRegressor(n_estimators=10, random_state=42)),
-                ]
+                [("scale", StandardScaler()), ("rf", RandomForestRegressor(n_estimators=10, random_state=42))]
             )
             # Anomaly detection model
             self.anomaly_model = IsolationForest(contamination=0.1, random_state=42)

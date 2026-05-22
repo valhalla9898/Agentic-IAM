@@ -27,9 +27,7 @@ def create_comprehensive_report():
     # ==================== TITLE AND METADATA ====================
 
     title = doc.add_paragraph()
-    title_run = title.add_run(
-        "AGENTIC-IAM: ENTERPRISE-GRADE IDENTITY AND ACCESS MANAGEMENT\nFOR AI AGENT ECOSYSTEMS"
-    )
+    title_run = title.add_run("AGENTIC-IAM: ENTERPRISE-GRADE IDENTITY AND ACCESS MANAGEMENT\nFOR AI AGENT ECOSYSTEMS")
     title_run.font.name = "Calibri"
     title_run.font.size = Pt(18)
     title_run.font.bold = True
@@ -236,9 +234,7 @@ These challenges demonstrate the critical need for a purpose-built IAM platform 
     # 2.2 Project Objectives
     add_heading_with_formatting(doc, "2.2 Project Objectives", 2)
 
-    objectives_intro = (
-        "The Agentic-IAM project establishes comprehensive objectives across multiple dimensions:"
-    )
+    objectives_intro = "The Agentic-IAM project establishes comprehensive objectives across multiple dimensions:"
     doc.add_paragraph(objectives_intro)
 
     doc.add_paragraph()
@@ -484,48 +480,12 @@ Data Persistence Layer: Manages persistent storage with SQLite for development a
         hdr_cells[i].text = header
 
     tech_data = [
-        (
-            "Runtime",
-            "Python",
-            "Core application",
-            "3.8+",
-            "Type-safe, async-capable, enterprise adoption",
-        ),
-        (
-            "Web Framework",
-            "FastAPI",
-            "REST API server",
-            "0.95.0+",
-            "High performance, OpenAPI documentation",
-        ),
-        (
-            "UI Framework",
-            "Streamlit",
-            "Dashboard UI",
-            "1.28.0+",
-            "Rapid development, professional appearance",
-        ),
-        (
-            "API Schema",
-            "Strawberry GraphQL",
-            "GraphQL endpoint",
-            "Latest",
-            "Type-safe, excellent Python integration",
-        ),
-        (
-            "Database (Dev)",
-            "SQLite",
-            "Local development",
-            "Built-in",
-            "Zero configuration, file-based",
-        ),
-        (
-            "Database (Prod)",
-            "PostgreSQL",
-            "Production deployment",
-            "12+",
-            "Scalability, replication, ACID compliance",
-        ),
+        ("Runtime", "Python", "Core application", "3.8+", "Type-safe, async-capable, enterprise adoption"),
+        ("Web Framework", "FastAPI", "REST API server", "0.95.0+", "High performance, OpenAPI documentation"),
+        ("UI Framework", "Streamlit", "Dashboard UI", "1.28.0+", "Rapid development, professional appearance"),
+        ("API Schema", "Strawberry GraphQL", "GraphQL endpoint", "Latest", "Type-safe, excellent Python integration"),
+        ("Database (Dev)", "SQLite", "Local development", "Built-in", "Zero configuration, file-based"),
+        ("Database (Prod)", "PostgreSQL", "Production deployment", "12+", "Scalability, replication, ACID compliance"),
         (
             "Async Runtime",
             "asyncio",
@@ -533,20 +493,8 @@ Data Persistence Layer: Manages persistent storage with SQLite for development a
             "Python built-in",
             "Non-blocking I/O, improved throughput",
         ),
-        (
-            "Validation",
-            "Pydantic V2",
-            "Data validation",
-            "2.x",
-            "Type safety, comprehensive validation",
-        ),
-        (
-            "Cryptography",
-            "cryptography",
-            "Encryption/TLS",
-            "40.0.0+",
-            "FIPS compliance, quantum algorithms",
-        ),
+        ("Validation", "Pydantic V2", "Data validation", "2.x", "Type safety, comprehensive validation"),
+        ("Cryptography", "cryptography", "Encryption/TLS", "40.0.0+", "FIPS compliance, quantum algorithms"),
         ("Testing", "pytest", "Test framework", "7.4.0+", "Comprehensive fixtures, plugins"),
         ("Linting", "flake8", "Code style", "6.0.0+", "PEP 8 enforcement, code quality"),
     ]

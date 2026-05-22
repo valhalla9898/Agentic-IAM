@@ -105,9 +105,7 @@ def run_attack_simulation(target: str, output_dir: str, record_video: bool = Tru
                 if search_input:
                     for payload in sql_payloads:
                         print(f"[!] Sending SQL Injection: {payload}")
-                        events.append(
-                            {"ts": now_ts(), "event": "sql_injection_attempt", "payload": payload}
-                        )
+                        events.append({"ts": now_ts(), "event": "sql_injection_attempt", "payload": payload})
                         search_input.fill(payload)
                         search_input.press("Enter")
                         time.sleep(1)
@@ -124,9 +122,7 @@ def run_attack_simulation(target: str, output_dir: str, record_video: bool = Tru
             ]
 
             try:
-                xss_input = page.query_selector('input[type="text"]') or page.query_selector(
-                    "textarea"
-                )
+                xss_input = page.query_selector('input[type="text"]') or page.query_selector("textarea")
                 if xss_input:
                     for payload in xss_payloads:
                         print(f"[!] Sending XSS: {payload}")
@@ -183,9 +179,7 @@ def run_attack_simulation(target: str, output_dir: str, record_video: bool = Tru
                 if response.status_code == 200:
                     blocked_ips = response.json()
                     print(f"[+] Blocked IPs: {blocked_ips}")
-                    events.append(
-                        {"ts": now_ts(), "event": "blocked_ips_check", "blocked_ips": blocked_ips}
-                    )
+                    events.append({"ts": now_ts(), "event": "blocked_ips_check", "blocked_ips": blocked_ips})
             except Exception as e:
                 print(f"[-] IP block check failed: {e}")
 

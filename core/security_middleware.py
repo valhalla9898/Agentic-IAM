@@ -27,9 +27,7 @@ class AttackDetectionMiddleware:
             # get_db may not yield in some contexts; continue without DB
             import logging
 
-            logging.getLogger(__name__).debug(
-                "Failed to obtain DB session in AttackDetectionMiddleware: %s", e
-            )
+            logging.getLogger(__name__).debug("Failed to obtain DB session in AttackDetectionMiddleware: %s", e)
             db = None
 
         # Check if IP is blocked
@@ -81,9 +79,7 @@ class AttackDetectionMiddleware:
             except (UnicodeDecodeError, ValueError) as e:
                 import logging
 
-                logging.getLogger(__name__).debug(
-                    "Failed to read request body for attack detection: %s", e
-                )
+                logging.getLogger(__name__).debug("Failed to read request body for attack detection: %s", e)
 
         # Log suspicious activity
         if suspicious and db and attack_type:
@@ -170,9 +166,7 @@ class LoginAttemptMiddleware:
         except (StopIteration, TypeError) as e:
             import logging
 
-            logging.getLogger(__name__).debug(
-                "Failed to obtain DB session in LoginAttemptMiddleware: %s", e
-            )
+            logging.getLogger(__name__).debug("Failed to obtain DB session in LoginAttemptMiddleware: %s", e)
             return await call_next(request)
 
         # Extract username from request (if POST)
@@ -198,14 +192,10 @@ class LoginAttemptMiddleware:
         if response.status_code in [401, 403]:
             from core.attack_detection import AttackLogger
 
-            AttackLogger.log_failed_login(
-                db, username=username, source_ip=client_ip, reason="invalid_credentials"
-            )
+            AttackLogger.log_failed_login(db, username=username, source_ip=client_ip, reason="invalid_credentials")
 
             # Check for brute force
-            if AttackDetector.detect_brute_force(
-                db, username, client_ip, threshold=5, window_minutes=10
-            ):
+            if AttackDetector.detect_brute_force(db, username, client_ip, threshold=5, window_minutes=10):
                 print(f"[!] BRUTE FORCE DETECTED: {username} from {client_ip}")
 
                 # Log attack

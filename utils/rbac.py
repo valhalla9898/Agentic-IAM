@@ -190,9 +190,7 @@ class RBACManager:
                 user = st.session_state.get("user")
                 if not self.has_any_permission(user, list(permissions)):
                     st.error("❌ Access Denied: Insufficient permissions")
-                    logger.warning(
-                        f"Access denied for {user.get('username', 'unknown') if user else 'guest'}"
-                    )
+                    logger.warning(f"Access denied for {user.get('username', 'unknown') if user else 'guest'}")
                     return None
                 return func(*args, **kwargs)
 
@@ -209,9 +207,7 @@ class RBACManager:
                 user = st.session_state.get("user")
                 if not self.has_all_permissions(user, list(permissions)):
                     st.error("❌ Access Denied: Insufficient permissions")
-                    logger.warning(
-                        f"Access denied for {user.get('username', 'unknown') if user else 'guest'}"
-                    )
+                    logger.warning(f"Access denied for {user.get('username', 'unknown') if user else 'guest'}")
                     return None
                 return func(*args, **kwargs)
 
@@ -228,9 +224,7 @@ class RBACManager:
                 user = st.session_state.get("user")
                 user_role = self.get_user_role(user)
                 if user_role not in roles:
-                    st.error(
-                        f"❌ Access Denied: This action requires one of {[r.value for r in roles]}"
-                    )
+                    st.error(f"❌ Access Denied: This action requires one of {[r.value for r in roles]}")
                     logger.warning(
                         f"Access denied for {user.get('username', 'unknown') if user else 'guest'} role {user_role.value}"
                     )

@@ -39,9 +39,7 @@ class AgentResponse(BaseModel):
 
 
 @router.post("/", status_code=201, tags=["Agent Management"])
-async def register_agent(
-    payload: AgentRegisterRequest, iam: AgenticIAM = Depends(get_iam)
-) -> AgentResponse:
+async def register_agent(payload: AgentRegisterRequest, iam: AgenticIAM = Depends(get_iam)) -> AgentResponse:
     """Register a new agent"""
     try:
         # Create identity
@@ -70,11 +68,7 @@ async def get_agent(agent_id: str, iam: AgenticIAM = Depends(get_iam)) -> Dict[s
         if not agent_entry:
             raise HTTPException(status_code=404, detail="Agent not found")
 
-        return {
-            "agent_id": agent_id,
-            "status": "active",
-            "metadata": getattr(agent_entry, "metadata", {}),
-        }
+        return {"agent_id": agent_id, "status": "active", "metadata": getattr(agent_entry, "metadata", {})}
     except HTTPException:
         raise
     except Exception as e:

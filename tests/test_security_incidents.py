@@ -21,14 +21,7 @@ def test_correlate_security_cases_groups_related_events():
             "recommended_actions": ["block_ip"],
         }
     ]
-    alerts = [
-        {
-            "id": 11,
-            "source_ip": "203.0.113.77",
-            "severity": "critical",
-            "created_at": "2026-05-19 19:00:05 UTC",
-        }
-    ]
+    alerts = [{"id": 11, "source_ip": "203.0.113.77", "severity": "critical", "created_at": "2026-05-19 19:00:05 UTC"}]
     blocked_ips = [{"ip": "203.0.113.77", "blocked_at": "2026-05-19 19:00:10 UTC"}]
 
     cases = correlate_security_cases(attacks, alerts, blocked_ips)

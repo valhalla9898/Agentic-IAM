@@ -68,15 +68,11 @@ class MetricsCollector:
 
         # Request metrics
         self.request_counter = Counter(
-            "agentic_iam_requests_total",
-            "Total number of requests",
-            ["method", "endpoint", "status"],
+            "agentic_iam_requests_total", "Total number of requests", ["method", "endpoint", "status"]
         )
 
         self.request_duration = Histogram(
-            "agentic_iam_request_duration_seconds",
-            "Request duration in seconds",
-            ["method", "endpoint"],
+            "agentic_iam_request_duration_seconds", "Request duration in seconds", ["method", "endpoint"]
         )
 
         # Authentication metrics
@@ -91,9 +87,7 @@ class MetricsCollector:
         # Session metrics
         self.active_sessions = Gauge("agentic_iam_active_sessions", "Number of active sessions")
 
-        self.session_duration = Histogram(
-            "agentic_iam_session_duration_seconds", "Session duration in seconds"
-        )
+        self.session_duration = Histogram("agentic_iam_session_duration_seconds", "Session duration in seconds")
 
         # Agent metrics
         self.total_agents = Gauge("agentic_iam_agents_total", "Total number of registered agents")
@@ -105,27 +99,19 @@ class MetricsCollector:
             "agentic_iam_trust_calculations_total", "Total trust score calculations"
         )
 
-        self.avg_trust_score = Gauge(
-            "agentic_iam_avg_trust_score", "Average trust score across all agents"
-        )
+        self.avg_trust_score = Gauge("agentic_iam_avg_trust_score", "Average trust score across all agents")
 
         # Database metrics
         self.db_connections = Gauge("agentic_iam_db_connections", "Number of database connections")
 
         self.db_query_duration = Histogram(
-            "agentic_iam_db_query_duration_seconds",
-            "Database query duration in seconds",
-            ["query_type"],
+            "agentic_iam_db_query_duration_seconds", "Database query duration in seconds", ["query_type"]
         )
 
         # Redis metrics
-        self.redis_connections = Gauge(
-            "agentic_iam_redis_connections", "Number of Redis connections"
-        )
+        self.redis_connections = Gauge("agentic_iam_redis_connections", "Number of Redis connections")
 
-        self.redis_operations = Counter(
-            "agentic_iam_redis_operations_total", "Total Redis operations", ["operation"]
-        )
+        self.redis_operations = Counter("agentic_iam_redis_operations_total", "Total Redis operations", ["operation"])
 
         # System metrics
         self.cpu_usage = Gauge("agentic_iam_cpu_usage_percent", "CPU usage percentage")
@@ -135,39 +121,28 @@ class MetricsCollector:
         self.disk_usage = Gauge("agentic_iam_disk_usage_percent", "Disk usage percentage")
 
         # Error metrics
-        self.error_counter = Counter(
-            "agentic_iam_errors_total", "Total number of errors", ["error_type", "component"]
-        )
+        self.error_counter = Counter("agentic_iam_errors_total", "Total number of errors", ["error_type", "component"])
 
         # Audit metrics
-        self.audit_events = Counter(
-            "agentic_iam_audit_events_total", "Total audit events", ["event_type", "severity"]
-        )
+        self.audit_events = Counter("agentic_iam_audit_events_total", "Total audit events", ["event_type", "severity"])
 
         # Application info
         self.app_info = Info("agentic_iam_app_info", "Application information")
 
         # Set application info
-        self.app_info.info(
-            {"version": "1.0.0", "environment": self.settings.environment, "python_version": "3.11"}
-        )
+        self.app_info.info({"version": "1.0.0", "environment": self.settings.environment, "python_version": "3.11"})
 
     def initialize_connections(self):
         """Initialize database and Redis connections for monitoring"""
         try:
             # Database connection
             if self.settings.database_url:
-                self.db_engine = create_engine(
-                    self.settings.database_url, pool_pre_ping=True, pool_recycle=3600
-                )
+                self.db_engine = create_engine(self.settings.database_url, pool_pre_ping=True, pool_recycle=3600)
 
             # Redis connection
             if self.settings.redis_url:
                 self.redis_client = redis.from_url(
-                    self.settings.redis_url,
-                    decode_responses=True,
-                    socket_connect_timeout=5,
-                    socket_timeout=5,
+                    self.settings.redis_url, decode_responses=True, socket_connect_timeout=5, socket_timeout=5
                 )
 
         except Exception as e:
@@ -252,9 +227,7 @@ class MetricsCollector:
                     # Database connections
                     with self.db_engine.connect() as conn:
                         # Get connection count
-                        result = conn.execute(
-                            text("SELECT count(*) FROM pg_stat_activity WHERE state = 'active'")
-                        )
+                        result = conn.execute(text("SELECT count(*) FROM pg_stat_activity WHERE state = 'active'"))
                         active_connections = result.scalar()
                         self.db_connections.set(active_connections)
 
@@ -319,9 +292,7 @@ class MetricsCollector:
             time_window = 60  # 1 minute window
 
             recent_requests = sum(
-                count
-                for timestamp, count in self.request_counts.items()
-                if current_time - timestamp < time_window
+                count for timestamp, count in self.request_counts.items() if current_time - timestamp < time_window
             )
 
             return recent_requests / time_window
@@ -344,15 +315,11 @@ class MetricsCollector:
             time_window = 300  # 5 minute window
 
             total_requests = sum(
-                count
-                for timestamp, count in self.request_counts.items()
-                if current_time - timestamp < time_window
+                count for timestamp, count in self.request_counts.items() if current_time - timestamp < time_window
             )
 
             total_errors = sum(
-                count
-                for timestamp, count in self.error_counts.items()
-                if current_time - timestamp < time_window
+                count for timestamp, count in self.error_counts.items() if current_time - timestamp < time_window
             )
 
             if total_requests > 0:
@@ -441,14 +408,8 @@ class MetricsCollector:
                     "memory_usage": current_metrics.memory_usage if current_metrics else 0,
                     "disk_usage": current_metrics.disk_usage if current_metrics else 0,
                 },
-                "database": {
-                    "connected": self.db_engine is not None,
-                    "connections": self._get_db_connections(),
-                },
-                "redis": {
-                    "connected": self.redis_client is not None,
-                    "connections": self._get_redis_connections(),
-                },
+                "database": {"connected": self.db_engine is not None, "connections": self._get_db_connections()},
+                "redis": {"connected": self.redis_client is not None, "connections": self._get_redis_connections()},
                 "metrics": {
                     "requests_per_second": self._calculate_request_rate(),
                     "avg_response_time": self._calculate_avg_response_time(),
@@ -475,11 +436,7 @@ class MetricsCollector:
 
         except Exception as e:
             self.logger.error(f"Health check error: {e}")
-            return {
-                "status": "unhealthy",
-                "error": str(e),
-                "timestamp": datetime.utcnow().isoformat(),
-            }
+            return {"status": "unhealthy", "error": str(e), "timestamp": datetime.utcnow().isoformat()}
 
     def get_performance_summary(self) -> Dict[str, Any]:
         """Get performance summary for the last hour"""
@@ -493,9 +450,7 @@ class MetricsCollector:
             # Calculate averages
             avg_cpu = sum(m.cpu_usage for m in recent_metrics) / len(recent_metrics)
             avg_memory = sum(m.memory_usage for m in recent_metrics) / len(recent_metrics)
-            avg_response_time = sum(m.response_time_avg for m in recent_metrics) / len(
-                recent_metrics
-            )
+            avg_response_time = sum(m.response_time_avg for m in recent_metrics) / len(recent_metrics)
 
             # Find peaks
             max_cpu = max(m.cpu_usage for m in recent_metrics)
@@ -530,9 +485,7 @@ class PerformanceTester:
         self.metrics = metrics_collector
         self.logger = logging.getLogger("performance_test")
 
-    async def benchmark_authentication(
-        self, iam_instance, iterations: int = 100
-    ) -> Dict[str, float]:
+    async def benchmark_authentication(self, iam_instance, iterations: int = 100) -> Dict[str, float]:
         """Benchmark authentication performance"""
         self.logger.info(f"Starting authentication benchmark with {iterations} iterations")
 

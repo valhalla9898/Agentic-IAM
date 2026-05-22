@@ -110,9 +110,7 @@ class AgenticIAM:
             if self.settings.enable_federated_auth:
                 if not self.federated_manager:
                     self.federated_manager = FederatedIdentityManager()
-                await self.federated_manager.initialize(
-                    enable_oidc=True, enable_saml=True, enable_didcomm=True
-                )
+                await self.federated_manager.initialize(enable_oidc=True, enable_saml=True, enable_didcomm=True)
 
             # Initialize transport security
             if not self.transport_manager:
@@ -204,17 +202,13 @@ class AgenticIAM:
             await self.credential_manager.store_agent_credentials(
                 agent_id=agent_identity.agent_id,
                 public_key=agent_identity.get_public_key(),
-                private_key=(
-                    agent_identity.get_private_key() if agent_identity.has_private_key() else None
-                ),
+                private_key=agent_identity.get_private_key() if agent_identity.has_private_key() else None,
                 metadata=agent_identity.get_metadata(),
             )
 
             # Set initial permissions
             if initial_permissions and self.authorization_manager:
-                await self.authorization_manager.assign_permissions(
-                    agent_identity.agent_id, initial_permissions
-                )
+                await self.authorization_manager.assign_permissions(agent_identity.agent_id, initial_permissions)
 
             # Log registration event
             if self.audit_manager:
@@ -251,9 +245,7 @@ class AgenticIAM:
 
         sessions_terminated = 0
         if self.session_manager:
-            sessions_terminated = self.session_manager.terminate_agent_sessions(
-                agent_id, "Agent deletion"
-            )
+            sessions_terminated = self.session_manager.terminate_agent_sessions(agent_id, "Agent deletion")
 
         registry_deleted = False
         if self.agent_registry:
@@ -306,11 +298,7 @@ class AgenticIAM:
                 from audit_compliance import AuditEventType
 
                 await self.audit_manager.log_event(
-                    event_type=(
-                        AuditEventType.AUTH_SUCCESS
-                        if result.success
-                        else AuditEventType.AUTH_FAILURE
-                    ),
+                    event_type=AuditEventType.AUTH_SUCCESS if result.success else AuditEventType.AUTH_FAILURE,
                     agent_id=agent_id,
                     details={
                         "method": method,
@@ -362,9 +350,7 @@ class AgenticIAM:
             self.logger.error(f"Authorization failed for {agent_id}: {str(e)}")
             raise
 
-    async def create_session(
-        self, agent_id: str, auth_result: "AuthenticationResult", **kwargs
-    ) -> str:
+    async def create_session(self, agent_id: str, auth_result: "AuthenticationResult", **kwargs) -> str:
         """Create a new session for an authenticated agent"""
         if not self.is_initialized or not self.session_manager:
             raise RuntimeError("Session management not initialized")

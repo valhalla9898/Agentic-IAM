@@ -56,22 +56,13 @@ AGENT_CRD = {
                                     "capabilities": {"type": "array", "items": {"type": "string"}},
                                     "endpoints": {"type": "array", "items": {"type": "string"}},
                                     "trustScore": {"type": "number"},
-                                    "complianceFrameworks": {
-                                        "type": "array",
-                                        "items": {"type": "string"},
-                                    },
-                                    "encryption": {
-                                        "type": "string",
-                                        "enum": ["standard", "quantum", "homomorphic"],
-                                    },
+                                    "complianceFrameworks": {"type": "array", "items": {"type": "string"}},
+                                    "encryption": {"type": "string", "enum": ["standard", "quantum", "homomorphic"]},
                                     "federation": {
                                         "type": "object",
                                         "properties": {
                                             "enabled": {"type": "boolean"},
-                                            "clouds": {
-                                                "type": "array",
-                                                "items": {"type": "string"},
-                                            },
+                                            "clouds": {"type": "array", "items": {"type": "string"}},
                                         },
                                     },
                                 },
@@ -263,12 +254,7 @@ def on_agent_create(spec, name, namespace, **kwargs):
         "trustScore": spec.get("trustScore", 0.5),
         "lastUpdated": str(asyncio.get_event_loop().time()),
         "conditions": [
-            {
-                "type": "Ready",
-                "status": "False",
-                "reason": "Initializing",
-                "message": "Agent is being initialized",
-            }
+            {"type": "Ready", "status": "False", "reason": "Initializing", "message": "Agent is being initialized"}
         ],
     }
 

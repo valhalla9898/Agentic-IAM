@@ -62,13 +62,11 @@ def run_playwright(target: str, output_dir: str) -> dict:
                             pwd_val = "wrongpassword"
                             username_sel.fill(user_val)
                             password_sel.fill(pwd_val)
-                            events.append(
-                                {"ts": now_ts(), "event": "login_attempt", "username": user_val}
-                            )
+                            events.append({"ts": now_ts(), "event": "login_attempt", "username": user_val})
                             # attempt to click submit if available
-                            submit = page.query_selector(
-                                'button[type="submit"]'
-                            ) or page.query_selector('input[type="submit"]')
+                            submit = page.query_selector('button[type="submit"]') or page.query_selector(
+                                'input[type="submit"]'
+                            )
                             if submit:
                                 submit.click()
                                 time.sleep(1)
@@ -147,9 +145,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--target", required=True, help="Target base URL")
     parser.add_argument("--output", default="./attack_results", help="Output directory")
-    parser.add_argument(
-        "--use-zap", action="store_true", help="Trigger OWASP ZAP baseline if available"
-    )
+    parser.add_argument("--use-zap", action="store_true", help="Trigger OWASP ZAP baseline if available")
     args = parser.parse_args()
 
     print("Starting attack simulation (authorized only)")

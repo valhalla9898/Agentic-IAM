@@ -62,15 +62,7 @@ def main() -> int:
         ),
         (
             "ai-cli-smoke-tests",
-            [
-                sys.executable,
-                "-m",
-                "pytest",
-                "tests/test_unit/test_ai_cli.py",
-                "-q",
-                "-o",
-                "addopts=",
-            ],
+            [sys.executable, "-m", "pytest", "tests/test_unit/test_ai_cli.py", "-q", "-o", "addopts="],
         ),
     ]
 

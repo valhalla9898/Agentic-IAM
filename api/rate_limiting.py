@@ -174,9 +174,7 @@ class RedisRateLimiter:
 
         return RateLimitResult(allowed=allowed, remaining=remaining, reset_time=reset_time)
 
-    def check_rate_limit(
-        self, identifier: str, endpoint: str, rate_limit: RateLimit
-    ) -> RateLimitResult:
+    def check_rate_limit(self, identifier: str, endpoint: str, rate_limit: RateLimit) -> RateLimitResult:
         """
         Check if request is within rate limit
         """
@@ -295,15 +293,9 @@ if __name__ == "__main__":
 
     # Define rate limits
     api_limits = {
-        "/api/agents": RateLimit(
-            requests=100, window_seconds=60, algorithm=RateLimitAlgorithm.SLIDING_WINDOW
-        ),
-        "/api/auth": RateLimit(
-            requests=10, window_seconds=60, algorithm=RateLimitAlgorithm.FIXED_WINDOW
-        ),
-        "default": RateLimit(
-            requests=50, window_seconds=60, algorithm=RateLimitAlgorithm.TOKEN_BUCKET
-        ),
+        "/api/agents": RateLimit(requests=100, window_seconds=60, algorithm=RateLimitAlgorithm.SLIDING_WINDOW),
+        "/api/auth": RateLimit(requests=10, window_seconds=60, algorithm=RateLimitAlgorithm.FIXED_WINDOW),
+        "default": RateLimit(requests=50, window_seconds=60, algorithm=RateLimitAlgorithm.TOKEN_BUCKET),
     }
 
     # Test rate limiting

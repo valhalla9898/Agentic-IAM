@@ -209,18 +209,12 @@ def query_kb(query: str, top_k: int = 3) -> List[Dict]:
                 from openai import OpenAI
 
                 client = OpenAI(api_key=api_key)
-                q_emb = (
-                    client.embeddings.create(model="text-embedding-3-small", input=[query])
-                    .data[0]
-                    .embedding
-                )
+                q_emb = client.embeddings.create(model="text-embedding-3-small", input=[query]).data[0].embedding
             except ImportError:
                 import openai
 
                 openai.api_key = api_key
-                q_emb = openai.Embedding.create(model="text-embedding-3-small", input=[query]).data[
-                    0
-                ]["embedding"]
+                q_emb = openai.Embedding.create(model="text-embedding-3-small", input=[query]).data[0]["embedding"]
             scored = []
             for item in index:
                 if "embedding" not in item:
@@ -229,12 +223,7 @@ def query_kb(query: str, top_k: int = 3) -> List[Dict]:
                 scored.append((score, item))
             scored.sort(key=lambda x: x[0], reverse=True)
             return [
-                {
-                    "score": s,
-                    "path": it["path"],
-                    "snippet": it["chunk"],
-                    "html": _highlight(it["chunk"], query),
-                }
+                {"score": s, "path": it["path"], "snippet": it["chunk"], "html": _highlight(it["chunk"], query)}
                 for s, it in scored[:top_k]
             ]
         except (OSError, RuntimeError, ValueError):
@@ -242,11 +231,7 @@ def query_kb(query: str, top_k: int = 3) -> List[Dict]:
             pass
 
     # Keyword fallback
-    q = [
-        token
-        for token in re.findall(r"[a-z0-9_]+", query.lower())
-        if len(token) >= 4 and token not in STOPWORDS
-    ]
+    q = [token for token in re.findall(r"[a-z0-9_]+", query.lower()) if len(token) >= 4 and token not in STOPWORDS]
     if not q:
         q = [token for token in re.findall(r"[a-z0-9_]+", query.lower()) if token not in STOPWORDS]
     scored = []
@@ -257,11 +242,6 @@ def query_kb(query: str, top_k: int = 3) -> List[Dict]:
             scored.append((cnt, item))
     scored.sort(key=lambda x: x[0], reverse=True)
     return [
-        {
-            "score": s,
-            "path": it["path"],
-            "snippet": it["chunk"],
-            "html": _highlight(it["chunk"], query),
-        }
+        {"score": s, "path": it["path"], "snippet": it["chunk"], "html": _highlight(it["chunk"], query)}
         for s, it in scored[:top_k]
     ]

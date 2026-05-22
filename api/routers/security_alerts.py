@@ -51,12 +51,7 @@ async def get_active_alerts(db: Session = Depends(get_db)):
     """Get all active (unresolved) security alerts."""
     from core.db import SecurityAlert
 
-    alerts = (
-        db.query(SecurityAlert)
-        .filter(~SecurityAlert.is_resolved)
-        .order_by(SecurityAlert.created_at.desc())
-        .all()
-    )
+    alerts = db.query(SecurityAlert).filter(~SecurityAlert.is_resolved).order_by(SecurityAlert.created_at.desc()).all()
     return alerts
 
 
@@ -103,9 +98,7 @@ async def resolve_alert(alert_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/attacks/{attack_id}/block-ip")
-async def block_attacker_ip(
-    attack_id: int, duration_seconds: Optional[int] = None, db: Session = Depends(get_db)
-):
+async def block_attacker_ip(attack_id: int, duration_seconds: Optional[int] = None, db: Session = Depends(get_db)):
     """Block the IP address of a detected attack."""
     from core.attack_detection import AttackLogger
     from core.db import AttackEvent

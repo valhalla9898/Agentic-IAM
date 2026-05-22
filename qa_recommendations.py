@@ -369,14 +369,7 @@ class QARecommendationEngine:
                 (user_id, question_id, interval, ease_factor, next_review, review_count)
                 VALUES (?, ?, ?, ?, ?, ?)
             """,
-                (
-                    user_id,
-                    question_id,
-                    interval,
-                    ease_factor,
-                    next_review.isoformat(),
-                    review_count + 1,
-                ),
+                (user_id, question_id, interval, ease_factor, next_review.isoformat(), review_count + 1),
             )
 
             conn.commit()
@@ -503,9 +496,7 @@ class QARecommendationEngine:
                 acted_upon = result[1] or 0
                 avg_confidence = result[2] or 0
 
-                effectiveness = (
-                    (acted_upon / total_recommendations * 100) if total_recommendations > 0 else 0
-                )
+                effectiveness = (acted_upon / total_recommendations * 100) if total_recommendations > 0 else 0
 
                 metrics = {
                     "total_recommendations": total_recommendations,

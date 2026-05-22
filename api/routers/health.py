@@ -16,11 +16,7 @@ async def health_check(iam: AgenticIAM = Depends(get_iam)) -> Dict[str, Any]:
     """Health check endpoint"""
     try:
         status = await iam.get_platform_status()
-        return {
-            "status": "healthy",
-            "timestamp": datetime.utcnow().isoformat(),
-            "platform_status": status,
-        }
+        return {"status": "healthy", "timestamp": datetime.utcnow().isoformat(), "platform_status": status}
     except Exception as e:
         return {"status": "unhealthy", "timestamp": datetime.utcnow().isoformat(), "error": str(e)}
 

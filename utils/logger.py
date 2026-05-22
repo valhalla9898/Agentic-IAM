@@ -37,9 +37,7 @@ def setup_logging(
         if enable_json:
             log_format = '{"timestamp": "%(asctime)s", "level": "%(levelname)s", "logger": "%(name)s", "message": "%(message)s", "module": "%(module)s", "function": "%(funcName)s", "line": %(lineno)d}'
         else:
-            log_format = (
-                "%(asctime)s - %(name)s - %(levelname)s - %(message)s [%(filename)s:%(lineno)d]"
-            )
+            log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s [%(filename)s:%(lineno)d]"
 
     # Create logs directory if using file logging
     if log_file:
@@ -100,9 +98,7 @@ def setup_logging(
     logger = logging.getLogger("agentic_iam")
 
     # Log startup message
-    logger.info(
-        f"Logging initialized - Level: {log_level}, Console: {enable_console}, File: {bool(log_file)}"
-    )
+    logger.info(f"Logging initialized - Level: {log_level}, Console: {enable_console}, File: {bool(log_file)}")
 
     return logger
 
@@ -296,9 +292,7 @@ def log_performance(func):
             return result
         except Exception as e:
             duration = time.time() - start_time
-            logger.error(
-                f"Function {func.__name__} failed after {duration:.3f}s with error: {str(e)}"
-            )
+            logger.error(f"Function {func.__name__} failed after {duration:.3f}s with error: {str(e)}")
             raise
 
     return wrapper
@@ -307,9 +301,7 @@ def log_performance(func):
 # Example usage
 if __name__ == "__main__":
     # Setup logging
-    logger = setup_logging(
-        log_level="DEBUG", log_file="./logs/agentic_iam.log", enable_console=True
-    )
+    logger = setup_logging(log_level="DEBUG", log_file="./logs/agentic_iam.log", enable_console=True)
 
     # Test logging
     logger.info("This is an info message")

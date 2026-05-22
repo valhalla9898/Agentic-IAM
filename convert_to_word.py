@@ -21,9 +21,7 @@ def create_technical_report_docx():
 
     # Title
     title = doc.add_paragraph()
-    title_run = title.add_run(
-        "AGENTIC-IAM: ENTERPRISE-GRADE IDENTITY AND ACCESS MANAGEMENT\nFOR AI AGENT ECOSYSTEMS"
-    )
+    title_run = title.add_run("AGENTIC-IAM: ENTERPRISE-GRADE IDENTITY AND ACCESS MANAGEMENT\nFOR AI AGENT ECOSYSTEMS")
     title_run.font.name = "Calibri"
     title_run.font.size = Pt(18)
     title_run.font.bold = True
@@ -119,9 +117,7 @@ def create_technical_report_docx():
     ]
 
     for fig_num, description, page in figures:
-        para = doc.add_paragraph(
-            f"{fig_num}: {description}{'.' * (50 - len(fig_num) - len(description))}{page}"
-        )
+        para = doc.add_paragraph(f"{fig_num}: {description}{'.' * (50 - len(fig_num) - len(description))}{page}")
 
     # Page break
     doc.add_page_break()
@@ -140,9 +136,7 @@ def create_technical_report_docx():
     ]
 
     for tbl_num, description, page in tables:
-        para = doc.add_paragraph(
-            f"{tbl_num}: {description}{'.' * (50 - len(tbl_num) - len(description))}{page}"
-        )
+        para = doc.add_paragraph(f"{tbl_num}: {description}{'.' * (50 - len(tbl_num) - len(description))}{page}")
 
     # Page break
     doc.add_page_break()

@@ -22,9 +22,7 @@ def test_register_agent_flow():
         try:
             page.goto("http://localhost:8501")
             login_as_admin(page)
-            page.locator('[data-testid="stSidebar"] p').filter(
-                has_text="Register Agent"
-            ).first.click()
+            page.locator('[data-testid="stSidebar"] p').filter(has_text="Register Agent").first.click()
             page.wait_for_selector("text=Register New Agent", timeout=10000)
             save_artifacts(page, "register_agent_success")
         except Exception as e:

@@ -10,28 +10,16 @@ CATEGORIES = {"security": " ", "ai": " ", "tech": " ", "management": " ", "gener
 
 QA_DATABASE = {
     "security": [
-        {
-            "q": "   authentication  authorization",
-            "a": "Authentication    ( )  Authorization    (  )",
-        },
+        {"q": "   authentication  authorization", "a": "Authentication    ( )  Authorization    (  )"},
         {"q": "    ", "a": " hashing algorithm  bcrypt  Argon2  salting    breach   brute force"},
         {"q": "    API keys   ", "a": "      git history    logs   "},
         {"q": "SSL/TLS  ", "a": "      handshake   keys    encrypted"},
         {"q": "CSRF attacks  ", "a": "  session    requests        CSRF tokens"},
-        {
-            "q": "XSS vulnerability  ",
-            "a": "Cross-Site Scripting - JavaScript code     form input    browser  users",
-        },
-        {
-            "q": "SQL Injection    ",
-            "a": " Prepared Statements  Parameterized Queries   user input    SQL queries",
-        },
+        {"q": "XSS vulnerability  ", "a": "Cross-Site Scripting - JavaScript code     form input    browser  users"},
+        {"q": "SQL Injection    ", "a": " Prepared Statements  Parameterized Queries   user input    SQL queries"},
         {"q": "   DDoS attack  ", "a": "   requests          "},
         {"q": "Two-Factor Authentication  ", "a": "   password          "},
-        {
-            "q": "Encryption vs Hashing - ",
-            "a": "Encryption       key  Hashing   way   original data",
-        },
+        {"q": "Encryption vs Hashing - ", "a": "Encryption       key  Hashing   way   original data"},
     ],
     "ai": [
         {
@@ -48,10 +36,7 @@ QA_DATABASE = {
         {"q": "Activation Functions  ", "a": " non-linearity  model       ReLU  Sigmoid"},
         {"q": "Backpropagation  ", "a": "  gradient  error     network    weights"},
         {"q": "AI bias  ", "a": "  training data   bias     model   bias "},
-        {
-            "q": "Natural Language Processing  ",
-            "a": "   numbers  vectors   model   tokenization  embeddings",
-        },
+        {"q": "Natural Language Processing  ", "a": "   numbers  vectors   model   tokenization  embeddings"},
         {"q": "What is Transfer Learning", "a": " model   data     data     "},
     ],
     "tech": [
@@ -61,10 +46,7 @@ QA_DATABASE = {
             "a": "Monolithic    application  Microservices  feature  service ",
         },
         {"q": "Docker    ", "a": "  app  dependencies  container        development  production"},
-        {
-            "q": "Kubernetes    Cloud",
-            "a": "  containers - auto-scaling load balancing updates   deployment operations",
-        },
+        {"q": "Kubernetes    Cloud", "a": "  containers - auto-scaling load balancing updates   deployment operations"},
         {"q": "Database Indexing  ", "a": "           row    "},
         {
             "q": "ACID properties  Databases  ",
@@ -79,14 +61,8 @@ QA_DATABASE = {
         {"q": "Continuous Integration/Deployment (CI/CD)  ", "a": "      production       "},
     ],
     "management": [
-        {
-            "q": "Agile methodology   Waterfall ",
-            "a": "Agile   sprints    Waterfall  phase     next",
-        },
-        {
-            "q": "Scrum      ",
-            "a": " Product Owner (   ) Scrum Master (    process) Development Team ()",
-        },
+        {"q": "Agile methodology   Waterfall ", "a": "Agile   sprints    Waterfall  phase     next"},
+        {"q": "Scrum      ", "a": " Product Owner (   ) Scrum Master (    process) Development Team ()"},
         {"q": "Sprint Planning meeting  ", "a": "   Product Owner    tasks     "},
         {"q": "Stand-up meetings     ", "a": "  (15 ) - "},
         {"q": "Retrospective meeting  ", "a": "  sprint - "},
@@ -97,19 +73,10 @@ QA_DATABASE = {
         {"q": "Code Review     Teams", "a": "        team     "},
     ],
     "general": [
-        {
-            "q": "Internet    ",
-            "a": "Computers     cables  routers  data  packets  packet  address  destination",
-        },
-        {
-            "q": "IP Address  MAC Address - ",
-            "a": "IP     internet  global MAC     local network (  )",
-        },
+        {"q": "Internet    ", "a": "Computers     cables  routers  data  packets  packet  address  destination"},
+        {"q": "IP Address  MAC Address - ", "a": "IP     internet  global MAC     local network (  )"},
         {"q": "TCP  UDP - ", "a": "TCP    (guaranteed delivery) UDP     packets ( video calls)"},
-        {
-            "q": "Domain Name Server (DNS)  ",
-            "a": "  names (google.com)  IP addresses (  server)   internet   ",
-        },
+        {"q": "Domain Name Server (DNS)  ", "a": "  names (google.com)  IP addresses (  server)   internet   "},
         {
             "q": "Web Server  Web Browser - ",
             "a": "Web Server   computer  hosted   website   files Web Browser     files ",
@@ -118,10 +85,7 @@ QA_DATABASE = {
         {"q": "Cookie  Session - ", "a": "Cookie   client () Session   server    website "},
         {"q": "Regular Expressions  ", "a": " pattern  text      strings     email format"},
         {"q": "Version Control Systems (Git)  ", "a": "          previous versions   "},
-        {
-            "q": "Open Source Software    ",
-            "a": " publicly available        cheaper  security (    code)",
-        },
+        {"q": "Open Source Software    ", "a": " publicly available        cheaper  security (    code)"},
     ],
 }
 
@@ -165,15 +129,9 @@ def generate_extended_qa():
                     "q": "Convolutional Neural Networks (CNN)   ",
                     "a": "   image recognition  computer vision    spatial relationships  ",
                 },
-                {
-                    "q": "Recurrent Neural Networks (RNN)  ",
-                    "a": "  memory - previous inputs   text  sequences",
-                },
+                {"q": "Recurrent Neural Networks (RNN)  ", "a": "  memory - previous inputs   text  sequences"},
                 {"q": "Attention Mechanism  ", "a": "  model    parts    input   parts   "},
-                {
-                    "q": "Transformer Models ( ChatGPT)  ",
-                    "a": " Attention Mechanism  Recurrent connections      ",
-                },
+                {"q": "Transformer Models ( ChatGPT)  ", "a": " Attention Mechanism  Recurrent connections      "},
                 {"q": "Word Embeddings  ", "a": "  words  vectors () words         space"},
                 {
                     "q": "Reinforcement Learning     Robotics",
@@ -183,24 +141,15 @@ def generate_extended_qa():
                     "q": "Generative Models   Discriminative Models ",
                     "a": "Generative   data  ( ) Discriminative   data ",
                 },
-                {
-                    "q": "Model Interpretability  ",
-                    "a": "   model - critical applications  medical  financial",
-                },
-                {
-                    "q": "Feature Engineering   ",
-                    "a": "  raw data   features - model   features,   raw data",
-                },
+                {"q": "Model Interpretability  ", "a": "   model - critical applications  medical  financial"},
+                {"q": "Feature Engineering   ", "a": "  raw data   features - model   features,   raw data"},
                 {"q": "Ensemble Methods  ", "a": "  models     (voting  averaging)   model "},
             ]
             variations.extend(ai_additions)
 
         elif category == "tech":
             tech_additions = [
-                {
-                    "q": "DevOps    ",
-                    "a": "Development + Operations - developers  operations      deployment  ",
-                },
+                {"q": "DevOps    ", "a": "Development + Operations - developers  operations      deployment  "},
                 {
                     "q": "Infrastructure as Code (IaC)  ",
                     "a": " infrastructure  code (Terraform, CloudFormation)       version control",
@@ -210,10 +159,7 @@ def generate_extended_qa():
                     "a": "   server - code    cloud provider's infrastructure",
                 },
                 {"q": "API Rate Limiting    ", "a": "  abuse - API  brute force     scraping"},
-                {
-                    "q": "Message Queues ( RabbitMQ)  ",
-                    "a": "    services - service  message service       synchronous",
-                },
+                {"q": "Message Queues ( RabbitMQ)  ", "a": "    services - service  message service       synchronous"},
                 {
                     "q": "Event-Driven Architecture  ",
                     "a": "    events  state changes   method calls  flexibility   scaling",
@@ -222,10 +168,7 @@ def generate_extended_qa():
                     "q": "Containerization vs Virtualization - ",
                     "a": "Virtualization  full OS   virtual machine Containerization   OS kernel - ",
                 },
-                {
-                    "q": "Blue-Green Deployment  ",
-                    "a": "    app - current (blue)   new version (green)    traffic ",
-                },
+                {"q": "Blue-Green Deployment  ", "a": "    app - current (blue)   new version (green)    traffic "},
                 {
                     "q": "API Gateway    Microservices",
                     "a": "  single entry point  clients - routing authentication rate limiting   services",
@@ -248,40 +191,25 @@ def generate_extended_qa():
                     "q": "Technical Leadership   Management ",
                     "a": "Technical    technical decisions  architecture Management     timelines",
                 },
-                {
-                    "q": "Knowledge Transfer     Teams",
-                    "a": "  information  person  others       project  ",
-                },
+                {"q": "Knowledge Transfer     Teams", "a": "  information  person  others       project  "},
                 {"q": "1-on-1 meetings    Managers", "a": "   employee    feedback  "},
-                {
-                    "q": "OKRs (Objectives and Key Results)  ",
-                    "a": "  objectives (  )  Key Results (     objective)",
-                },
+                {"q": "OKRs (Objectives and Key Results)  ", "a": "  objectives (  )  Key Results (     objective)"},
                 {"q": "Delegation    Leaders", "a": "  team      important stuff   work  "},
             ]
             variations.extend(management_additions)
 
         elif category == "general":
             general_additions = [
-                {
-                    "q": "Binary  Hexadecimal - Programming",
-                    "a": "Binary   computers  0  1  Hexadecimal       binary",
-                },
+                {"q": "Binary  Hexadecimal - Programming", "a": "Binary   computers  0  1  Hexadecimal       binary"},
                 {
                     "q": "ASCII  Unicode - ",
                     "a": "ASCII  7 bits  128 character Unicode  multiple bytes   characters (  )",
                 },
-                {
-                    "q": "Compiler  Interpreter - ",
-                    "a": "Compiler   code  whole    Interpreter  line by line  ",
-                },
+                {"q": "Compiler  Interpreter - ", "a": "Compiler   code  whole    Interpreter  line by line  "},
                 {"q": "Stack  Heap  Memory - ", "a": "Stack  LIFO - Heap - objects"},
                 {"q": "Garbage Collection   ", "a": "  memory   objects - Memory Leaks"},
                 {"q": "Polymorphism  OOP  ", "a": "  method       object type - code flexible"},
-                {
-                    "q": "Inheritance  OOP  ",
-                    "a": "   code - child class   attributes  methods   parent class",
-                },
+                {"q": "Inheritance  OOP  ", "a": "   code - child class   attributes  methods   parent class"},
                 {
                     "q": "Design Patterns  Programming - ",
                     "a": " solutions  common problems - Singleton, Factory, Observer - code reusable ",
@@ -311,14 +239,8 @@ def generate_extended_qa():
 
             original = secrets.choice(QA_DATABASE[category])
             # Create a variant by paraphrasing
-            variant_q = (
-                f"   {original['q'].split('')[0] if '' in original['q'] else original['q'][:30]}"
-            )
-            variant_a = (
-                f"  {original['a'][:50]}... {original['a'][50:]}"
-                if len(original["a"]) > 50
-                else original["a"]
-            )
+            variant_q = f"   {original['q'].split('')[0] if '' in original['q'] else original['q'][:30]}"
+            variant_a = f"  {original['a'][:50]}... {original['a'][50:]}" if len(original["a"]) > 50 else original["a"]
 
             extended_qa[category].append({"q": variant_q, "a": variant_a})
 
@@ -420,13 +342,7 @@ class QADatabase:
                     (question, answer, category, difficulty, rating)
                     VALUES (?, ?, ?, ?, ?)
                 """,
-                    (
-                        qa["q"],
-                        qa["a"],
-                        category,
-                        difficulty,
-                        3.5 + (secrets.randbelow(1500) / 1000.0),
-                    ),
+                    (qa["q"], qa["a"], category, difficulty, 3.5 + (secrets.randbelow(1500) / 1000.0)),
                 )
 
         conn.commit()
@@ -521,18 +437,10 @@ class QADatabase:
         results = cursor.fetchall()
         conn.close()
 
-        return [
-            {"id": r[0], "question": r[1], "answer": r[2], "category": r[3], "difficulty": r[4]}
-            for r in results
-        ]
+        return [{"id": r[0], "question": r[1], "answer": r[2], "category": r[3], "difficulty": r[4]} for r in results]
 
     def record_answer(
-        self,
-        user_id: str,
-        question_id: int,
-        user_answer: str,
-        is_correct: bool,
-        time_taken: int = 0,
+        self, user_id: str, question_id: int, user_answer: str, is_correct: bool, time_taken: int = 0
     ) -> bool:
         """Record user answer"""
         conn = sqlite3.connect(self.db_path)
@@ -644,10 +552,7 @@ class QADatabase:
         results = cursor.fetchall()
         conn.close()
 
-        return [
-            {"rank": r[5], "user_id": r[1], "username": r[2], "points": r[3], "accuracy": r[4]}
-            for r in results
-        ]
+        return [{"rank": r[5], "user_id": r[1], "username": r[2], "points": r[3], "accuracy": r[4]} for r in results]
 
     def get_total_questions(self) -> int:
         """Get total number of questions"""
@@ -674,7 +579,4 @@ class QADatabase:
         results = cursor.fetchall()
         conn.close()
 
-        return [
-            {"category": r[0], "arabic_name": CATEGORIES.get(r[0], r[0]), "count": r[1]}
-            for r in results
-        ]
+        return [{"category": r[0], "arabic_name": CATEGORIES.get(r[0], r[0]), "count": r[1]} for r in results]

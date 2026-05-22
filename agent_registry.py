@@ -47,9 +47,7 @@ class AgentRegistry:
     intentionally minimal and suitable for development/demo purposes.
     """
 
-    def __init__(
-        self, storage_path: str = "./data/agent_registry", enable_persistence: bool = True
-    ):
+    def __init__(self, storage_path: str = "./data/agent_registry", enable_persistence: bool = True):
         self.storage_dir = Path(storage_path)
         self.storage_dir.mkdir(parents=True, exist_ok=True)
         self.storage_file = self.storage_dir / "registry.json"
@@ -63,9 +61,7 @@ class AgentRegistry:
                 for aid, info in data.items():
                     entry = AgentEntry(
                         agent_id=aid,
-                        agent_identity=type(
-                            "Identity", (), {"metadata": info.get("metadata", {})}
-                        )(),
+                        agent_identity=type("Identity", (), {"metadata": info.get("metadata", {})})(),
                         endpoints=info.get("endpoints", []),
                         capabilities=info.get("capabilities", []),
                     )
@@ -78,9 +74,7 @@ class AgentRegistry:
                 # If registry file is corrupt or unreadable, start fresh and log debug
                 import logging
 
-                logging.getLogger(__name__).debug(
-                    "Failed to load agent registry, starting fresh: %s", e
-                )
+                logging.getLogger(__name__).debug("Failed to load agent registry, starting fresh: %s", e)
                 self._agents = {}
 
     def _persist(self):
@@ -94,17 +88,13 @@ class AgentRegistry:
 
                 alt = Path(tempfile.gettempdir()) / "agent_registry_fallback.json"
                 alt.write_text(json.dumps(data, indent=2), encoding="utf-8")
-                print(
-                    f"Warning: could not write registry to {self.storage_file}; wrote to {alt} instead: {e}"
-                )
+                print(f"Warning: could not write registry to {self.storage_file}; wrote to {alt} instead: {e}")
                 self.storage_file = alt
             except Exception as e:
                 # If even fallback fails, raise original error but log context
                 import logging
 
-                logging.getLogger(__name__).error(
-                    "Failed to persist agent registry and fallback write: %s", e
-                )
+                logging.getLogger(__name__).error("Failed to persist agent registry and fallback write: %s", e)
                 raise
 
     def register_agent(self, agent_identity, endpoints=None, capabilities=None):
@@ -112,12 +102,7 @@ class AgentRegistry:
         if aid in self._agents:
             return self._agents[aid].registration_id
 
-        entry = AgentEntry(
-            agent_id=aid,
-            agent_identity=agent_identity,
-            endpoints=endpoints,
-            capabilities=capabilities,
-        )
+        entry = AgentEntry(agent_id=aid, agent_identity=agent_identity, endpoints=endpoints, capabilities=capabilities)
         self._agents[aid] = entry
         self._persist()
         return entry.registration_id
