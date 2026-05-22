@@ -5,9 +5,8 @@ Following Sadat Academy for Management Sciences template standards
 """
 
 from docx import Document
-from docx.shared import Inches, Pt, RGBColor
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
-from docx.enum.style import WD_STYLE_TYPE
+from docx.shared import Pt, RGBColor
 
 
 def create_technical_report_docx():
@@ -16,15 +15,14 @@ def create_technical_report_docx():
     doc = Document()
 
     # Set default font
-    style = doc.styles['Normal']
-    style.font.name = 'Calibri'
+    style = doc.styles["Normal"]
+    style.font.name = "Calibri"
     style.font.size = Pt(11)
 
     # Title
     title = doc.add_paragraph()
-    title_run = title.add_run(
-        "AGENTIC-IAM: ENTERPRISE-GRADE IDENTITY AND ACCESS MANAGEMENT\nFOR AI AGENT ECOSYSTEMS")
-    title_run.font.name = 'Calibri'
+    title_run = title.add_run("AGENTIC-IAM: ENTERPRISE-GRADE IDENTITY AND ACCESS MANAGEMENT\nFOR AI AGENT ECOSYSTEMS")
+    title_run.font.name = "Calibri"
     title_run.font.size = Pt(18)
     title_run.font.bold = True
     title_run.font.color.rgb = RGBColor(0, 0, 0)
@@ -57,7 +55,7 @@ def create_technical_report_docx():
     doc.add_page_break()
 
     # Abstract
-    abstract_heading = doc.add_heading('ABSTRACT', level=1)
+    abstract_heading = doc.add_heading("ABSTRACT", level=1)
     abstract_text = """Agentic-IAM is an enterprise-grade Identity and Access Management (IAM) platform purpose-built for AI agent ecosystems. This technical report documents the complete architecture, implementation, security framework, and production readiness status of the platform as of April 2026. The system successfully integrates multi-protocol authentication, fine-grained authorization controls, comprehensive audit logging, and federated identity management into a cohesive platform supporting complex AI agent deployments. With 88 comprehensive tests passing (88% code coverage), zero critical security vulnerabilities, and demonstrated compliance with SOC2, HIPAA, and FedRAMP standards, the platform is verified production-ready for enterprise deployment."""
     doc.add_paragraph(abstract_text)
 
@@ -65,88 +63,86 @@ def create_technical_report_docx():
     doc.add_page_break()
 
     # Table of Contents
-    doc.add_heading('TABLE OF CONTENTS', level=1)
+    doc.add_heading("TABLE OF CONTENTS", level=1)
     toc_items = [
-        ('1. Introduction', '2'),
-        ('2. Background', '3'),
-        ('   2.1 Problem Statement', '3'),
-        ('   2.2 Project Objectives', '4'),
-        ('   2.3 Scope and Constraints', '5'),
-        ('3. System Analysis', '6'),
-        ('   3.1 System Architecture Overview', '6'),
-        ('   3.2 Core Components', '8'),
-        ('   3.3 Technology Stack', '12'),
-        ('   3.4 Data Model', '14'),
-        ('4. Methodology', '18'),
-        ('   4.1 Authentication Approach', '18'),
-        ('   4.2 Authorization Mechanism', '20'),
-        ('   4.3 Security Implementation', '22'),
-        ('   4.4 Testing Strategy', '25'),
-        ('5. Results and Discussion', '28'),
-        ('   5.1 Production Readiness Verification', '28'),
-        ('   5.2 Performance Metrics', '30'),
-        ('   5.3 Security Assessment', '32'),
-        ('   5.4 Testing Results', '35'),
-        ('6. Conclusions and Recommendations', '38'),
-        ('   6.1 Summary of Achievements', '38'),
-        ('   6.2 Production Deployment Status', '39'),
-        ('   6.3 Recommendations for Future Enhancements', '40'),
-        ('7. Acknowledgements', '42'),
-        ('8. References', '43'),
-        ('Appendix A: Compliance Framework Mapping', '45'),
-        ('Appendix B: Performance Test Results', '47'),
-        ('Appendix C: Deployment Checklist', '49'),
+        ("1. Introduction", "2"),
+        ("2. Background", "3"),
+        ("   2.1 Problem Statement", "3"),
+        ("   2.2 Project Objectives", "4"),
+        ("   2.3 Scope and Constraints", "5"),
+        ("3. System Analysis", "6"),
+        ("   3.1 System Architecture Overview", "6"),
+        ("   3.2 Core Components", "8"),
+        ("   3.3 Technology Stack", "12"),
+        ("   3.4 Data Model", "14"),
+        ("4. Methodology", "18"),
+        ("   4.1 Authentication Approach", "18"),
+        ("   4.2 Authorization Mechanism", "20"),
+        ("   4.3 Security Implementation", "22"),
+        ("   4.4 Testing Strategy", "25"),
+        ("5. Results and Discussion", "28"),
+        ("   5.1 Production Readiness Verification", "28"),
+        ("   5.2 Performance Metrics", "30"),
+        ("   5.3 Security Assessment", "32"),
+        ("   5.4 Testing Results", "35"),
+        ("6. Conclusions and Recommendations", "38"),
+        ("   6.1 Summary of Achievements", "38"),
+        ("   6.2 Production Deployment Status", "39"),
+        ("   6.3 Recommendations for Future Enhancements", "40"),
+        ("7. Acknowledgements", "42"),
+        ("8. References", "43"),
+        ("Appendix A: Compliance Framework Mapping", "45"),
+        ("Appendix B: Performance Test Results", "47"),
+        ("Appendix C: Deployment Checklist", "49"),
     ]
 
     for item, page in toc_items:
         toc_para = doc.add_paragraph(f"{item}{'.' * (60 - len(item) - len(page))}{page}")
-        toc_para.style = 'List Number'
+        toc_para.style = "List Number"
 
     # Page break
     doc.add_page_break()
 
     # List of Figures
-    doc.add_heading('LIST OF FIGURES', level=1)
+    doc.add_heading("LIST OF FIGURES", level=1)
     figures = [
-        ('Figure 3.1', 'System Architecture Overview - Layered Architecture Diagram', '7'),
-        ('Figure 3.2', 'Authentication Flow - mTLS Protocol Exchange', '9'),
-        ('Figure 3.3', 'Authorization Process - RBAC and ABAC Evaluation', '11'),
-        ('Figure 4.1', 'Credential Rotation Timeline - Automatic Rotation Process', '19'),
-        ('Figure 4.2', 'Session Lifecycle - Creation, Validation, and Expiration', '21'),
-        ('Figure 4.3', 'Security Defense-in-Depth Architecture', '23'),
-        ('Figure 5.1', 'Performance Comparison - Authentication Latency Metrics', '31'),
-        ('Figure 5.2', 'Test Coverage Distribution - Unit, Integration, E2E Tests', '36'),
+        ("Figure 3.1", "System Architecture Overview - Layered Architecture Diagram", "7"),
+        ("Figure 3.2", "Authentication Flow - mTLS Protocol Exchange", "9"),
+        ("Figure 3.3", "Authorization Process - RBAC and ABAC Evaluation", "11"),
+        ("Figure 4.1", "Credential Rotation Timeline - Automatic Rotation Process", "19"),
+        ("Figure 4.2", "Session Lifecycle - Creation, Validation, and Expiration", "21"),
+        ("Figure 4.3", "Security Defense-in-Depth Architecture", "23"),
+        ("Figure 5.1", "Performance Comparison - Authentication Latency Metrics", "31"),
+        ("Figure 5.2", "Test Coverage Distribution - Unit, Integration, E2E Tests", "36"),
     ]
 
     for fig_num, description, page in figures:
-        para = doc.add_paragraph(
-            f"{fig_num}: {description}{'.' * (50 - len(fig_num) - len(description))}{page}")
+        para = doc.add_paragraph(f"{fig_num}: {description}{'.' * (50 - len(fig_num) - len(description))}{page}")
 
     # Page break
     doc.add_page_break()
 
     # List of Tables
-    doc.add_heading('LIST OF TABLES', level=1)
+    doc.add_heading("LIST OF TABLES", level=1)
     tables = [
-        ('Table 1', 'Technology Stack Components', '12'),
-        ('Table 2', 'Core Entities and Attributes', '15'),
-        ('Table 3', 'Security Controls Mapping to Standards', '33'),
-        ('Table 4', 'Production Readiness Verification Checklist', '29'),
-        ('Table 5', 'Performance Metrics - Target vs Actual Results', '31'),
-        ('Table 6', 'Compliance Framework Support Status', '33'),
-        ('Table 7', 'Test Coverage Summary', '36'),
-        ('Table 8', 'System Requirements - Development to Production', '27'),
+        ("Table 1", "Technology Stack Components", "12"),
+        ("Table 2", "Core Entities and Attributes", "15"),
+        ("Table 3", "Security Controls Mapping to Standards", "33"),
+        ("Table 4", "Production Readiness Verification Checklist", "29"),
+        ("Table 5", "Performance Metrics - Target vs Actual Results", "31"),
+        ("Table 6", "Compliance Framework Support Status", "33"),
+        ("Table 7", "Test Coverage Summary", "36"),
+        ("Table 8", "System Requirements - Development to Production", "27"),
     ]
 
     for tbl_num, description, page in tables:
-        para = doc.add_paragraph(
-            f"{tbl_num}: {description}{'.' * (50 - len(tbl_num) - len(description))}{page}")
+        para = doc.add_paragraph(f"{tbl_num}: {description}{'.' * (50 - len(tbl_num) - len(description))}{page}")
 
     # Page break
     doc.add_page_break()
 
     # 1. INTRODUCTION
-    doc.add_heading('1. INTRODUCTION', level=1)
+    doc.add_heading("1. INTRODUCTION", level=1)
 
     intro_text = """Agentic-IAM is an enterprise-grade Identity and Access Management (IAM) platform specifically designed for AI agent ecosystems. Developed with enterprise security standards in mind, the platform provides comprehensive identity lifecycle management, multi-protocol authentication, fine-grained authorization controls, and sophisticated audit logging capabilities.
 
@@ -163,10 +159,10 @@ The platform represents a significant advancement in IAM technology specifically
 
 This report documents the verified production readiness status achieved through comprehensive testing (88 tests, 88% code coverage), security validation, and compliance verification against leading standards."""
 
-    for line in intro_text.split('\n'):
+    for line in intro_text.split("\n"):
         if line.strip():
-            if line.startswith('•'):
-                doc.add_paragraph(line.strip(), style='List Bullet')
+            if line.startswith("•"):
+                doc.add_paragraph(line.strip(), style="List Bullet")
             else:
                 doc.add_paragraph(line.strip())
 
@@ -174,10 +170,10 @@ This report documents the verified production readiness status achieved through 
     doc.add_page_break()
 
     # 2. BACKGROUND
-    doc.add_heading('2. BACKGROUND', level=1)
+    doc.add_heading("2. BACKGROUND", level=1)
 
     # 2.1 Problem Statement
-    doc.add_heading('2.1 Problem Statement', level=2)
+    doc.add_heading("2.1 Problem Statement", level=2)
     problem_text = """Traditional Identity and Access Management systems were engineered for managing human user identities in centralized corporate environments. The emergence of AI agents and autonomous systems in enterprise deployments reveals critical gaps in existing IAM approaches:
 
 Technical Challenges:
@@ -200,17 +196,17 @@ Business Impact:
 • Compliance violations due to inadequate audit capabilities
 • Inability to scale autonomous systems beyond pilot deployments"""
 
-    for line in problem_text.split('\n'):
+    for line in problem_text.split("\n"):
         if line.strip():
-            if line.endswith(':'):
-                doc.add_paragraph(line.strip(), style='Heading 3')
-            elif line.startswith('•'):
-                doc.add_paragraph(line.strip(), style='List Bullet')
+            if line.endswith(":"):
+                doc.add_paragraph(line.strip(), style="Heading 3")
+            elif line.startswith("•"):
+                doc.add_paragraph(line.strip(), style="List Bullet")
             else:
                 doc.add_paragraph(line.strip())
 
     # 2.2 Project Objectives
-    doc.add_heading('2.2 Project Objectives', level=2)
+    doc.add_heading("2.2 Project Objectives", level=2)
 
     objectives_heading = doc.add_paragraph()
     objectives_heading.add_run("Primary Objectives:").bold = True
@@ -221,10 +217,10 @@ Business Impact:
         "Provide automated identity lifecycle management",
         "Ensure compliance with SOC2, HIPAA, and FedRAMP standards",
         "Enable secure agent-to-agent communication",
-        "Minimize operational overhead through automation"
+        "Minimize operational overhead through automation",
     ]
     for obj in objectives:
-        doc.add_paragraph(obj, style='List Number')
+        doc.add_paragraph(obj, style="List Number")
 
     secondary_heading = doc.add_paragraph()
     secondary_heading.add_run("Secondary Objectives:").bold = True
@@ -234,13 +230,13 @@ Business Impact:
         "Enable seamless integration with existing identity providers (Okta, Azure AD)",
         "Support quantum-ready cryptography for future-proofing",
         "Deliver comprehensive audit logging for compliance and investigation",
-        "Support enterprise-grade high availability and disaster recovery"
+        "Support enterprise-grade high availability and disaster recovery",
     ]
     for obj in secondary_obj:
-        doc.add_paragraph(obj, style='List Number')
+        doc.add_paragraph(obj, style="List Number")
 
     # 2.3 Scope and Constraints
-    doc.add_heading('2.3 Scope and Constraints', level=2)
+    doc.add_heading("2.3 Scope and Constraints", level=2)
 
     in_scope_heading = doc.add_paragraph()
     in_scope_heading.add_run("In Scope:").bold = True
@@ -255,10 +251,10 @@ Business Impact:
         "Federated identity support",
         "REST API and GraphQL interfaces",
         "Streamlit administration dashboard",
-        "Security controls (encryption, key management)"
+        "Security controls (encryption, key management)",
     ]
     for item in scope_items:
-        doc.add_paragraph(item, style='List Bullet')
+        doc.add_paragraph(item, style="List Bullet")
 
     out_scope_heading = doc.add_paragraph()
     out_scope_heading.add_run("Out of Scope:").bold = True
@@ -269,10 +265,10 @@ Business Impact:
         "End-user authentication systems",
         "Hardware Security Module procurement",
         "Network architecture design",
-        "Database administration beyond application requirements"
+        "Database administration beyond application requirements",
     ]
     for item in out_scope:
-        doc.add_paragraph(item, style='List Bullet')
+        doc.add_paragraph(item, style="List Bullet")
 
     constraints_heading = doc.add_paragraph()
     constraints_heading.add_run("Design Constraints:").bold = True
@@ -281,13 +277,13 @@ Business Impact:
         "PostgreSQL 12+ for production deployments",
         "TLS 1.3 for all network communications",
         "AES-256 encryption for sensitive data",
-        "Compliance with NIST Cybersecurity Framework"
+        "Compliance with NIST Cybersecurity Framework",
     ]
     for item in constraints:
-        doc.add_paragraph(item, style='List Bullet')
+        doc.add_paragraph(item, style="List Bullet")
 
     # Save document
-    output_path = 'TECHNICAL_REPORT.docx'
+    output_path = "TECHNICAL_REPORT.docx"
     doc.save(output_path)
     print(f"✅ Technical report created: {output_path}")
     print(f"📄 File size: {__import__('os').path.getsize(output_path) / 1024:.1f} KB")
@@ -302,6 +298,7 @@ if __name__ == "__main__":
         print("❌ Error: python-docx not installed")
         print("📦 Installing python-docx...")
         import subprocess
-        subprocess.check_call(['pip', 'install', 'python-docx'])
+
+        subprocess.check_call(["pip", "install", "python-docx"])
         path = create_technical_report_docx()
         print(f"✅ Success! Report saved to: {path}")

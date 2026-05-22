@@ -58,6 +58,7 @@
 - Modern Streamlit UI
 - GraphQL API
 - REST API (FastAPI)
+- Incident forensics, alert center, and operational security views
 
 ---
 
@@ -749,6 +750,12 @@ python run_gui.py
 # Open: http://localhost:8501
 ```
 
+Option 1b - Desktop icon / one-click launcher:
+```bash
+Double-click START.vbs or run_dashboard.bat
+```
+This starts the local Streamlit app and opens the current dashboard layout.
+
 Option 2 - API:
 ```bash
 python api/main.py
@@ -872,6 +879,19 @@ async def manage_sessions():
     await iam.session_manager.end_session(session.session_id)
 ```
 
+### Dashboard Pages
+
+The dashboard now emphasizes distinct operational views:
+
+- **Health Center**: system and agent health at a glance
+- **Activity Timeline**: recent platform events in time order
+- **Incident Response**: quick incident review and containment actions
+- **Attack Forensics**: attack type, source IP, actor, response, and estimated impact
+- **Alert Center**: unresolved alerts and recent alert feed
+- **Integrations**: identity providers, webhooks, and SIEM connectivity
+- **Settings**: general, security, and advanced defaults
+- **Reports**: system, agent, security, and analytics reporting
+
 ---
 
 ## 🔒 Performance & Security
@@ -899,28 +919,44 @@ async def manage_sessions():
 ### Run Tests
 
 ```bash
-# All tests
-pytest tests/ -v
+# Full suite
+pytest -v
 
 # Unit tests
-pytest tests/unit -v
+pytest tests/test_unit -v
 
 # Integration tests
-pytest tests/integration -v
+pytest tests/test_integration -v
 
 # E2E tests
 pytest tests/e2e -v
 
 # With coverage
-pytest tests/ --cov=. --cov-report=html
+pytest -v --cov=. --cov-report=html
 ```
+
+### New: Security Incident Management (Incident Correlation, Playbooks, Executive Reports & PDF export)
+
+- **What it adds:** correlation of attacks into `cases`, persistent case management, automated response playbooks, recorded playbook runs, and an executive security report with JSON and downloadable PDF export directly from the Streamlit dashboard.
+
+- **How to use (local):**
+    1. Start the dashboard: `python run_gui.py` (opens http://localhost:8501)
+    2. Login with demo admin or your admin account (demo_admin / DemoAdmin@12345 for local demos).
+    3. Open **Security Operations**: view correlated Cases, select a case, click **Execute Recommended Playbook** or **Close Case**.
+    4. Open **Reports**: generate the Executive Security Report and click **Download Executive PDF** to get a compact PDF summary.
+
+- **Notes:** the PDF generator uses a minimal, dependency-free renderer included in the codebase and produces valid PDF bytes for browser download. For production-quality typography consider adding `reportlab` or `WeasyPrint` in CI.
+
+- **Tests:** run the full test suite before pushing or deploying: `pytest -q` (local run: 133 passed, 6 skipped at last verification).
+
+- **Repository:** these changes were committed and pushed to `origin` on branch `feat/infra-ci-alembic-casbin-celery`.
+
 
 ### Test Results
 ```
-✅ 88/88 tests passing
-✅ 6 E2E tests
-✅ 82 unit tests
-✅ 0 critical errors
+✅ Broad automated coverage across unit, integration, and E2E tests
+✅ Navigation and dashboard launcher flows verified locally
+✅ No syntax errors in the modified dashboard files
 ```
 
 **See [📊 Results & Impact](#-results--impact) for detailed performance and compliance metrics.**

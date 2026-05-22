@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: agentic-iam
+spec:
+  selector:
+    app: agentic-iam
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8000
+  type: ClusterIP

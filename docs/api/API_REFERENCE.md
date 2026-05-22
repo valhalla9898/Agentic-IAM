@@ -1,5 +1,7 @@
 # API Documentation Structure
 
+For enterprise customer integration guidance, see [Customer Integration Guide](CUSTOMER_INTEGRATION_GUIDE.md).
+
 ## Authentication Endpoints
 
 ### POST /api/v1/auth/authenticate

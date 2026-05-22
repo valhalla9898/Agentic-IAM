@@ -3,10 +3,12 @@ Agentic-IAM: Dashboard Utilities
 
 Helper functions for dashboard components including formatting, alerts, and data management.
 """
+
 import asyncio
-import streamlit as st
 from datetime import datetime
-from typing import Optional, Dict, Any, List, Tuple
+from typing import Any, Dict, List, Optional
+
+import streamlit as st
 
 
 def safe_async_run(coro):
@@ -28,11 +30,7 @@ def format_datetime(dt: Optional[datetime]) -> str:
 
 def get_status_color(status: str) -> str:
     """Get emoji color for status"""
-    colors = {
-        "active": "🟢",
-        "inactive": "🔴",
-        "suspended": "🟡"
-    }
+    colors = {"active": "🟢", "inactive": "🔴", "suspended": "🟡"}
     return colors.get(status, "⚪")
 
 
@@ -45,11 +43,7 @@ def format_trust_score(score: float) -> str:
 
 def create_metric_card(title: str, value: Any, delta: str = None) -> Dict:
     """Create metric card data"""
-    return {
-        "title": title,
-        "value": value,
-        "delta": delta
-    }
+    return {"title": title, "value": value, "delta": delta}
 
 
 def show_alert(message: str, alert_type: str = "info"):
@@ -76,12 +70,7 @@ def paginate_data(data: List[Dict], page_size: int, page_number: int) -> Dict:
     start_idx = (page_number - 1) * page_size
     end_idx = start_idx + page_size
 
-    return {
-        "data": data[start_idx:end_idx],
-        "page": page_number,
-        "total_pages": total_pages,
-        "total_items": len(data)
-    }
+    return {"data": data[start_idx:end_idx], "page": page_number, "total_pages": total_pages, "total_items": len(data)}
 
 
 def render_pagination(pagination: Dict, key: str = "page"):
@@ -95,9 +84,7 @@ def render_pagination(pagination: Dict, key: str = "page"):
                 st.rerun()
 
     with col2:
-        st.markdown(
-            f"**Page {pagination['page']} of {pagination['total_pages']}**",
-            unsafe_allow_html=True)
+        st.markdown(f"**Page {pagination['page']} of {pagination['total_pages']}**", unsafe_allow_html=True)
 
     with col3:
         if pagination["page"] < pagination["total_pages"]:

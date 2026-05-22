@@ -3,17 +3,16 @@ Performance and Load Testing for Agentic-IAM
 
 Run various performance tests to measure throughput, latency, and scalability.
 """
-from authentication import AuthenticationManager
-from agent_registry import AgentRegistry
-from session_manager import SessionManager
+
+import asyncio
+import statistics
+import sys
+import time
+from pathlib import Path
+from typing import Dict, List
+
 from config.settings import Settings
 from core.agentic_iam import AgenticIAM
-import asyncio
-import time
-import statistics
-from typing import List, Dict, Any
-import sys
-from pathlib import Path
 
 # Add project to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -44,7 +43,7 @@ class PerformanceTester:
                 agent_id=agent_id,
                 agent_type="test_agent",
                 description=f"Performance test agent {i}",
-                metadata={"iteration": i}
+                metadata={"iteration": i},
             )
 
             elapsed = time.time() - start
@@ -67,9 +66,7 @@ class PerformanceTester:
 
         # Create test agent
         agent = iam.agent_registry.register_agent(
-            agent_id="agent:perf_test_auth",
-            agent_type="test_agent",
-            description="Performance test agent"
+            agent_id="agent:perf_test_auth", agent_type="test_agent", description="Performance test agent"
         )
 
         start_time = time.time()
@@ -77,11 +74,7 @@ class PerformanceTester:
         for i in range(num_requests):
             start = time.time()
 
-            session_id = iam.session_manager.create_session(
-                agent_id=agent.agent_id,
-                trust_level=0.9,
-                auth_method="jwt"
-            )
+            session_id = iam.session_manager.create_session(agent_id=agent.agent_id, trust_level=0.9, auth_method="jwt")
 
             elapsed = time.time() - start
             timings.append(elapsed)
@@ -104,9 +97,7 @@ class PerformanceTester:
 
         # Create test agent
         agent = iam.agent_registry.register_agent(
-            agent_id="agent:perf_test_sessions",
-            agent_type="test_agent",
-            description="Performance test agent"
+            agent_id="agent:perf_test_sessions", agent_type="test_agent", description="Performance test agent"
         )
 
         start_time = time.time()
@@ -115,11 +106,7 @@ class PerformanceTester:
         for i in range(num_sessions):
             start = time.time()
 
-            session_id = iam.session_manager.create_session(
-                agent_id=agent.agent_id,
-                trust_level=0.8,
-                auth_method="jwt"
-            )
+            session_id = iam.session_manager.create_session(agent_id=agent.agent_id, trust_level=0.8, auth_method="jwt")
             session_ids.append(session_id)
 
             elapsed = time.time() - start
@@ -160,9 +147,7 @@ class PerformanceTester:
         agent_ids = []
         for i in range(num_agents):
             agent = iam.agent_registry.register_agent(
-                agent_id=f"agent:perf_trust_{i}",
-                agent_type="test_agent",
-                description=f"Trust scoring test agent {i}"
+                agent_id=f"agent:perf_trust_{i}", agent_type="test_agent", description=f"Trust scoring test agent {i}"
             )
             agent_ids.append(agent.agent_id)
 
@@ -172,9 +157,7 @@ class PerformanceTester:
             start = time.time()
 
             # Calculate trust score (placeholder - actual implementation may vary)
-            events = iam.audit_manager.query_events(
-                agent_id=agent_id
-            ) if iam.audit_manager else []
+            events = iam.audit_manager.query_events(agent_id=agent_id) if iam.audit_manager else []
 
             elapsed = time.time() - start
             timings.append(elapsed)
@@ -184,15 +167,10 @@ class PerformanceTester:
 
         self._print_stats("Trust Scoring", timings, total_time, num_agents)
 
-    def _print_stats(
-            self,
-            operation: str,
-            timings: List[float],
-            total_time: float,
-            count: int) -> None:
+    def _print_stats(self, operation: str, timings: List[float], total_time: float, count: int) -> None:
         """Print performance statistics"""
         if not timings:
-            print(f"  ⚠️  No data collected")
+            print("  ⚠️  No data collected")
             return
 
         min_time = min(timings)
@@ -235,6 +213,7 @@ class PerformanceTester:
         except Exception as e:
             print(f"\n❌ Error during testing: {str(e)}")
             import traceback
+
             traceback.print_exc()
 
 

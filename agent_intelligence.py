@@ -5,14 +5,17 @@ an `IntelligenceEngine` class that integrates with the existing framework.
 This implementation uses a very small sklearn pipeline when available,
 and otherwise falls back to a deterministic scoring function.
 """
-from typing import Optional, Dict
+
 from datetime import datetime
+from typing import Dict, Optional
+
 try:
-    from sklearn.ensemble import RandomForestRegressor, IsolationForest
+    from sklearn.ensemble import IsolationForest, RandomForestRegressor
     from sklearn.pipeline import Pipeline
     from sklearn.preprocessing import StandardScaler
+
     SKLEARN_AVAILABLE = True
-except Exception:
+except ImportError:
     SKLEARN_AVAILABLE = False
 import functools
 
@@ -43,10 +46,9 @@ class IntelligenceEngine:
         self.anomaly_model = None
         if SKLEARN_AVAILABLE:
             # Minimal model — in production train on historical audit features
-            self.model = Pipeline([
-                ('scale', StandardScaler()),
-                ('rf', RandomForestRegressor(n_estimators=10, random_state=42))
-            ])
+            self.model = Pipeline(
+                [("scale", StandardScaler()), ("rf", RandomForestRegressor(n_estimators=10, random_state=42))]
+            )
             # Anomaly detection model
             self.anomaly_model = IsolationForest(contamination=0.1, random_state=42)
             # Models are untrained; will be used as placeholder unless trained dataset provided
@@ -68,6 +70,7 @@ class IntelligenceEngine:
         If a trained sklearn model exists it will be used; otherwise a deterministic
         heuristic produces a stable score.
         """
+
         # Heuristic fallback with caching for performance
         def _heuristic(aid: str) -> float:
             base = 0.65
@@ -76,7 +79,7 @@ class IntelligenceEngine:
 
         cached_heuristic = functools.lru_cache(maxsize=1024)(_heuristic)
         score = cached_heuristic(agent_id)
-        risk = 'low' if score > 0.75 else ('medium' if score > 0.4 else 'high')
+        risk = "low" if score > 0.75 else ("medium" if score > 0.4 else "high")
         return TrustScore(score, risk, confidence=0.7)
 
     async def detect_anomaly(self, features: Dict) -> bool:
@@ -91,11 +94,14 @@ class IntelligenceEngine:
             feature_vector = list(features.values())
             prediction = self.anomaly_model.predict([feature_vector])
             return prediction[0] == -1  # -1 indicates anomaly
-        except Exception:
+        except Exception as e:
+            import logging
+
+            logging.getLogger(__name__).debug("Anomaly detection failed: %s", e)
             return False
 
 
-__all__ = ['IntelligenceEngine', 'TrustScore']
+__all__ = ["IntelligenceEngine", "TrustScore"]
 
 
 class RiskLevel:
@@ -107,4 +113,4 @@ RiskLevel.LOW = RiskLevel("low")
 RiskLevel.MEDIUM = RiskLevel("medium")
 RiskLevel.HIGH = RiskLevel("high")
 
-__all__.extend(['RiskLevel'])
+__all__.extend(["RiskLevel"])

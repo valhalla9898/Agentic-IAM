@@ -7,9 +7,11 @@ Usage:
 
 The app expects the Agentic-IAM API running at http://127.0.0.1:8000 by default.
 """
-import streamlit as st
-import requests
+
 from urllib.parse import urljoin
+
+import requests
+import streamlit as st
 
 st.set_page_config(page_title="Scan Reports", layout="wide")
 
@@ -34,7 +36,7 @@ def fetch_alerts(base_url: str):
         r = requests.get(urljoin(base_url, "/alerts/list"), timeout=5)
         r.raise_for_status()
         return r.json().get("alerts", [])
-    except Exception as e:
+    except Exception:
         # Do not spam UI with errors for alerts
         return []
 
@@ -75,9 +77,8 @@ def main():
     if alerts:
         st.markdown("## Recent Alerts")
         for a in alerts[:10]:
-            st.warning(
-                f"{a.get('timestamp')} • {a.get('target')} • {a.get('severity').upper()} — {a.get('message')}")
-            for url in a.get('evidence_urls', []):
+            st.warning(f"{a.get('timestamp')} • {a.get('target')} • {a.get('severity').upper()} — {a.get('message')}")
+            for url in a.get("evidence_urls", []):
                 full = urljoin(api_base, url)
                 st.markdown(f"- Evidence: [{url}]({full})")
 
