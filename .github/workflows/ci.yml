@@ -2,6 +2,46 @@ name: CI
 
 on:
   push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-and-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install .[dev]
+
+      - name: Run formatters (check)
+        run: |
+          black --check .
+          isort --check-only .
+
+      - name: Run ruff (check)
+        run: ruff check . || true
+
+      - name: Run flake8
+        run: flake8 . --max-line-length=120
+
+      - name: Run tests
+        run: python -m pytest -q
+
+      - name: Run bandit
+        run: bandit -r api core dashboard utils -x venv || true
+name: CI
+
+on:
+  push:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]

@@ -77,7 +77,9 @@ def main():
     if alerts:
         st.markdown("## Recent Alerts")
         for a in alerts[:10]:
-            st.warning(f"{a.get('timestamp')} • {a.get('target')} • {a.get('severity').upper()} — {a.get('message')}")
+            st.warning(
+                f"{a.get('timestamp')} • {a.get('target')} • {a.get('severity').upper()} — {a.get('message')}"
+            )
             for url in a.get("evidence_urls", []):
                 full = urljoin(api_base, url)
                 st.markdown(f"- Evidence: [{url}]({full})")

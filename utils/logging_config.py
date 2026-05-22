@@ -107,7 +107,9 @@ def setup_logging(
         log_path = Path(log_file)
         log_path.parent.mkdir(parents=True, exist_ok=True)
 
-        file_handler = logging.handlers.RotatingFileHandler(log_file, maxBytes=max_file_size, backupCount=backup_count)
+        file_handler = logging.handlers.RotatingFileHandler(
+            log_file, maxBytes=max_file_size, backupCount=backup_count
+        )
         file_handler.setLevel(getattr(logging, log_level.upper()))
         file_handler.setFormatter(formatter)
         root_logger.addHandler(file_handler)

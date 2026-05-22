@@ -127,7 +127,9 @@ class AgentAnalytics:
                 "failed_events": failed,
                 "success_rate": (successful / len(recent_events) * 100) if recent_events else 0,
                 "event_types": event_types,
-                "most_common_event": max(event_types.items(), key=lambda x: x[1])[0] if event_types else "none",
+                "most_common_event": (
+                    max(event_types.items(), key=lambda x: x[1])[0] if event_types else "none"
+                ),
             }
         except Exception as e:
             logger.error(f"Error getting agent activity summary: {e}")
@@ -159,7 +161,9 @@ class AgentAnalytics:
                 "total_events": total,
                 "success_rate": success_rate,
                 "event_distribution": event_stats,
-                "most_active_event": max(event_stats.items(), key=lambda x: x[1])[0] if event_stats else "none",
+                "most_active_event": (
+                    max(event_stats.items(), key=lambda x: x[1])[0] if event_stats else "none"
+                ),
                 "timestamp": datetime.utcnow().isoformat(),
             }
         except Exception as e:
@@ -256,7 +260,8 @@ class ReportGenerator:
             audit_events = [
                 e
                 for e in events
-                if e.get("event_type") in ["user_login", "user_logout", "agent_created", "agent_deleted"]
+                if e.get("event_type")
+                in ["user_login", "user_logout", "agent_created", "agent_deleted"]
             ]
 
             return {
@@ -264,7 +269,9 @@ class ReportGenerator:
                 "audit_trail": {
                     "total_events": len(events),
                     "significant_events": len(audit_events),
-                    "user_actions": len([e for e in events if e.get("event_type").startswith("user_")]),
+                    "user_actions": len(
+                        [e for e in events if e.get("event_type").startswith("user_")]
+                    ),
                 },
                 "users_summary": {
                     "total_users": len(users),

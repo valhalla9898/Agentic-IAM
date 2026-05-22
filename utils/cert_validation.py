@@ -27,7 +27,9 @@ def validate_pem_certificate(pem_data: str, require_cn: bool = True) -> bool:
             if start != -1:
                 pem_candidate = pem_data[start:]
                 # Wrap as PEM
-                pem_data = "-----BEGIN CERTIFICATE-----\n" + pem_candidate + "\n-----END CERTIFICATE-----"
+                pem_data = (
+                    "-----BEGIN CERTIFICATE-----\n" + pem_candidate + "\n-----END CERTIFICATE-----"
+                )
 
         cert = x509.load_pem_x509_certificate(pem_data.encode("utf-8"), default_backend())
 

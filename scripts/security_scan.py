@@ -122,7 +122,9 @@ def scan_requirements(path: Path):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--output", "-o", help="Write JSON report to file", default="security_report.json")
+    ap.add_argument(
+        "--output", "-o", help="Write JSON report to file", default="security_report.json"
+    )
     args = ap.parse_args()
 
     report = {"scanned_files": 0, "findings": []}

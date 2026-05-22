@@ -35,7 +35,9 @@ class SecretManager:
 
         # Initialize backend
         if backend == "aws":
-            self.client = boto3.client("secretsmanager", region_name=kwargs.get("region", "us-west-2"))
+            self.client = boto3.client(
+                "secretsmanager", region_name=kwargs.get("region", "us-west-2")
+            )
         elif backend == "azure":
             vault_url = kwargs.get("vault_url")
             if not vault_url:
@@ -84,7 +86,9 @@ class SecretManager:
         try:
             if self.backend == "aws":
                 self.client.create_secret(
-                    Name=secret_name, SecretString=secret_value, Description=f"Agentic-IAM secret: {secret_name}"
+                    Name=secret_name,
+                    SecretString=secret_value,
+                    Description=f"Agentic-IAM secret: {secret_name}",
                 )
                 return True
 
@@ -192,11 +196,21 @@ class SecurityHardening:
 
         # Detect placeholder or sentinel defaults by common substrings and simple
         # entropy/length checks
-        if (not secret_key) or ("change-in-production" in secret_key) or secret_key.startswith("your-"):
+        if (
+            (not secret_key)
+            or ("change-in-production" in secret_key)
+            or secret_key.startswith("your-")
+        ):
             issues.append("Default or placeholder secret key in use - CRITICAL SECURITY RISK")
 
-        if (not encryption_key) or ("your-encryption-key" in encryption_key) or len(encryption_key) != 32:
-            issues.append("Encryption key is missing, a placeholder, or wrong length (must be 32 characters)")
+        if (
+            (not encryption_key)
+            or ("your-encryption-key" in encryption_key)
+            or len(encryption_key) != 32
+        ):
+            issues.append(
+                "Encryption key is missing, a placeholder, or wrong length (must be 32 characters)"
+            )
 
         if jwt_secret_key is None or (
             isinstance(jwt_secret_key, str)
@@ -217,7 +231,10 @@ class SecurityHardening:
             issues.append("Audit log integrity not enabled in production")
 
         # Check database URL security
-        if "password" in self.settings.database_url.lower() and not self.settings.database_url.startswith("postgresql"):
+        if (
+            "password" in self.settings.database_url.lower()
+            and not self.settings.database_url.startswith("postgresql")
+        ):
             issues.append("Database credentials in URL - consider using secrets")
 
         # Check CORS configuration
@@ -294,7 +311,9 @@ class SecurityHardening:
             from cryptography.x509.oid import NameOID
 
             # Generate private key
-            private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048, backend=default_backend())
+            private_key = rsa.generate_private_key(
+                public_exponent=65537, key_size=2048, backend=default_backend()
+            )
 
             # Generate certificate
             subject = issuer = x509.Name(
@@ -385,7 +404,13 @@ class SecurityMonitoring:
         """Check IP address reputation"""
         # In production, integrate with threat intelligence APIs
 
-        result = {"ip": ip_address, "is_suspicious": False, "threats": [], "country": None, "asn": None}
+        result = {
+            "ip": ip_address,
+            "is_suspicious": False,
+            "threats": [],
+            "country": None,
+            "asn": None,
+        }
 
         # Check against known suspicious IPs
         if ip_address in self.suspicious_ips:
@@ -459,7 +484,9 @@ class SecurityMonitoring:
         now = datetime.utcnow()
 
         # Calculate metrics
-        total_failed_attempts = sum(len(attempts) for attempts in self.failed_auth_attempts.values())
+        total_failed_attempts = sum(
+            len(attempts) for attempts in self.failed_auth_attempts.values()
+        )
         unique_suspicious_ips = len(self.suspicious_ips)
 
         # Top offending IPs
@@ -490,10 +517,14 @@ class SecurityMonitoring:
             recommendations.append("Consider implementing IP-based blocking for repeat offenders")
 
         if len(self.failed_auth_attempts) > 100:
-            recommendations.append("High number of failed authentication attempts - review authentication policies")
+            recommendations.append(
+                "High number of failed authentication attempts - review authentication policies"
+            )
 
         if len(self.rate_limit_violations) > 50:
-            recommendations.append("Consider lowering rate limits or implementing more aggressive throttling")
+            recommendations.append(
+                "Consider lowering rate limits or implementing more aggressive throttling"
+            )
 
         return recommendations
 
@@ -524,7 +555,10 @@ class ComplianceChecker:
             issues.append("Audit logging not enabled")
 
         # Data retention
-        if hasattr(self.settings, "audit_retention_days") and self.settings.audit_retention_days <= 365:
+        if (
+            hasattr(self.settings, "audit_retention_days")
+            and self.settings.audit_retention_days <= 365
+        ):
             compliance_score += 2
         else:
             issues.append("Data retention policy not configured or too long")

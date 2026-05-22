@@ -106,8 +106,14 @@ class AWSProvider(CloudProvider):
 
             return CloudIdentity(
                 provider="aws",
-                identity_id=identity["User"]["UserName"] if "User" in identity else identity["Arn"].split("/")[-1],
-                roles=self.get_roles(identity["User"]["UserName"] if "User" in identity else identity["Arn"]),
+                identity_id=(
+                    identity["User"]["UserName"]
+                    if "User" in identity
+                    else identity["Arn"].split("/")[-1]
+                ),
+                roles=self.get_roles(
+                    identity["User"]["UserName"] if "User" in identity else identity["Arn"]
+                ),
                 permissions=self.get_permissions(
                     identity["User"]["UserName"] if "User" in identity else identity["Arn"]
                 ),
@@ -136,8 +142,12 @@ class AWSProvider(CloudProvider):
             policies = client.list_attached_user_policies(UserName=identity_id)
             permissions = []
             for policy in policies["AttachedPolicies"]:
-                policy_doc = client.get_policy_version(PolicyArn=policy["PolicyArn"], VersionId="v1")
-                permissions.extend(self._extract_permissions(policy_doc["PolicyVersion"]["Document"]))
+                policy_doc = client.get_policy_version(
+                    PolicyArn=policy["PolicyArn"], VersionId="v1"
+                )
+                permissions.extend(
+                    self._extract_permissions(policy_doc["PolicyVersion"]["Document"])
+                )
             return permissions
         except Exception as e:
             logger.error(f"Failed to get AWS permissions: {e}")
@@ -292,7 +302,8 @@ class GCPProvider(CloudProvider):
 
             # Get service account info
             account_info = self._get_client().sign_blob(
-                name=f"projects/-/serviceAccounts/{credentials.service_account_email}", payload=b"test"
+                name=f"projects/-/serviceAccounts/{credentials.service_account_email}",
+                payload=b"test",
             )
 
             return CloudIdentity(
@@ -358,7 +369,9 @@ class GCPProvider(CloudProvider):
             )
 
             response = client.create_service_account(
-                name=f"projects/{self.project_id}", account_id=f"agentic-iam-{agent_id}", service_account=account
+                name=f"projects/{self.project_id}",
+                account_id=f"agentic-iam-{agent_id}",
+                service_account=account,
             )
 
             return response.email
@@ -378,7 +391,9 @@ class MultiCloudFederator:
         """Add a cloud provider"""
         self.providers[name] = provider
 
-    def authenticate_agent(self, agent_id: str, cloud_provider: str, credentials: Dict[str, Any]) -> CloudIdentity:
+    def authenticate_agent(
+        self, agent_id: str, cloud_provider: str, credentials: Dict[str, Any]
+    ) -> CloudIdentity:
         """Authenticate an agent with a specific cloud provider"""
         if cloud_provider not in self.providers:
             raise ValueError(f"Unknown cloud provider: {cloud_provider}")

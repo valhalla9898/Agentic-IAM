@@ -189,7 +189,9 @@ def build_event_fingerprint(payload: Dict[str, Any]) -> str:
     return hashlib.sha256(_safe_json(payload).encode("utf-8")).hexdigest()
 
 
-def enrich_security_state(state: Dict[str, Any], rules: Optional[Iterable[Dict[str, Any]]] = None) -> Dict[str, Any]:
+def enrich_security_state(
+    state: Dict[str, Any], rules: Optional[Iterable[Dict[str, Any]]] = None
+) -> Dict[str, Any]:
     """Add correlation IDs, threat intel, rule matches, and integrity data."""
     enriched = copy.deepcopy(state or {})
     incident_id = enriched.get("incident_id") or generate_correlation_id("incident")
@@ -198,7 +200,9 @@ def enrich_security_state(state: Dict[str, Any], rules: Optional[Iterable[Dict[s
 
     attacks = enriched.get("attacks", []) if isinstance(enriched.get("attacks", []), list) else []
     alerts = enriched.get("active", []) if isinstance(enriched.get("active", []), list) else []
-    blocked_ips = enriched.get("blocked_ips", []) if isinstance(enriched.get("blocked_ips", []), list) else []
+    blocked_ips = (
+        enriched.get("blocked_ips", []) if isinstance(enriched.get("blocked_ips", []), list) else []
+    )
 
     for index, attack in enumerate(attacks, start=1):
         metadata = attack.get("metadata") if isinstance(attack.get("metadata"), dict) else {}
@@ -212,7 +216,11 @@ def enrich_security_state(state: Dict[str, Any], rules: Optional[Iterable[Dict[s
         attack["matched_rules"] = evaluate_security_rules(attack, rules)
         attack["recommended_actions"] = list(
             dict.fromkeys(
-                [action for match in attack["matched_rules"] for action in [match.get("response_action", "monitor")]]
+                [
+                    action
+                    for match in attack["matched_rules"]
+                    for action in [match.get("response_action", "monitor")]
+                ]
                 + attack["threat_intel"].get("recommended_actions", [])
             )
         )
@@ -258,10 +266,16 @@ def enrich_security_state(state: Dict[str, Any], rules: Optional[Iterable[Dict[s
     enriched["blocked_ips"] = blocked_ips
 
     total_attacks = len(attacks)
-    blocked_count = sum(1 for attack in attacks if str(attack.get("status", "")).lower() == "blocked")
-    critical_count = sum(1 for attack in attacks if str(attack.get("severity", "")).lower() == "critical")
+    blocked_count = sum(
+        1 for attack in attacks if str(attack.get("status", "")).lower() == "blocked"
+    )
+    critical_count = sum(
+        1 for attack in attacks if str(attack.get("severity", "")).lower() == "critical"
+    )
     top_intel = max(
-        (attack.get("threat_intel", {}) for attack in attacks), key=lambda item: item.get("risk_score", 0), default={}
+        (attack.get("threat_intel", {}) for attack in attacks),
+        key=lambda item: item.get("risk_score", 0),
+        default={},
     )
     enriched["executive_summary"] = {
         "threat_level": "critical" if critical_count else "high" if blocked_count else "medium",
@@ -272,7 +286,11 @@ def enrich_security_state(state: Dict[str, Any], rules: Optional[Iterable[Dict[s
         "top_risk_score": top_intel.get("risk_score", 0),
         "top_reputation": top_intel.get("reputation", "unknown"),
         "recommended_actions": list(
-            dict.fromkeys([action for attack in attacks for action in attack.get("recommended_actions", [])][:6])
+            dict.fromkeys(
+                [action for attack in attacks for action in attack.get("recommended_actions", [])][
+                    :6
+                ]
+            )
         ),
     }
 
@@ -310,7 +328,9 @@ def enrich_security_state(state: Dict[str, Any], rules: Optional[Iterable[Dict[s
 
 
 def calculate_security_kpis(
-    attacks: Iterable[Dict[str, Any]], alerts: Iterable[Dict[str, Any]], blocked_ips: Iterable[Dict[str, Any]]
+    attacks: Iterable[Dict[str, Any]],
+    alerts: Iterable[Dict[str, Any]],
+    blocked_ips: Iterable[Dict[str, Any]],
 ) -> Dict[str, Any]:
     """Calculate response metrics used in the security views."""
     attacks_list = list(attacks or [])
@@ -335,8 +355,12 @@ def calculate_security_kpis(
             mttr_values.append(max(0.0, (block_time - detected_at).total_seconds() / 60.0))
 
     attack_count = len(attacks_list)
-    blocked_count = sum(1 for attack in attacks_list if str(attack.get("status", "")).lower() == "blocked")
-    critical_count = sum(1 for attack in attacks_list if str(attack.get("severity", "")).lower() == "critical")
+    blocked_count = sum(
+        1 for attack in attacks_list if str(attack.get("status", "")).lower() == "blocked"
+    )
+    critical_count = sum(
+        1 for attack in attacks_list if str(attack.get("severity", "")).lower() == "critical"
+    )
     active_alert_count = sum(1 for alert in alerts_list if not alert.get("is_resolved"))
 
     return {
@@ -347,18 +371,26 @@ def calculate_security_kpis(
         "blocked_count": blocked_count,
         "block_rate": round((blocked_count / attack_count) * 100, 1) if attack_count else 0.0,
         "false_positive_rate": (
-            round(max(0.0, (len(alerts_list) - blocked_count) / len(alerts_list) * 100), 1) if alerts_list else 0.0
+            round(max(0.0, (len(alerts_list) - blocked_count) / len(alerts_list) * 100), 1)
+            if alerts_list
+            else 0.0
         ),
         "mttd_minutes": round(sum(mttd_values) / len(mttd_values), 2) if mttd_values else 0.0,
         "mttr_minutes": round(sum(mttr_values) / len(mttr_values), 2) if mttr_values else 0.0,
         "first_detected_at": (
-            min((dt for dt in detected_datetimes if dt), default=None).isoformat() if any(detected_datetimes) else None
+            min((dt for dt in detected_datetimes if dt), default=None).isoformat()
+            if any(detected_datetimes)
+            else None
         ),
         "latest_alert_at": (
-            max((dt for dt in alert_datetimes if dt), default=None).isoformat() if any(alert_datetimes) else None
+            max((dt for dt in alert_datetimes if dt), default=None).isoformat()
+            if any(alert_datetimes)
+            else None
         ),
         "latest_block_at": (
-            max((dt for dt in blocked_datetimes if dt), default=None).isoformat() if any(blocked_datetimes) else None
+            max((dt for dt in blocked_datetimes if dt), default=None).isoformat()
+            if any(blocked_datetimes)
+            else None
         ),
     }
 

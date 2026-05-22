@@ -8,7 +8,9 @@ from utils.faq_engine import get_faq_engine
 def _call_openai(prompt: str, model: str = "gpt-3.5-turbo") -> str:
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
-        return f"OPENAI_API_KEY not set. Falling back to local assistant.\n\n{_local_helper(prompt)}"
+        return (
+            f"OPENAI_API_KEY not set. Falling back to local assistant.\n\n{_local_helper(prompt)}"
+        )
 
     try:
         from openai import OpenAI
@@ -89,7 +91,9 @@ def _local_helper(prompt: str) -> str:
         )
 
     # Permissions & Authorization
-    if any(keyword in p for keyword in ["permission", "role", "authorize", "access control", "rbac"]):
+    if any(
+        keyword in p for keyword in ["permission", "role", "authorize", "access control", "rbac"]
+    ):
         return (
             "🔑 **Permissions & Authorization**\n\n"
             "**Role-Based Access Control (RBAC):**\n\n"
@@ -120,7 +124,10 @@ def _local_helper(prompt: str) -> str:
         )
 
     # User Management
-    if any(keyword in p for keyword in ["user", "create user", "manage user", "delete user", "user admin"]):
+    if any(
+        keyword in p
+        for keyword in ["user", "create user", "manage user", "delete user", "user admin"]
+    ):
         return (
             "👥 **User Management**\n\n"
             "**Create New User:**\n"
@@ -149,7 +156,10 @@ def _local_helper(prompt: str) -> str:
         )
 
     # Security & Compliance
-    if any(keyword in p for keyword in ["security", "encrypt", "ssl", "tls", "certificate", "compliance"]):
+    if any(
+        keyword in p
+        for keyword in ["security", "encrypt", "ssl", "tls", "certificate", "compliance"]
+    ):
         return (
             "🔒 **Security Features**\n\n"
             "**Transport Security:**\n"
@@ -291,7 +301,9 @@ def show_ai_assistant():
                         st.session_state.faq_selected_option = None
 
                         if not answers:
-                            st.info("❌ No answers found. Try different keywords or check 'Browse Categories' tab.")
+                            st.info(
+                                "❌ No answers found. Try different keywords or check 'Browse Categories' tab."
+                            )
                         else:
                             st.success(f"✅ Found {len(answers)} answer options!")
                     except Exception as e:
@@ -322,7 +334,11 @@ def show_ai_assistant():
                             st.success("✅ Copied to clipboard (implementation needed)")
 
                     # Show preview
-                    preview = answer["answer"][:150] + "..." if len(answer["answer"]) > 150 else answer["answer"]
+                    preview = (
+                        answer["answer"][:150] + "..."
+                        if len(answer["answer"]) > 150
+                        else answer["answer"]
+                    )
                     st.markdown(f"> {preview}")
                     st.markdown("---")
 
@@ -379,7 +395,9 @@ def show_ai_assistant():
                             answers = item.get("answers", [])
                             if answers:
                                 for ans in answers[:2]:  # Show first 2 answers
-                                    with st.expander(f"Answer ({ans.get('difficulty', 'beginner').upper()})"):
+                                    with st.expander(
+                                        f"Answer ({ans.get('difficulty', 'beginner').upper()})"
+                                    ):
                                         st.markdown(ans.get("text", ""))
                             st.markdown("---")
                     else:

@@ -34,7 +34,8 @@ def _call_openai(prompt: str, model: str = "gpt-3.5-turbo") -> str:
     except Exception as exc:
         fallback = _local_helper(prompt)
         return (
-            f"OpenAI cloud request failed for model '{model}': {exc}\n\n" f"Falling back to local mode.\n\n{fallback}"
+            f"OpenAI cloud request failed for model '{model}': {exc}\n\n"
+            f"Falling back to local mode.\n\n{fallback}"
         )
 
 

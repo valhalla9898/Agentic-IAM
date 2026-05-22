@@ -20,7 +20,9 @@ def upgrade():
     op.create_table(
         "attack_events",
         sa.Column("id", sa.Integer, primary_key=True),
-        sa.Column("attack_type", sa.String, nullable=False),  # e.g. 'sql_injection', 'brute_force', 'rate_limit'
+        sa.Column(
+            "attack_type", sa.String, nullable=False
+        ),  # e.g. 'sql_injection', 'brute_force', 'rate_limit'
         sa.Column("source_ip", sa.String, nullable=False),
         sa.Column("target_endpoint", sa.String),
         sa.Column("payload", sa.Text),  # The malicious payload or request

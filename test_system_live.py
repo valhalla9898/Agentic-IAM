@@ -55,7 +55,9 @@ except Exception as e:
 # 4.
 print("\n✓  4:    ...")
 try:
-    points = QAUtilities.calculate_experience_points(correct=True, difficulty=3, time_spent=45, streak=5)
+    points = QAUtilities.calculate_experience_points(
+        correct=True, difficulty=3, time_spent=45, streak=5
+    )
     level = QAUtilities.categorize_performance(80)
     print(f"   ✅   (++streak): {points}")
     print(f"   ✅   (80% ): {level}")

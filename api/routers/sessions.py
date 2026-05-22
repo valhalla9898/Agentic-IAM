@@ -72,7 +72,8 @@ async def list_sessions(
     try:
         if not iam.session_manager:
             raise HTTPException(
-                status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Session management not initialized"
+                status_code=status.HTTP_501_NOT_IMPLEMENTED,
+                detail="Session management not initialized",
             )
 
         sessions = []
@@ -127,7 +128,8 @@ async def list_sessions(
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to list sessions: {str(e)}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to list sessions: {str(e)}",
         )
 
 
@@ -141,12 +143,15 @@ async def get_session(session_id: str, iam: AgenticIAM = Depends(get_iam)):
     try:
         if not iam.session_manager:
             raise HTTPException(
-                status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Session management not initialized"
+                status_code=status.HTTP_501_NOT_IMPLEMENTED,
+                detail="Session management not initialized",
             )
 
         session = iam.session_manager.get_session(session_id)
         if not session:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Session {session_id} not found")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail=f"Session {session_id} not found"
+            )
 
         return SessionInfo(
             session_id=session.session_id,
@@ -166,13 +171,16 @@ async def get_session(session_id: str, iam: AgenticIAM = Depends(get_iam)):
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to get session: {str(e)}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get session: {str(e)}",
         )
 
 
 @router.post("/", response_model=SessionInfo)
 async def create_session(
-    request: SessionCreateRequest, iam: AgenticIAM = Depends(get_iam), settings: Settings = Depends(get_settings)
+    request: SessionCreateRequest,
+    iam: AgenticIAM = Depends(get_iam),
+    settings: Settings = Depends(get_settings),
 ):
     """
     Create a new session
@@ -182,15 +190,21 @@ async def create_session(
     try:
         if not iam.session_manager:
             raise HTTPException(
-                status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Session management not initialized"
+                status_code=status.HTTP_501_NOT_IMPLEMENTED,
+                detail="Session management not initialized",
             )
 
         # Verify agent exists when registry can determine it.
         # In test mode with heavily mocked registries we allow session creation
         # to keep endpoint behavior deterministic.
         agent_entry = iam.agent_registry.get_agent(request.agent_id)
-        if agent_entry is None and getattr(getattr(iam, "settings", None), "environment", "") != "testing":
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Agent {request.agent_id} not found")
+        if (
+            agent_entry is None
+            and getattr(getattr(iam, "settings", None), "environment", "") != "testing"
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail=f"Agent {request.agent_id} not found"
+            )
 
         # Calculate session TTL
         session_ttl = request.ttl or settings.session_ttl
@@ -240,7 +254,8 @@ async def create_session(
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to create session: {str(e)}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create session: {str(e)}",
         )
 
 
@@ -256,14 +271,16 @@ async def refresh_session(
     try:
         if not iam.session_manager:
             raise HTTPException(
-                status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Session management not initialized"
+                status_code=status.HTTP_501_NOT_IMPLEMENTED,
+                detail="Session management not initialized",
             )
 
         # Refresh session
         success = iam.session_manager.refresh_session(session_id)
         if not success:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail=f"Session {session_id} not found or cannot be refreshed"
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Session {session_id} not found or cannot be refreshed",
             )
 
         # Get refreshed session
@@ -276,7 +293,10 @@ async def refresh_session(
             await iam.audit_manager.log_event(
                 event_type=AuditEventType.SESSION_REFRESHED,
                 agent_id=session.agent_id,
-                details={"session_id": session_id, "new_expires_at": session.expires_at.isoformat()},
+                details={
+                    "session_id": session_id,
+                    "new_expires_at": session.expires_at.isoformat(),
+                },
             )
 
         return SessionInfo(
@@ -297,12 +317,15 @@ async def refresh_session(
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to refresh session: {str(e)}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to refresh session: {str(e)}",
         )
 
 
 @router.put("/{session_id}/metadata", response_model=SessionInfo)
-async def update_session_metadata(session_id: str, request: SessionUpdateRequest, iam: AgenticIAM = Depends(get_iam)):
+async def update_session_metadata(
+    session_id: str, request: SessionUpdateRequest, iam: AgenticIAM = Depends(get_iam)
+):
     """
     Update session metadata
 
@@ -311,13 +334,16 @@ async def update_session_metadata(session_id: str, request: SessionUpdateRequest
     try:
         if not iam.session_manager:
             raise HTTPException(
-                status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Session management not initialized"
+                status_code=status.HTTP_501_NOT_IMPLEMENTED,
+                detail="Session management not initialized",
             )
 
         # Get current session
         session = iam.session_manager.get_session(session_id)
         if not session:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Session {session_id} not found")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail=f"Session {session_id} not found"
+            )
 
         # Update metadata
         session.metadata.update(request.metadata)
@@ -353,12 +379,15 @@ async def update_session_metadata(session_id: str, request: SessionUpdateRequest
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to update session metadata: {str(e)}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update session metadata: {str(e)}",
         )
 
 
 @router.delete("/{session_id}", response_model=SuccessResponse)
-async def terminate_session(session_id: str, reason: str = "manual_termination", iam: AgenticIAM = Depends(get_iam)):
+async def terminate_session(
+    session_id: str, reason: str = "manual_termination", iam: AgenticIAM = Depends(get_iam)
+):
     """
     Terminate a specific session
 
@@ -367,19 +396,23 @@ async def terminate_session(session_id: str, reason: str = "manual_termination",
     try:
         if not iam.session_manager:
             raise HTTPException(
-                status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Session management not initialized"
+                status_code=status.HTTP_501_NOT_IMPLEMENTED,
+                detail="Session management not initialized",
             )
 
         # Get session before termination
         session = iam.session_manager.get_session(session_id)
         if not session:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Session {session_id} not found")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail=f"Session {session_id} not found"
+            )
 
         # Terminate session
         success = iam.session_manager.terminate_session(session_id, reason)
         if not success:
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to terminate session {session_id}"
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to terminate session {session_id}",
             )
 
         # Log session termination
@@ -397,14 +430,16 @@ async def terminate_session(session_id: str, reason: str = "manual_termination",
             )
 
         return SuccessResponse(
-            message=f"Session {session_id} terminated successfully", data={"session_id": session_id, "reason": reason}
+            message=f"Session {session_id} terminated successfully",
+            data={"session_id": session_id, "reason": reason},
         )
 
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to terminate session: {str(e)}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to terminate session: {str(e)}",
         )
 
 
@@ -418,7 +453,8 @@ async def terminate_sessions(request: SessionTerminateRequest, iam: AgenticIAM =
     try:
         if not iam.session_manager:
             raise HTTPException(
-                status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Session management not initialized"
+                status_code=status.HTTP_501_NOT_IMPLEMENTED,
+                detail="Session management not initialized",
             )
 
         terminated_count = 0
@@ -436,12 +472,18 @@ async def terminate_sessions(request: SessionTerminateRequest, iam: AgenticIAM =
 
                         await iam.audit_manager.log_event(
                             event_type=AuditEventType.SESSION_TERMINATED,
-                            details={"session_id": session_id, "reason": request.reason, "batch_operation": True},
+                            details={
+                                "session_id": session_id,
+                                "reason": request.reason,
+                                "batch_operation": True,
+                            },
                         )
 
         elif request.agent_id:
             # Terminate all sessions for agent
-            terminated_count = iam.session_manager.terminate_agent_sessions(request.agent_id, request.reason)
+            terminated_count = iam.session_manager.terminate_agent_sessions(
+                request.agent_id, request.reason
+            )
 
             # Log agent session termination
             if iam.audit_manager:
@@ -450,12 +492,17 @@ async def terminate_sessions(request: SessionTerminateRequest, iam: AgenticIAM =
                 await iam.audit_manager.log_event(
                     event_type=AuditEventType.SESSION_TERMINATED,
                     agent_id=request.agent_id,
-                    details={"reason": request.reason, "terminated_count": terminated_count, "agent_operation": True},
+                    details={
+                        "reason": request.reason,
+                        "terminated_count": terminated_count,
+                        "agent_operation": True,
+                    },
                 )
 
         else:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Either session_ids or agent_id must be provided"
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Either session_ids or agent_id must be provided",
             )
 
         return SuccessResponse(
@@ -467,7 +514,8 @@ async def terminate_sessions(request: SessionTerminateRequest, iam: AgenticIAM =
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to terminate sessions: {str(e)}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to terminate sessions: {str(e)}",
         )
 
 
@@ -481,7 +529,8 @@ async def get_session_stats(iam: AgenticIAM = Depends(get_iam)):
     try:
         if not iam.session_manager:
             raise HTTPException(
-                status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Session management not initialized"
+                status_code=status.HTTP_501_NOT_IMPLEMENTED,
+                detail="Session management not initialized",
             )
 
         # Get all sessions
@@ -541,7 +590,8 @@ async def get_session_stats(iam: AgenticIAM = Depends(get_iam)):
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to get session statistics: {str(e)}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get session statistics: {str(e)}",
         )
 
 
@@ -555,7 +605,8 @@ async def cleanup_expired_sessions(iam: AgenticIAM = Depends(get_iam)):
     try:
         if not iam.session_manager:
             raise HTTPException(
-                status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Session management not initialized"
+                status_code=status.HTTP_501_NOT_IMPLEMENTED,
+                detail="Session management not initialized",
             )
 
         # Run cleanup
@@ -571,12 +622,14 @@ async def cleanup_expired_sessions(iam: AgenticIAM = Depends(get_iam)):
             )
 
         return SuccessResponse(
-            message=f"Cleaned up {cleaned_count} expired session(s)", data={"cleaned_count": cleaned_count}
+            message=f"Cleaned up {cleaned_count} expired session(s)",
+            data={"cleaned_count": cleaned_count},
         )
 
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to cleanup sessions: {str(e)}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to cleanup sessions: {str(e)}",
         )

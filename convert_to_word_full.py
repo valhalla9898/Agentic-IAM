@@ -45,7 +45,9 @@ def create_full_technical_report():
     # ====================== TITLE AND AUTHOR INFO ======================
 
     title = doc.add_paragraph()
-    title_run = title.add_run("AGENTIC-IAM: ENTERPRISE-GRADE IDENTITY AND ACCESS MANAGEMENT\nFOR AI AGENT ECOSYSTEMS")
+    title_run = title.add_run(
+        "AGENTIC-IAM: ENTERPRISE-GRADE IDENTITY AND ACCESS MANAGEMENT\nFOR AI AGENT ECOSYSTEMS"
+    )
     title_run.font.name = "Calibri"
     title_run.font.size = Pt(18)
     title_run.font.bold = True
@@ -215,10 +217,14 @@ With 88 comprehensive tests passing (88% code coverage), zero critical security 
         "Traditional Identity and Access Management systems were engineered for managing human user identities in centralized corporate environments. The emergence of AI agents and autonomous systems in enterprise deployments reveals critical gaps in existing IAM approaches:"
     )
 
-    doc.add_paragraph("Legacy systems assume human-controlled authentication patterns", style="List Bullet")
+    doc.add_paragraph(
+        "Legacy systems assume human-controlled authentication patterns", style="List Bullet"
+    )
     doc.add_paragraph("Lack of support for automated credential rotation", style="List Bullet")
     doc.add_paragraph("Insufficient resolution for audit trail requirements", style="List Bullet")
-    doc.add_paragraph("Limited capability for zero-trust architecture implementation", style="List Bullet")
+    doc.add_paragraph(
+        "Limited capability for zero-trust architecture implementation", style="List Bullet"
+    )
 
     doc.add_heading("2.2 Project Objectives", level=2)
     para = doc.add_paragraph()

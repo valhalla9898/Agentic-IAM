@@ -19,7 +19,11 @@ def generate_test_agents() -> List[Dict[str, Any]]:
             "status": "active",
             "description": "Natural Language Processing Agent for text analysis",
             "capabilities": ["text_analysis", "sentiment_analysis", "entity_extraction"],
-            "metadata": {"version": "1.0.0", "framework": "transformers", "model": "bert-base-uncased"},
+            "metadata": {
+                "version": "1.0.0",
+                "framework": "transformers",
+                "model": "bert-base-uncased",
+            },
         },
         {
             "agent_id": "agent_data_001",
@@ -46,7 +50,11 @@ def generate_test_agents() -> List[Dict[str, Any]]:
             "status": "active",
             "description": "Analyzes security threats and vulnerabilities",
             "capabilities": ["threat_detection", "vulnerability_scan", "anomaly_detection"],
-            "metadata": {"version": "3.0.0", "detection_engine": "ml-based", "threat_db_version": "2024-02"},
+            "metadata": {
+                "version": "3.0.0",
+                "detection_engine": "ml-based",
+                "threat_db_version": "2024-02",
+            },
         },
         {
             "agent_id": "agent_api_001",
@@ -55,7 +63,11 @@ def generate_test_agents() -> List[Dict[str, Any]]:
             "status": "active",
             "description": "Manages API requests and routing",
             "capabilities": ["request_routing", "rate_limiting", "request_validation"],
-            "metadata": {"version": "2.0.0", "protocols": ["http", "https", "grpc"], "max_requests": "10000/min"},
+            "metadata": {
+                "version": "2.0.0",
+                "protocols": ["http", "https", "grpc"],
+                "max_requests": "10000/min",
+            },
         },
         {
             "agent_id": "agent_ml_001",
@@ -82,7 +94,11 @@ def generate_test_agents() -> List[Dict[str, Any]]:
             "status": "active",
             "description": "Handles authentication and credential management",
             "capabilities": ["auth_verify", "token_generation", "mfa"],
-            "metadata": {"version": "2.5.0", "algorithms": ["jwt", "oauth2", "saml"], "token_ttl": "3600"},
+            "metadata": {
+                "version": "2.5.0",
+                "algorithms": ["jwt", "oauth2", "saml"],
+                "token_ttl": "3600",
+            },
         },
         {
             "agent_id": "agent_cache_001",
