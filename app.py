@@ -603,7 +603,9 @@ def _persist_security_demo_state(state: dict) -> dict:
                 db.set_system_setting("security_rules", DEFAULT_SECURITY_RULES)
                 db.set_system_setting("security_last_fingerprint", state.get("integrity_hash"))
             except Exception as e:
-                logging.getLogger(__name__).debug(
+                import logging as _logging
+
+                _logging.getLogger(__name__).debug(
                     "Suppressed exception while setting system setting: %s", e
                 )
 

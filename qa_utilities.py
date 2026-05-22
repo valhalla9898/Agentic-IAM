@@ -59,8 +59,8 @@ class QAUtilities:
         if answer_length > 40:
             score += 1
 
-        # Category-based default
-        category_difficulty = {"": 3, " ": 4, "": 3, "": 2, " ": 3, "": 2}
+        # Category-based default (placeholders removed to avoid duplicate keys)
+        category_difficulty = {}
 
         base_score = category_difficulty.get(category, 2)
         final_score = min((score + base_score) // 2, 5)
