@@ -1,4 +1,5 @@
 import os
+
 from playwright.sync_api import sync_playwright
 
 from tests.e2e.helpers import login_as_admin
@@ -21,12 +22,14 @@ def test_register_agent_flow():
         try:
             page.goto("http://localhost:8501")
             login_as_admin(page)
-            page.locator(
-                '[data-testid="stSidebar"] p').filter(has_text='Register Agent').first.click()
-            page.wait_for_selector('text=Register New Agent', timeout=10000)
+            page.locator('[data-testid="stSidebar"] p').filter(has_text="Register Agent").first.click()
+            page.wait_for_selector("text=Register New Agent", timeout=10000)
             save_artifacts(page, "register_agent_success")
-        except Exception:
+        except Exception as e:
             save_artifacts(page, "register_agent_failure")
+            import logging
+
+            logging.getLogger(__name__).debug("register_agent_flow failed: %s", e)
             raise
         finally:
             browser.close()

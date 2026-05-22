@@ -1,6 +1,4 @@
-import json
 from types import SimpleNamespace
-from pathlib import Path
 
 from agent_registry import AgentRegistry
 

@@ -1,13 +1,15 @@
 """
 Unit tests for core AgenticIAM class
 """
-import pytest
-import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
-from datetime import datetime, timedelta
 
-from core.agentic_iam import AgenticIAM
+import asyncio
+from datetime import datetime
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
 from config.settings import Settings
+from core.agentic_iam import AgenticIAM
 
 
 class TestAgenticIAM:
@@ -30,7 +32,7 @@ class TestAgenticIAM:
             credential_manager=MagicMock(),
             audit_manager=MagicMock(),
             compliance_manager=MagicMock(),
-            intelligence_engine=MagicMock()
+            intelligence_engine=MagicMock(),
         ):
             # Mock async initialize methods
             iam.authentication_manager.initialize = AsyncMock()
@@ -101,6 +103,7 @@ class TestAgenticIAM:
         iam.is_initialized = False
 
         from agent_identity import AgentIdentity
+
         agent = AgentIdentity.generate("agent:test")
 
         with pytest.raises(RuntimeError, match="IAM system not initialized"):
@@ -121,9 +124,7 @@ class TestAgenticIAM:
         assert result["registry_deleted"] is True
         assert result["sessions_terminated"] == 3
 
-        mock_iam.session_manager.terminate_agent_sessions.assert_called_once_with(
-            "agent:test-001", "Agent deletion"
-        )
+        mock_iam.session_manager.terminate_agent_sessions.assert_called_once_with("agent:test-001", "Agent deletion")
         mock_iam.agent_registry.delete_agent.assert_called_once_with("agent:test-001")
 
     @pytest.mark.unit
@@ -178,7 +179,7 @@ class TestAgenticIAM:
             agent_id="agent:test-001",
             credentials={"username": "test", "password": "pass"},
             method="jwt",
-            source_ip="127.0.0.1"
+            source_ip="127.0.0.1",
         )
 
         assert result.success is True
@@ -205,9 +206,7 @@ class TestAgenticIAM:
 
         # Test authentication
         result = await mock_iam.authenticate(
-            agent_id="agent:test-001",
-            credentials={"username": "test", "password": "wrong"},
-            method="jwt"
+            agent_id="agent:test-001", credentials={"username": "test", "password": "wrong"}, method="jwt"
         )
 
         assert result.success is False
@@ -235,7 +234,7 @@ class TestAgenticIAM:
             agent_id="agent:test-001",
             resource="data:user-profiles",
             action="read",
-            context={"department": "engineering"}
+            context={"department": "engineering"},
         )
 
         assert result is True
@@ -259,11 +258,7 @@ class TestAgenticIAM:
         mock_iam.audit_manager.log_event = AsyncMock()
 
         # Test authorization
-        result = await mock_iam.authorize(
-            agent_id="agent:test-001",
-            resource="system:admin",
-            action="write"
-        )
+        result = await mock_iam.authorize(agent_id="agent:test-001", resource="system:admin", action="write")
 
         assert result is False
 
@@ -286,9 +281,7 @@ class TestAgenticIAM:
 
         # Test session creation
         session_id = await mock_iam.create_session(
-            agent_id="agent:test-001",
-            auth_result=auth_result,
-            source_ip="127.0.0.1"
+            agent_id="agent:test-001", auth_result=auth_result, source_ip="127.0.0.1"
         )
 
         assert session_id == "session_001"
@@ -301,9 +294,7 @@ class TestAgenticIAM:
     @pytest.mark.asyncio
     async def test_calculate_trust_score(self, mock_iam, sample_trust_score):
         """Test trust score calculation"""
-        mock_iam.intelligence_engine.calculate_trust_score = AsyncMock(
-            return_value=sample_trust_score
-        )
+        mock_iam.intelligence_engine.calculate_trust_score = AsyncMock(return_value=sample_trust_score)
 
         # Test trust score calculation
         score = await mock_iam.calculate_trust_score("agent:test-001")
@@ -334,7 +325,7 @@ class TestAgenticIAM:
         mock_agents = [
             MagicMock(status=MagicMock(value="active")),
             MagicMock(status=MagicMock(value="inactive")),
-            MagicMock(status=MagicMock(value="active"))
+            MagicMock(status=MagicMock(value="active")),
         ]
 
         mock_iam.agent_registry.list_agents.return_value = mock_agents
@@ -363,21 +354,15 @@ class TestAgenticIAM:
         mock_agents = [
             MagicMock(agent_id="agent:001"),
             MagicMock(agent_id="agent:002"),
-            MagicMock(agent_id="agent:003")
+            MagicMock(agent_id="agent:003"),
         ]
 
         mock_iam.agent_registry.list_agents.return_value = mock_agents
 
         # Mock trust scores for different agents
-        trust_scores = [
-            MagicMock(overall_score=0.8),
-            MagicMock(overall_score=0.9),
-            MagicMock(overall_score=0.7)
-        ]
+        trust_scores = [MagicMock(overall_score=0.8), MagicMock(overall_score=0.9), MagicMock(overall_score=0.7)]
 
-        mock_iam.intelligence_engine.calculate_trust_score = AsyncMock(
-            side_effect=trust_scores
-        )
+        mock_iam.intelligence_engine.calculate_trust_score = AsyncMock(side_effect=trust_scores)
 
         # Test average calculation
         avg_score = await mock_iam._get_avg_trust_score()
@@ -396,28 +381,18 @@ class TestAgenticIAM:
 
         # Test that exception is propagated
         with pytest.raises(Exception, match="Authentication service unavailable"):
-            await mock_iam.authenticate(
-                agent_id="agent:test-001",
-                credentials={"username": "test"},
-                method="jwt"
-            )
+            await mock_iam.authenticate(agent_id="agent:test-001", credentials={"username": "test"}, method="jwt")
 
     @pytest.mark.unit
     @pytest.mark.asyncio
     async def test_error_handling_in_authorization(self, mock_iam):
         """Test error handling during authorization"""
         # Setup mock to raise exception
-        mock_iam.authorization_manager.authorize = AsyncMock(
-            side_effect=Exception("Authorization service unavailable")
-        )
+        mock_iam.authorization_manager.authorize = AsyncMock(side_effect=Exception("Authorization service unavailable"))
 
         # Test that exception is propagated
         with pytest.raises(Exception, match="Authorization service unavailable"):
-            await mock_iam.authorize(
-                agent_id="agent:test-001",
-                resource="test",
-                action="read"
-            )
+            await mock_iam.authorize(agent_id="agent:test-001", resource="test", action="read")
 
     @pytest.mark.unit
     def test_settings_integration(self, test_settings):
@@ -441,11 +416,7 @@ class TestAgenticIAM:
         # Test with missing audit manager
         mock_iam.audit_manager = None
         # Should not raise exception, just skip audit logging
-        await mock_iam.authenticate(
-            agent_id="agent:test",
-            credentials={},
-            method="jwt"
-        )
+        await mock_iam.authenticate(agent_id="agent:test", credentials={}, method="jwt")
 
     @pytest.mark.unit
     @pytest.mark.asyncio
@@ -461,7 +432,7 @@ class TestAgenticIAM:
             mock_iam.authenticate("agent:001", {}, "jwt"),
             mock_iam.authenticate("agent:002", {}, "jwt"),
             mock_iam.authorize("agent:001", "resource", "read"),
-            mock_iam.calculate_trust_score("agent:001")
+            mock_iam.calculate_trust_score("agent:001"),
         ]
 
         results = await asyncio.gather(*tasks)
@@ -508,11 +479,7 @@ class TestAgenticIAMLogging:
         mock_iam.audit_manager.log_event = AsyncMock()
 
         # Perform operation that should log
-        await mock_iam.authenticate(
-            agent_id="agent:test",
-            credentials={},
-            method="jwt"
-        )
+        await mock_iam.authenticate(agent_id="agent:test", credentials={}, method="jwt")
 
         # Verify audit logging
         mock_iam.audit_manager.log_event.assert_called()

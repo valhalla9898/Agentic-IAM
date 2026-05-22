@@ -1,0 +1,305 @@
+{
+  "errors": [],
+  "generated_at": "2026-05-20T22:37:30Z",
+  "metrics": {
+    ".\\agent_identity.py": {
+      "CONFIDENCE.HIGH": 0,
+      "CONFIDENCE.LOW": 0,
+      "CONFIDENCE.MEDIUM": 0,
+      "CONFIDENCE.UNDEFINED": 0,
+      "SEVERITY.HIGH": 0,
+      "SEVERITY.LOW": 0,
+      "SEVERITY.MEDIUM": 0,
+      "SEVERITY.UNDEFINED": 0,
+      "loc": 449,
+      "nosec": 0,
+      "skipped_tests": 0
+    },
+    ".\\api/main.py": {
+      "CONFIDENCE.HIGH": 0,
+      "CONFIDENCE.LOW": 0,
+      "CONFIDENCE.MEDIUM": 0,
+      "CONFIDENCE.UNDEFINED": 0,
+      "SEVERITY.HIGH": 0,
+      "SEVERITY.LOW": 0,
+      "SEVERITY.MEDIUM": 0,
+      "SEVERITY.UNDEFINED": 0,
+      "loc": 518,
+      "nosec": 0,
+      "skipped_tests": 0
+    },
+    ".\\app.py": {
+      "CONFIDENCE.HIGH": 7,
+      "CONFIDENCE.LOW": 0,
+      "CONFIDENCE.MEDIUM": 3,
+      "CONFIDENCE.UNDEFINED": 0,
+      "SEVERITY.HIGH": 0,
+      "SEVERITY.LOW": 10,
+      "SEVERITY.MEDIUM": 0,
+      "SEVERITY.UNDEFINED": 0,
+      "loc": 2892,
+      "nosec": 0,
+      "skipped_tests": 0
+    },
+    "_totals": {
+      "CONFIDENCE.HIGH": 7,
+      "CONFIDENCE.LOW": 0,
+      "CONFIDENCE.MEDIUM": 3,
+      "CONFIDENCE.UNDEFINED": 0,
+      "SEVERITY.HIGH": 0,
+      "SEVERITY.LOW": 10,
+      "SEVERITY.MEDIUM": 0,
+      "SEVERITY.UNDEFINED": 0,
+      "loc": 3859,
+      "nosec": 0,
+      "skipped_tests": 0
+    }
+  },
+  "results": [
+    {
+      "code": "488                     )\n489         except Exception:\n490             pass\n491 \n",
+      "col_offset": 8,
+      "end_col_offset": 16,
+      "filename": ".\\app.py",
+      "issue_confidence": "HIGH",
+      "issue_cwe": {
+        "id": 703,
+        "link": "https://cwe.mitre.org/data/definitions/703.html"
+      },
+      "issue_severity": "LOW",
+      "issue_text": "Try, Except, Pass detected.",
+      "line_number": 489,
+      "line_range": [
+        489,
+        490
+      ],
+      "more_info": "https://bandit.readthedocs.io/en/1.9.4/plugins/b110_try_except_pass.html",
+      "test_id": "B110",
+      "test_name": "try_except_pass"
+    },
+    {
+      "code": "560                 db.set_system_setting(\"security_last_fingerprint\", state.get(\"integrity_hash\"))\n561             except Exception:\n562                 pass\n563 \n",
+      "col_offset": 12,
+      "end_col_offset": 20,
+      "filename": ".\\app.py",
+      "issue_confidence": "HIGH",
+      "issue_cwe": {
+        "id": 703,
+        "link": "https://cwe.mitre.org/data/definitions/703.html"
+      },
+      "issue_severity": "LOW",
+      "issue_text": "Try, Except, Pass detected.",
+      "line_number": 561,
+      "line_range": [
+        561,
+        562
+      ],
+      "more_info": "https://bandit.readthedocs.io/en/1.9.4/plugins/b110_try_except_pass.html",
+      "test_id": "B110",
+      "test_name": "try_except_pass"
+    },
+    {
+      "code": "605                     )\n606                 except Exception:\n607                     pass\n608 \n",
+      "col_offset": 16,
+      "end_col_offset": 24,
+      "filename": ".\\app.py",
+      "issue_confidence": "HIGH",
+      "issue_cwe": {
+        "id": 703,
+        "link": "https://cwe.mitre.org/data/definitions/703.html"
+      },
+      "issue_severity": "LOW",
+      "issue_text": "Try, Except, Pass detected.",
+      "line_number": 606,
+      "line_range": [
+        606,
+        607
+      ],
+      "more_info": "https://bandit.readthedocs.io/en/1.9.4/plugins/b110_try_except_pass.html",
+      "test_id": "B110",
+      "test_name": "try_except_pass"
+    },
+    {
+      "code": "618                     )\n619                 except Exception:\n620                     pass\n621 \n",
+      "col_offset": 16,
+      "end_col_offset": 24,
+      "filename": ".\\app.py",
+      "issue_confidence": "HIGH",
+      "issue_cwe": {
+        "id": 703,
+        "link": "https://cwe.mitre.org/data/definitions/703.html"
+      },
+      "issue_severity": "LOW",
+      "issue_text": "Try, Except, Pass detected.",
+      "line_number": 619,
+      "line_range": [
+        619,
+        620
+      ],
+      "more_info": "https://bandit.readthedocs.io/en/1.9.4/plugins/b110_try_except_pass.html",
+      "test_id": "B110",
+      "test_name": "try_except_pass"
+    },
+    {
+      "code": "643             return rules\n644     except Exception:\n645         pass\n646     return DEFAULT_SECURITY_RULES\n",
+      "col_offset": 4,
+      "end_col_offset": 12,
+      "filename": ".\\app.py",
+      "issue_confidence": "HIGH",
+      "issue_cwe": {
+        "id": 703,
+        "link": "https://cwe.mitre.org/data/definitions/703.html"
+      },
+      "issue_severity": "LOW",
+      "issue_text": "Try, Except, Pass detected.",
+      "line_number": 644,
+      "line_range": [
+        644,
+        645
+      ],
+      "more_info": "https://bandit.readthedocs.io/en/1.9.4/plugins/b110_try_except_pass.html",
+      "test_id": "B110",
+      "test_name": "try_except_pass"
+    },
+    {
+      "code": "759         \"onboarding_admin_email\": settings.get(\"admin_email\", \"admin@company.local\"),\n760         \"onboarding_admin_password\": \"\",\n761         \"onboarding_confirm_password\": \"\",\n762     }\n763 \n764     for key, value in defaults.items():\n765         st.session_state.setdefault(key, value)\n766 \n767 \n768 def _load_demo_onboarding_values() -> None:\n769     demo_file = Path(__file__).parent / \"demo\" / \"valhalla_onboarding.json\"\n770     if demo_file.exists():\n771         with demo_file.open(\"r\", encoding=\"utf-8\") as handle:\n772             demo_values = json.load(handle)\n773     else:\n774         demo_values = {\n",
+      "col_offset": 8,
+      "end_col_offset": 35,
+      "filename": ".\\app.py",
+      "issue_confidence": "MEDIUM",
+      "issue_cwe": {
+        "id": 259,
+        "link": "https://cwe.mitre.org/data/definitions/259.html"
+      },
+      "issue_severity": "LOW",
+      "issue_text": "Possible hardcoded password: ''",
+      "line_number": 760,
+      "line_range": [
+        749,
+        750,
+        751,
+        752,
+        753,
+        754,
+        755,
+        756,
+        757,
+        758,
+        759,
+        760,
+        761,
+        762
+      ],
+      "more_info": "https://bandit.readthedocs.io/en/1.9.4/plugins/b105_hardcoded_password_string.html",
+      "test_id": "B105",
+      "test_name": "hardcoded_password_string"
+    },
+    {
+      "code": "760         \"onboarding_admin_password\": \"\",\n761         \"onboarding_confirm_password\": \"\",\n762     }\n763 \n764     for key, value in defaults.items():\n765         st.session_state.setdefault(key, value)\n766 \n767 \n768 def _load_demo_onboarding_values() -> None:\n769     demo_file = Path(__file__).parent / \"demo\" / \"valhalla_onboarding.json\"\n770     if demo_file.exists():\n771         with demo_file.open(\"r\", encoding=\"utf-8\") as handle:\n772             demo_values = json.load(handle)\n773     else:\n774         demo_values = {\n775             \"company_name\": \"Valhalla\",\n",
+      "col_offset": 8,
+      "end_col_offset": 37,
+      "filename": ".\\app.py",
+      "issue_confidence": "MEDIUM",
+      "issue_cwe": {
+        "id": 259,
+        "link": "https://cwe.mitre.org/data/definitions/259.html"
+      },
+      "issue_severity": "LOW",
+      "issue_text": "Possible hardcoded password: ''",
+      "line_number": 761,
+      "line_range": [
+        749,
+        750,
+        751,
+        752,
+        753,
+        754,
+        755,
+        756,
+        757,
+        758,
+        759,
+        760,
+        761,
+        762
+      ],
+      "more_info": "https://bandit.readthedocs.io/en/1.9.4/plugins/b105_hardcoded_password_string.html",
+      "test_id": "B105",
+      "test_name": "hardcoded_password_string"
+    },
+    {
+      "code": "784             \"admin_email\": \"admin@valhalla.local\",\n785             \"admin_password\": \"Valhalla@12345\",\n786         }\n787 \n788     st.session_state.onboarding_company_name = demo_values.get(\"company_name\", \"Valhalla\")\n789     st.session_state.onboarding_environment_name = demo_values.get(\n790         \"deployment_environment\", \"development\")\n791     st.session_state.onboarding_identity_provider = demo_values.get(\n792         \"identity_provider\", \"Local Accounts\")\n793     st.session_state.onboarding_app_url = demo_values.get(\"app_url\", \"\")\n794     st.session_state.onboarding_api_url = demo_values.get(\"api_url\", \"\")\n795     st.session_state.onboarding_database_type = demo_values.get(\"database_type\", \"SQLite\")\n796     st.session_state.onboarding_database_url = demo_values.get(\"database_url\", \"\")\n797     st.session_state.onboarding_enable_sso = bool(demo_values.get(\"enable_sso\", False))\n798     st.session_state.onboarding_admin_username = demo_values.get(\"admin_username\", \"admin\")\n",
+      "col_offset": 12,
+      "end_col_offset": 28,
+      "filename": ".\\app.py",
+      "issue_confidence": "MEDIUM",
+      "issue_cwe": {
+        "id": 259,
+        "link": "https://cwe.mitre.org/data/definitions/259.html"
+      },
+      "issue_severity": "LOW",
+      "issue_text": "Possible hardcoded password: 'Valhalla@12345'",
+      "line_number": 785,
+      "line_range": [
+        774,
+        775,
+        776,
+        777,
+        778,
+        779,
+        780,
+        781,
+        782,
+        783,
+        784,
+        785,
+        786
+      ],
+      "more_info": "https://bandit.readthedocs.io/en/1.9.4/plugins/b105_hardcoded_password_string.html",
+      "test_id": "B105",
+      "test_name": "hardcoded_password_string"
+    },
+    {
+      "code": "2574                         return value\n2575     except Exception:\n2576         pass\n2577 \n",
+      "col_offset": 4,
+      "end_col_offset": 12,
+      "filename": ".\\app.py",
+      "issue_confidence": "HIGH",
+      "issue_cwe": {
+        "id": 703,
+        "link": "https://cwe.mitre.org/data/definitions/703.html"
+      },
+      "issue_severity": "LOW",
+      "issue_text": "Try, Except, Pass detected.",
+      "line_number": 2575,
+      "line_range": [
+        2575,
+        2576
+      ],
+      "more_info": "https://bandit.readthedocs.io/en/1.9.4/plugins/b110_try_except_pass.html",
+      "test_id": "B110",
+      "test_name": "try_except_pass"
+    },
+    {
+      "code": "2700                             } for row in rows]\n2701             except Exception:\n2702                 pass\n2703 \n",
+      "col_offset": 12,
+      "end_col_offset": 20,
+      "filename": ".\\app.py",
+      "issue_confidence": "HIGH",
+      "issue_cwe": {
+        "id": 703,
+        "link": "https://cwe.mitre.org/data/definitions/703.html"
+      },
+      "issue_severity": "LOW",
+      "issue_text": "Try, Except, Pass detected.",
+      "line_number": 2701,
+      "line_range": [
+        2701,
+        2702
+      ],
+      "more_info": "https://bandit.readthedocs.io/en/1.9.4/plugins/b110_try_except_pass.html",
+      "test_id": "B110",
+      "test_name": "try_except_pass"
+    }
+  ]
+}

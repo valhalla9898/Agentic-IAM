@@ -13,19 +13,20 @@ as the backend store. Supports multiple algorithms and integrates with FastAPI.
 - Burst handling and gradual backoff
 """
 
-import redis
+import logging
 import time
-import json
-from typing import Dict, Optional, Tuple, Callable
 from dataclasses import dataclass
 from enum import Enum
-import logging
+from typing import Dict, Optional
+
+import redis
 
 logger = logging.getLogger(__name__)
 
 
 class RateLimitAlgorithm(Enum):
     """Rate limiting algorithms"""
+
     FIXED_WINDOW = "fixed_window"
     SLIDING_WINDOW = "sliding_window"
     TOKEN_BUCKET = "token_bucket"
@@ -35,6 +36,7 @@ class RateLimitAlgorithm(Enum):
 @dataclass
 class RateLimit:
     """Rate limit configuration"""
+
     requests: int
     window_seconds: int
     algorithm: RateLimitAlgorithm = RateLimitAlgorithm.FIXED_WINDOW
@@ -43,6 +45,7 @@ class RateLimit:
 @dataclass
 class RateLimitResult:
     """Result of rate limit check"""
+
     allowed: bool
     remaining: int
     reset_time: float
@@ -99,11 +102,7 @@ class RedisRateLimiter:
 
         reset_time = current_window + window
 
-        return RateLimitResult(
-            allowed=allowed,
-            remaining=remaining,
-            reset_time=reset_time
-        )
+        return RateLimitResult(allowed=allowed, remaining=remaining, reset_time=reset_time)
 
     def check_sliding_window(self, key: str, limit: int, window: int) -> RateLimitResult:
         """
@@ -132,11 +131,7 @@ class RedisRateLimiter:
         else:
             reset_time = now + window
 
-        return RateLimitResult(
-            allowed=allowed,
-            remaining=remaining,
-            reset_time=reset_time
-        )
+        return RateLimitResult(allowed=allowed, remaining=remaining, reset_time=reset_time)
 
     def check_token_bucket(self, key: str, capacity: int, refill_rate: float) -> RateLimitResult:
         """
@@ -177,14 +172,9 @@ class RedisRateLimiter:
         remaining = int(tokens)
         reset_time = now + (capacity - tokens) / refill_rate
 
-        return RateLimitResult(
-            allowed=allowed,
-            remaining=remaining,
-            reset_time=reset_time
-        )
+        return RateLimitResult(allowed=allowed, remaining=remaining, reset_time=reset_time)
 
-    def check_rate_limit(self, identifier: str, endpoint: str,
-                         rate_limit: RateLimit) -> RateLimitResult:
+    def check_rate_limit(self, identifier: str, endpoint: str, rate_limit: RateLimit) -> RateLimitResult:
         """
         Check if request is within rate limit
         """
@@ -212,6 +202,7 @@ class RedisRateLimiter:
             self.redis.delete(*keys)
             logger.info(f"Reset rate limits for {identifier}:{endpoint or 'all'}")
 
+
 # FastAPI Integration
 
 
@@ -230,7 +221,7 @@ class RateLimitMiddleware:
 
         # Get endpoint-specific limits
         endpoint = request.url.path
-        rate_limit = self.default_limits.get(endpoint, self.default_limits.get('default'))
+        rate_limit = self.default_limits.get(endpoint, self.default_limits.get("default"))
 
         if rate_limit:
             result = self.limiter.check_rate_limit(identifier, endpoint, rate_limit)
@@ -238,12 +229,13 @@ class RateLimitMiddleware:
             if not result.allowed:
                 # Return rate limit exceeded response
                 from fastapi import HTTPException
+
                 raise HTTPException(
                     status_code=429,
                     detail={
                         "error": "Rate limit exceeded",
-                        "retry_after": result.retry_after or (result.reset_time - time.time())
-                    }
+                        "retry_after": result.retry_after or (result.reset_time - time.time()),
+                    },
                 )
 
             # Add rate limit headers to response
@@ -263,6 +255,7 @@ class RateLimitMiddleware:
             return forwarded.split(",")[0].strip()
         return request.client.host
 
+
 # Dependency for FastAPI routes
 
 
@@ -270,6 +263,7 @@ def create_rate_limit_dependency(limiter: RedisRateLimiter, rate_limit: RateLimi
     """
     Create FastAPI dependency for rate limiting
     """
+
     async def rate_limit_dependency(request):
         identifier = request.client.host  # Or get from user/auth
         endpoint = request.url.path
@@ -278,10 +272,11 @@ def create_rate_limit_dependency(limiter: RedisRateLimiter, rate_limit: RateLimi
 
         if not result.allowed:
             from fastapi import HTTPException
+
             raise HTTPException(
                 status_code=429,
                 detail="Rate limit exceeded",
-                headers={"Retry-After": str(int(result.retry_after or 60))}
+                headers={"Retry-After": str(int(result.retry_after or 60))},
             )
 
         # Store result in request state for headers
@@ -300,7 +295,7 @@ if __name__ == "__main__":
     api_limits = {
         "/api/agents": RateLimit(requests=100, window_seconds=60, algorithm=RateLimitAlgorithm.SLIDING_WINDOW),
         "/api/auth": RateLimit(requests=10, window_seconds=60, algorithm=RateLimitAlgorithm.FIXED_WINDOW),
-        "default": RateLimit(requests=50, window_seconds=60, algorithm=RateLimitAlgorithm.TOKEN_BUCKET)
+        "default": RateLimit(requests=50, window_seconds=60, algorithm=RateLimitAlgorithm.TOKEN_BUCKET),
     }
 
     # Test rate limiting

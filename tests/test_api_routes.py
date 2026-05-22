@@ -1,5 +1,3 @@
-import asyncio
-
 import pytest
 
 from api import main as api_main

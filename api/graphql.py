@@ -1,6 +1,7 @@
-from ariadne import QueryType, SubscriptionType, make_executable_schema, gql
-from ariadne.asgi import GraphQL
 import asyncio
+
+from ariadne import QueryType, SubscriptionType, gql, make_executable_schema
+from ariadne.asgi import GraphQL
 
 # Basic GraphQL schema exposing agents and trust score
 type_defs = gql("""
@@ -40,12 +41,14 @@ def resolve_agents(_, info):
     agents = iam.agent_registry.list_agents()
     result = []
     for a in agents:
-        result.append({
-            "agent_id": a.agent_id,
-            "status": getattr(a.status, "value", "unknown"),
-            "registration_date": getattr(a, "registration_date", None),
-            "last_accessed": getattr(a, "last_accessed", None)
-        })
+        result.append(
+            {
+                "agent_id": a.agent_id,
+                "status": getattr(a.status, "value", "unknown"),
+                "registration_date": getattr(a, "registration_date", None),
+                "last_accessed": getattr(a, "last_accessed", None),
+            }
+        )
     return result
 
 
@@ -61,7 +64,7 @@ def resolve_agent(_, info, agent_id):
         "agent_id": a.agent_id,
         "status": getattr(a.status, "value", "unknown"),
         "registration_date": getattr(a, "registration_date", None),
-        "last_accessed": getattr(a, "last_accessed", None)
+        "last_accessed": getattr(a, "last_accessed", None),
     }
 
 
@@ -74,14 +77,17 @@ def resolve_trust_score(_, info, agent_id):
     loop = asyncio.get_event_loop()
     try:
         score = loop.run_until_complete(iam.calculate_trust_score(agent_id))
-    except Exception:
+    except Exception as e:
+        import logging
+
+        logging.getLogger(__name__).debug("Failed to calculate trust score for %s: %s", agent_id, e)
         score = None
     if not score:
         return None
     return {
         "overall_score": score.overall_score,
         "risk_level": getattr(score.risk_level, "value", "unknown"),
-        "confidence": getattr(score, "confidence", 0.0)
+        "confidence": getattr(score, "confidence", 0.0),
     }
 
 

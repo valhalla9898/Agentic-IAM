@@ -1,0 +1,238 @@
+{
+  "generated_at": "2026-05-20 21:57:29 UTC",
+  "incident_id": "incident-1023c929cc2b",
+  "attacks": [
+    {
+      "attack_type": "sql_injection",
+      "severity": "critical",
+      "status": "blocked",
+      "detected_at": "2026-05-20 21:57:29 UTC",
+      "source_ip": "203.0.113.77",
+      "target_endpoint": "/api/v1/auth/login",
+      "metadata": {
+        "username": "demo_operator",
+        "user": "unknown",
+        "vector": "login_form"
+      },
+      "correlation_id": "incident-1023c929cc2b-attack-1",
+      "threat_intel": {
+        "source_ip": "203.0.113.77",
+        "actor": "demo_operator",
+        "reputation": "lab-simulation",
+        "geo": "Reserved demo network",
+        "risk_score": 98,
+        "observables": {
+          "attack_type": "sql_injection",
+          "user_agent": "unknown",
+          "vector": "login_form"
+        },
+        "recommended_actions": [
+          "block_ip",
+          "rotate exposed credentials",
+          "review WAF policy"
+        ]
+      },
+      "matched_rules": [
+        {
+          "rule_key": "sql-injection-block",
+          "title": "Block SQL injection payloads",
+          "severity": "critical",
+          "response_action": "block_ip",
+          "threshold": 1
+        },
+        {
+          "rule_key": "unknown-actor-step-up",
+          "title": "Require step-up for unknown actors",
+          "severity": "medium",
+          "response_action": "require_mfa",
+          "threshold": 1
+        }
+      ],
+      "recommended_actions": [
+        "block_ip",
+        "require_mfa",
+        "rotate exposed credentials",
+        "review WAF policy"
+      ],
+      "event_hash": "fea4495fe10f0c29c24368deadd52cce8cdfc21c80a80c6288e03f8c6517002f"
+    },
+    {
+      "attack_type": "brute_force",
+      "severity": "high",
+      "status": "mitigated",
+      "detected_at": "2026-05-20 21:57:29 UTC",
+      "source_ip": "198.51.100.24",
+      "target_endpoint": "/api/v1/auth/login",
+      "metadata": {
+        "username": "unknown",
+        "attempts": 14,
+        "vector": "credential_stuffing"
+      },
+      "correlation_id": "incident-1023c929cc2b-attack-2",
+      "threat_intel": {
+        "source_ip": "198.51.100.24",
+        "actor": "unknown",
+        "reputation": "simulated-hostile",
+        "geo": "Reserved demo network",
+        "risk_score": 91,
+        "observables": {
+          "attack_type": "brute_force",
+          "user_agent": "unknown",
+          "vector": "credential_stuffing"
+        },
+        "recommended_actions": [
+          "rate_limit",
+          "require_mfa",
+          "watch for credential stuffing"
+        ]
+      },
+      "matched_rules": [
+        {
+          "rule_key": "credential-stuffing-rate-limit",
+          "title": "Rate limit credential stuffing",
+          "severity": "high",
+          "response_action": "rate_limit",
+          "threshold": 10
+        },
+        {
+          "rule_key": "unknown-actor-step-up",
+          "title": "Require step-up for unknown actors",
+          "severity": "medium",
+          "response_action": "require_mfa",
+          "threshold": 1
+        }
+      ],
+      "recommended_actions": [
+        "rate_limit",
+        "require_mfa",
+        "watch for credential stuffing"
+      ],
+      "event_hash": "cd8bde59b5b578d6f29f20da42d79541a8872cf8d7f06631722c28724d1f714b"
+    }
+  ],
+  "active": [
+    {
+      "severity": "critical",
+      "alert_type": "web_attack",
+      "title": "SQL injection attempt blocked",
+      "message": "WAF and application controls blocked a malicious login payload before session creation.",
+      "created_at": "2026-05-20 21:57:29 UTC",
+      "correlation_id": "incident-1023c929cc2b-alert-1",
+      "event_hash": "21d2e5fd5afa36d5d7375a9b316ca387102321e454c4e8c5db22d6c9bfcefca3"
+    },
+    {
+      "severity": "high",
+      "alert_type": "auth_attack",
+      "title": "Repeated login failures detected",
+      "message": "Rate limiter locked the source after repeated failures.",
+      "created_at": "2026-05-20 21:57:29 UTC",
+      "correlation_id": "incident-1023c929cc2b-alert-2",
+      "event_hash": "a27ffba87fd0e5ac7607c53a7e196cac186ab476f22db9f64b65c5fd29854406"
+    }
+  ],
+  "blocked_ips": [
+    {
+      "ip": "203.0.113.77",
+      "reason": "Auto-blocked after SQL injection pattern detection",
+      "blocked_at": "2026-05-20 21:57:29 UTC",
+      "correlation_id": "incident-1023c929cc2b-block-1",
+      "event_hash": "7d354e1927dfdb86e579456dccd89ecfcbbb3c1dcc78d678410c9b9d350539b9"
+    },
+    {
+      "ip": "198.51.100.24",
+      "reason": "Auto-blocked after credential stuffing threshold exceeded",
+      "blocked_at": "2026-05-20 21:57:29 UTC",
+      "correlation_id": "incident-1023c929cc2b-block-2",
+      "event_hash": "afb3203448a01716397793cbbe6461896930dd52e1326d476af48ba7c9b4f043"
+    }
+  ],
+  "correlation_id": "corr-de069f894dc8",
+  "executive_summary": {
+    "threat_level": "critical",
+    "attack_count": 2,
+    "blocked_count": 1,
+    "alert_count": 2,
+    "block_rate": 50.0,
+    "top_risk_score": 98,
+    "top_reputation": "lab-simulation",
+    "recommended_actions": [
+      "block_ip",
+      "require_mfa",
+      "rotate exposed credentials",
+      "review WAF policy",
+      "rate_limit"
+    ]
+  },
+  "integrity_hash": "6e8bb91abd544299a0ccd12349b0f003c90da8846e254ee292d89272f7844c87",
+  "cases": [
+    {
+      "case_id": "case-09b6a89f4621",
+      "case_key": "203.0.113.77:sql_injection",
+      "title": "Sql Injection from 203.0.113.77",
+      "status": "contained",
+      "severity": "critical",
+      "summary": "0 attack event(s), 0 alert(s), 1 blocked source(s).",
+      "source_ips": [
+        "203.0.113.77"
+      ],
+      "attack_types": [
+        "sql_injection"
+      ],
+      "attack_ids": [],
+      "alert_ids": [],
+      "blocked_ips": [
+        "203.0.113.77"
+      ],
+      "correlation_ids": [
+        "incident-1023c929cc2b-attack-1"
+      ],
+      "attack_count": 0,
+      "alert_count": 0,
+      "blocked_count": 1,
+      "first_seen": "2026-05-20 21:57:29 UTC",
+      "last_seen": "2026-05-20 21:57:29 UTC",
+      "playbook_name": "sqli-containment",
+      "recommended_actions": [
+        "block_ip",
+        "require_mfa",
+        "review WAF policy",
+        "rotate exposed credentials"
+      ],
+      "integrity_hash": "7635bde006aec9769a58e5ddcb20d60b8d4e7b8cd76b636de7b4bb803eb57a86"
+    },
+    {
+      "case_id": "case-0bb28e17910e",
+      "case_key": "198.51.100.24:brute_force",
+      "title": "Brute Force from 198.51.100.24",
+      "status": "contained",
+      "severity": "high",
+      "summary": "0 attack event(s), 0 alert(s), 1 blocked source(s).",
+      "source_ips": [
+        "198.51.100.24"
+      ],
+      "attack_types": [
+        "brute_force"
+      ],
+      "attack_ids": [],
+      "alert_ids": [],
+      "blocked_ips": [
+        "198.51.100.24"
+      ],
+      "correlation_ids": [
+        "incident-1023c929cc2b-attack-2"
+      ],
+      "attack_count": 0,
+      "alert_count": 0,
+      "blocked_count": 1,
+      "first_seen": "2026-05-20 21:57:29 UTC",
+      "last_seen": "2026-05-20 21:57:29 UTC",
+      "playbook_name": "bruteforce-containment",
+      "recommended_actions": [
+        "rate_limit",
+        "require_mfa",
+        "watch for credential stuffing"
+      ],
+      "integrity_hash": "c47a39aeab28ceafc73fca80fe528a0765af3fffafc9aa75e1f2397a02306006"
+    }
+  ]
+}

@@ -1,6 +1,7 @@
-from database import get_database
 import sys
 from pathlib import Path
+
+from database import get_database
 
 # Ensure project root is on sys.path when run from scripts/
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -14,5 +15,5 @@ def main():
     print("changed:", ok)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

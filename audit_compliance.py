@@ -3,15 +3,17 @@
 This module exposes convenience aliases and a small ComplianceFramework
 enumeration used across the project.
 """
+
 from enum import Enum
-from agent_identity import AuditManager, ComplianceManager, AuditEventType
+
+from agent_identity import AuditEventType, AuditManager, ComplianceManager
 
 
 class EventSeverity(Enum):
-    LOW = 'low'
-    MEDIUM = 'medium'
-    HIGH = 'high'
-    CRITICAL = 'critical'
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    CRITICAL = "critical"
 
 
 class AuditEvent:
@@ -44,20 +46,20 @@ class AuditEvent:
 
 
 class ComplianceFramework(Enum):
-    GDPR = 'gdpr'
-    HIPAA = 'hipaa'
-    SOX = 'sox'
-    PCI_DSS = 'pci-dss'
-    PCI_DSS_V4 = 'pci-dss-v4'
-    NIST_CSF = 'nist-csf'
-    ISO_27001 = 'iso-27001'
+    GDPR = "gdpr"
+    HIPAA = "hipaa"
+    SOX = "sox"
+    PCI_DSS = "pci-dss"
+    PCI_DSS_V4 = "pci-dss-v4"
+    NIST_CSF = "nist-csf"
+    ISO_27001 = "iso-27001"
 
 
 __all__ = [
-    'AuditManager',
-    'ComplianceManager',
-    'AuditEventType',
-    'ComplianceFramework',
-    'AuditEvent',
-    'EventSeverity',
+    "AuditManager",
+    "ComplianceManager",
+    "AuditEventType",
+    "ComplianceFramework",
+    "AuditEvent",
+    "EventSeverity",
 ]

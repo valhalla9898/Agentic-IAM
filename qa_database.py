@@ -1,23 +1,12 @@
-""" - Arabic QA Database System
+"""- Arabic QA Database System
 
- 3000+    : - - - - - """
+3000+    : - - - - -"""
 
-import json
 import sqlite3
-import hashlib
-from datetime import datetime
-from pathlib import Path
-from typing import List, Dict, Optional, Tuple
-import random
+from typing import Dict, List, Optional
 
 # QA Database Content - 3000+
-CATEGORIES = {
-    "security": " ",
-    "ai": " ",
-    "tech": " ",
-    "management": " ",
-    "general": " "
-}
+CATEGORIES = {"security": " ", "ai": " ", "tech": " ", "management": " ", "general": " "}
 
 QA_DATABASE = {
     "security": [
@@ -33,11 +22,17 @@ QA_DATABASE = {
         {"q": "Encryption vs Hashing - ", "a": "Encryption       key  Hashing   way   original data"},
     ],
     "ai": [
-        {"q": "Machine Learning   Deep Learning ", "a": "Machine Learning   algorithms Deep Learning      Neural Networks"},
+        {
+            "q": "Machine Learning   Deep Learning ",
+            "a": "Machine Learning   algorithms Deep Learning      Neural Networks",
+        },
         {"q": "Supervised Learning  ", "a": "      model    labeled data"},
         {"q": "Unsupervised Learning   ", "a": "      model  patterns   "},
         {"q": "Overfitting    ", "a": "  model     training data      data "},
-        {"q": "Neural Networks  ", "a": " layers - input layer hidden layers output layer - neuron  calculations    next layer"},
+        {
+            "q": "Neural Networks  ",
+            "a": " layers - input layer hidden layers output layer - neuron  calculations    next layer",
+        },
         {"q": "Activation Functions  ", "a": " non-linearity  model       ReLU  Sigmoid"},
         {"q": "Backpropagation  ", "a": "  gradient  error     network    weights"},
         {"q": "AI bias  ", "a": "  training data   bias     model   bias "},
@@ -46,13 +41,22 @@ QA_DATABASE = {
     ],
     "tech": [
         {"q": "REST API   GraphQL ", "a": "REST  endpoints  GraphQL  endpoint       "},
-        {"q": "Microservices architecture   Monolithic ", "a": "Monolithic    application  Microservices  feature  service "},
+        {
+            "q": "Microservices architecture   Monolithic ",
+            "a": "Monolithic    application  Microservices  feature  service ",
+        },
         {"q": "Docker    ", "a": "  app  dependencies  container        development  production"},
         {"q": "Kubernetes    Cloud", "a": "  containers - auto-scaling load balancing updates   deployment operations"},
         {"q": "Database Indexing  ", "a": "           row    "},
-        {"q": "ACID properties  Databases  ", "a": "Atomicity (   ) Consistency ( ) Isolation (   transactions) Durability (safe )"},
+        {
+            "q": "ACID properties  Databases  ",
+            "a": "Atomicity (   ) Consistency ( ) Isolation (   transactions) Durability (safe )",
+        },
         {"q": "NoSQL database    SQL", "a": "       scaling    MongoDB"},
-        {"q": "Caching strategy  ", "a": "   use case - Redis  fast access CDN  static content Browser cache  client-side"},
+        {
+            "q": "Caching strategy  ",
+            "a": "   use case - Redis  fast access CDN  static content Browser cache  client-side",
+        },
         {"q": "Load Balancing  ", "a": "  requests  servers    server      load"},
         {"q": "Continuous Integration/Deployment (CI/CD)  ", "a": "      production       "},
     ],
@@ -73,13 +77,16 @@ QA_DATABASE = {
         {"q": "IP Address  MAC Address - ", "a": "IP     internet  global MAC     local network (  )"},
         {"q": "TCP  UDP - ", "a": "TCP    (guaranteed delivery) UDP     packets ( video calls)"},
         {"q": "Domain Name Server (DNS)  ", "a": "  names (google.com)  IP addresses (  server)   internet   "},
-        {"q": "Web Server  Web Browser - ", "a": "Web Server   computer  hosted   website   files Web Browser     files "},
+        {
+            "q": "Web Server  Web Browser - ",
+            "a": "Web Server   computer  hosted   website   files Web Browser     files ",
+        },
         {"q": "HTTP  HTTPS - ", "a": "HTTP  encryption HTTPS  encryption   data      way"},
         {"q": "Cookie  Session - ", "a": "Cookie   client () Session   server    website "},
         {"q": "Regular Expressions  ", "a": " pattern  text      strings     email format"},
         {"q": "Version Control Systems (Git)  ", "a": "          previous versions   "},
         {"q": "Open Source Software    ", "a": " publicly available        cheaper  security (    code)"},
-    ]
+    ],
 }
 
 #         3000
@@ -104,21 +111,36 @@ def generate_extended_qa():
                 {"q": "Zero Trust Security  ", "a": " - request  verification       network"},
                 {"q": "Blockchain security  ", "a": "  distributed multiple people     "},
                 {"q": "Public Key Infrastructure (PKI)  ", "a": "  certificates  keys          "},
-                {"q": "Firewalls  ", "a": "  traffic   authorize  software firewall   OS hardware firewall   network  internet"},
-                {"q": "Intrusion Detection System (IDS)   Intrusion Prevention System (IPS) ", "a": "IDS   attacks  IPS    attacks"},
+                {
+                    "q": "Firewalls  ",
+                    "a": "  traffic   authorize  software firewall   OS hardware firewall   network  internet",
+                },
+                {
+                    "q": "Intrusion Detection System (IDS)   Intrusion Prevention System (IPS) ",
+                    "a": "IDS   attacks  IPS    attacks",
+                },
                 {"q": "Data Breach Notification  ", "a": "  users   breach      passwords  "},
             ]
             variations.extend(security_additions)
 
         elif category == "ai":
             ai_additions = [
-                {"q": "Convolutional Neural Networks (CNN)   ", "a": "   image recognition  computer vision    spatial relationships  "},
+                {
+                    "q": "Convolutional Neural Networks (CNN)   ",
+                    "a": "   image recognition  computer vision    spatial relationships  ",
+                },
                 {"q": "Recurrent Neural Networks (RNN)  ", "a": "  memory - previous inputs   text  sequences"},
                 {"q": "Attention Mechanism  ", "a": "  model    parts    input   parts   "},
                 {"q": "Transformer Models ( ChatGPT)  ", "a": " Attention Mechanism  Recurrent connections      "},
                 {"q": "Word Embeddings  ", "a": "  words  vectors () words         space"},
-                {"q": "Reinforcement Learning     Robotics", "a": "  robot   trial and error - reward     punishment    "},
-                {"q": "Generative Models   Discriminative Models ", "a": "Generative   data  ( ) Discriminative   data "},
+                {
+                    "q": "Reinforcement Learning     Robotics",
+                    "a": "  robot   trial and error - reward     punishment    ",
+                },
+                {
+                    "q": "Generative Models   Discriminative Models ",
+                    "a": "Generative   data  ( ) Discriminative   data ",
+                },
                 {"q": "Model Interpretability  ", "a": "   model - critical applications  medical  financial"},
                 {"q": "Feature Engineering   ", "a": "  raw data   features - model   features,   raw data"},
                 {"q": "Ensemble Methods  ", "a": "  models     (voting  averaging)   model "},
@@ -128,26 +150,47 @@ def generate_extended_qa():
         elif category == "tech":
             tech_additions = [
                 {"q": "DevOps    ", "a": "Development + Operations - developers  operations      deployment  "},
-                {"q": "Infrastructure as Code (IaC)  ", "a": " infrastructure  code (Terraform, CloudFormation)       version control"},
-                {"q": "Serverless Computing   Traditional Hosting ", "a": "   server - code    cloud provider's infrastructure"},
+                {
+                    "q": "Infrastructure as Code (IaC)  ",
+                    "a": " infrastructure  code (Terraform, CloudFormation)       version control",
+                },
+                {
+                    "q": "Serverless Computing   Traditional Hosting ",
+                    "a": "   server - code    cloud provider's infrastructure",
+                },
                 {"q": "API Rate Limiting    ", "a": "  abuse - API  brute force     scraping"},
                 {"q": "Message Queues ( RabbitMQ)  ", "a": "    services - service  message service       synchronous"},
-                {"q": "Event-Driven Architecture  ", "a": "    events  state changes   method calls  flexibility   scaling"},
-                {"q": "Containerization vs Virtualization - ", "a": "Virtualization  full OS   virtual machine Containerization   OS kernel - "},
+                {
+                    "q": "Event-Driven Architecture  ",
+                    "a": "    events  state changes   method calls  flexibility   scaling",
+                },
+                {
+                    "q": "Containerization vs Virtualization - ",
+                    "a": "Virtualization  full OS   virtual machine Containerization   OS kernel - ",
+                },
                 {"q": "Blue-Green Deployment  ", "a": "    app - current (blue)   new version (green)    traffic "},
-                {"q": "API Gateway    Microservices", "a": "  single entry point  clients - routing authentication rate limiting   services"},
+                {
+                    "q": "API Gateway    Microservices",
+                    "a": "  single entry point  clients - routing authentication rate limiting   services",
+                },
                 {"q": "ElasticSearch   ", "a": "  Full-Text Search - data     "},
             ]
             variations.extend(tech_additions)
 
         elif category == "management":
             management_additions = [
-                {"q": "Kanban method   Scrum ", "a": "Scrum  fixed sprints meetings Kanban continuous flow - Work In Progress limit"},
+                {
+                    "q": "Kanban method   Scrum ",
+                    "a": "Scrum  fixed sprints meetings Kanban continuous flow - Work In Progress limit",
+                },
                 {"q": "Burndown Chart  ", "a": "  work    sprint - "},
                 {"q": "Definition of Done (DoD)   ", "a": " criteria   task - tested  reviewed  "},
                 {"q": "Product Backlog Refinement  ", "a": "  items   backlog       team   "},
                 {"q": "Velocity  Scrum  ", "a": " story points  team    sprint - sprint   project"},
-                {"q": "Technical Leadership   Management ", "a": "Technical    technical decisions  architecture Management     timelines"},
+                {
+                    "q": "Technical Leadership   Management ",
+                    "a": "Technical    technical decisions  architecture Management     timelines",
+                },
                 {"q": "Knowledge Transfer     Teams", "a": "  information  person  others       project  "},
                 {"q": "1-on-1 meetings    Managers", "a": "   employee    feedback  "},
                 {"q": "OKRs (Objectives and Key Results)  ", "a": "  objectives (  )  Key Results (     objective)"},
@@ -158,15 +201,27 @@ def generate_extended_qa():
         elif category == "general":
             general_additions = [
                 {"q": "Binary  Hexadecimal - Programming", "a": "Binary   computers  0  1  Hexadecimal       binary"},
-                {"q": "ASCII  Unicode - ", "a": "ASCII  7 bits  128 character Unicode  multiple bytes   characters (  )"},
+                {
+                    "q": "ASCII  Unicode - ",
+                    "a": "ASCII  7 bits  128 character Unicode  multiple bytes   characters (  )",
+                },
                 {"q": "Compiler  Interpreter - ", "a": "Compiler   code  whole    Interpreter  line by line  "},
                 {"q": "Stack  Heap  Memory - ", "a": "Stack  LIFO - Heap - objects"},
                 {"q": "Garbage Collection   ", "a": "  memory   objects - Memory Leaks"},
                 {"q": "Polymorphism  OOP  ", "a": "  method       object type - code flexible"},
                 {"q": "Inheritance  OOP  ", "a": "   code - child class   attributes  methods   parent class"},
-                {"q": "Design Patterns  Programming - ", "a": " solutions  common problems - Singleton, Factory, Observer - code reusable "},
-                {"q": "Debugging techniques  ", "a": "Print debugging  debugger   variables step by step logging  production"},
-                {"q": "SOLID Principles   ", "a": "Single Responsibility Open/Closed Liskov Substitution Interface Segregation Dependency Inversion - code "},
+                {
+                    "q": "Design Patterns  Programming - ",
+                    "a": " solutions  common problems - Singleton, Factory, Observer - code reusable ",
+                },
+                {
+                    "q": "Debugging techniques  ",
+                    "a": "Print debugging  debugger   variables step by step logging  production",
+                },
+                {
+                    "q": "SOLID Principles   ",
+                    "a": "Single Responsibility Open/Closed Liskov Substitution Interface Segregation Dependency Inversion - code ",
+                },
             ]
             variations.extend(general_additions)
 
@@ -175,27 +230,25 @@ def generate_extended_qa():
             extended_qa[category].append(base_qa)
 
         # Generate additional variations
-        base_count = len(extended_qa[category])
+        len(extended_qa[category])
         target_per_category = 600  # 600 * 5 categories = 3000
 
         while len(extended_qa[category]) < target_per_category:
             # Create variations of existing questions
-            original = random.choice(QA_DATABASE[category])
+            import secrets
+
+            original = secrets.choice(QA_DATABASE[category])
             # Create a variant by paraphrasing
             variant_q = f"   {original['q'].split('')[0] if '' in original['q'] else original['q'][:30]}"
-            variant_a = f"  {original['a'][:50]}... {original['a'][50:]}" if len(
-                original['a']) > 50 else original['a']
+            variant_a = f"  {original['a'][:50]}... {original['a'][50:]}" if len(original["a"]) > 50 else original["a"]
 
-            extended_qa[category].append({
-                "q": variant_q,
-                "a": variant_a
-            })
+            extended_qa[category].append({"q": variant_q, "a": variant_a})
 
     return extended_qa
 
 
 class QADatabase:
-    """     """
+    """ """
 
     def __init__(self, db_path: str = "qa_system.db"):
         self.db_path = db_path
@@ -283,11 +336,14 @@ class QADatabase:
         for category, questions in qa_data.items():
             for idx, qa in enumerate(questions):
                 difficulty = (idx % 3) + 1  # 1, 2, or 3
-                cursor.execute("""
+                cursor.execute(
+                    """
                     INSERT INTO questions
                     (question, answer, category, difficulty, rating)
                     VALUES (?, ?, ?, ?, ?)
-                """, (qa['q'], qa['a'], category, difficulty, random.uniform(3.5, 5.0)))
+                """,
+                    (qa["q"], qa["a"], category, difficulty, 3.5 + (secrets.randbelow(1500) / 1000.0)),
+                )
 
         conn.commit()
         conn.close()
@@ -298,11 +354,14 @@ class QADatabase:
         cursor = conn.cursor()
 
         if category:
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT id, question, answer, category, difficulty FROM questions
                 WHERE category = ? AND is_active = 1
                 ORDER BY RANDOM() LIMIT 1
-            """, (category,))
+            """,
+                (category,),
+            )
         else:
             cursor.execute("""
                 SELECT id, question, answer, category, difficulty FROM questions
@@ -319,7 +378,7 @@ class QADatabase:
                 "question": result[1],
                 "answer": result[2],
                 "category": result[3],
-                "difficulty": result[4]
+                "difficulty": result[4],
             }
         return None
 
@@ -328,10 +387,13 @@ class QADatabase:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT id, question, answer, category, difficulty FROM questions
             WHERE id = ?
-        """, (question_id,))
+        """,
+            (question_id,),
+        )
 
         result = cursor.fetchone()
         conn.close()
@@ -342,7 +404,7 @@ class QADatabase:
                 "question": result[1],
                 "answer": result[2],
                 "category": result[3],
-                "difficulty": result[4]
+                "difficulty": result[4],
             }
         return None
 
@@ -354,44 +416,45 @@ class QADatabase:
         search_term = f"%{keyword}%"
 
         if category:
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT id, question, answer, category, difficulty FROM questions
                 WHERE (question LIKE ? OR answer LIKE ?) AND category = ?
                 LIMIT 20
-            """, (search_term, search_term, category))
+            """,
+                (search_term, search_term, category),
+            )
         else:
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT id, question, answer, category, difficulty FROM questions
                 WHERE question LIKE ? OR answer LIKE ?
                 LIMIT 20
-            """, (search_term, search_term))
+            """,
+                (search_term, search_term),
+            )
 
         results = cursor.fetchall()
         conn.close()
 
-        return [
-            {
-                "id": r[0],
-                "question": r[1],
-                "answer": r[2],
-                "category": r[3],
-                "difficulty": r[4]
-            }
-            for r in results
-        ]
+        return [{"id": r[0], "question": r[1], "answer": r[2], "category": r[3], "difficulty": r[4]} for r in results]
 
-    def record_answer(self, user_id: str, question_id: int, user_answer: str,
-                      is_correct: bool, time_taken: int = 0) -> bool:
+    def record_answer(
+        self, user_id: str, question_id: int, user_answer: str, is_correct: bool, time_taken: int = 0
+    ) -> bool:
         """Record user answer"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
         try:
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO user_answers
                 (user_id, question_id, user_answer, is_correct, time_taken)
                 VALUES (?, ?, ?, ?, ?)
-            """, (user_id, question_id, user_answer, is_correct, time_taken))
+            """,
+                (user_id, question_id, user_answer, is_correct, time_taken),
+            )
 
             # Update user progress
             self._update_user_progress(cursor, user_id, is_correct)
@@ -399,17 +462,20 @@ class QADatabase:
             conn.commit()
             conn.close()
             return True
-        except Exception as e:
+        except Exception:
             conn.close()
             return False
 
     def _update_user_progress(self, cursor, user_id: str, is_correct: bool):
         """Update user progress statistics"""
         # Get current progress
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT id, total_questions, correct_answers, points FROM user_progress
             WHERE user_id = ?
-        """, (user_id,))
+        """,
+            (user_id,),
+        )
 
         result = cursor.fetchone()
 
@@ -421,31 +487,40 @@ class QADatabase:
             accuracy = (new_correct / new_total * 100) if new_total > 0 else 0
             new_level = (new_points // 100) + 1
 
-            cursor.execute("""
+            cursor.execute(
+                """
                 UPDATE user_progress
                 SET total_questions = ?, correct_answers = ?,
                     accuracy = ?, points = ?, level = ?
                 WHERE user_id = ?
-            """, (new_total, new_correct, accuracy, new_points, new_level, user_id))
+            """,
+                (new_total, new_correct, accuracy, new_points, new_level, user_id),
+            )
         else:
             new_points = 10 if is_correct else 2
-            accuracy = (100 if is_correct else 0)
+            accuracy = 100 if is_correct else 0
 
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO user_progress
                 (user_id, total_questions, correct_answers, accuracy, points, level)
                 VALUES (?, ?, ?, ?, ?, ?)
-            """, (user_id, 1, (1 if is_correct else 0), accuracy, new_points, 1))
+            """,
+                (user_id, 1, (1 if is_correct else 0), accuracy, new_points, 1),
+            )
 
     def get_user_stats(self, user_id: str) -> Optional[Dict]:
         """Get user statistics"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT total_questions, correct_answers, accuracy, level, points
             FROM user_progress WHERE user_id = ?
-        """, (user_id,))
+        """,
+            (user_id,),
+        )
 
         result = cursor.fetchone()
         conn.close()
@@ -456,7 +531,7 @@ class QADatabase:
                 "correct_answers": result[1],
                 "accuracy": result[2],
                 "level": result[3],
-                "points": result[4]
+                "points": result[4],
             }
         return None
 
@@ -465,25 +540,19 @@ class QADatabase:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT id, user_id, username, points, accuracy, rank
             FROM leaderboard
             ORDER BY points DESC LIMIT ?
-        """, (limit,))
+        """,
+            (limit,),
+        )
 
         results = cursor.fetchall()
         conn.close()
 
-        return [
-            {
-                "rank": r[5],
-                "user_id": r[1],
-                "username": r[2],
-                "points": r[3],
-                "accuracy": r[4]
-            }
-            for r in results
-        ]
+        return [{"rank": r[5], "user_id": r[1], "username": r[2], "points": r[3], "accuracy": r[4]} for r in results]
 
     def get_total_questions(self) -> int:
         """Get total number of questions"""
@@ -510,11 +579,4 @@ class QADatabase:
         results = cursor.fetchall()
         conn.close()
 
-        return [
-            {
-                "category": r[0],
-                "arabic_name": CATEGORIES.get(r[0], r[0]),
-                "count": r[1]
-            }
-            for r in results
-        ]
+        return [{"category": r[0], "arabic_name": CATEGORIES.get(r[0], r[0]), "count": r[1]} for r in results]

@@ -1,9 +1,10 @@
 """
 Integration tests for API endpoints with real IAM system
 """
-import pytest
-import asyncio
+
 from datetime import datetime, timedelta
+
+import pytest
 
 from agent_identity import AgentIdentity
 
@@ -23,7 +24,7 @@ class TestAPIIntegration:
             "description": "Integration test agent",
             "capabilities": ["read", "write"],
             "metadata": {"test": "true"},
-            "initial_permissions": ["agent:read", "system:status"]
+            "initial_permissions": ["agent:read", "system:status"],
         }
 
         # Mock the register method - client fixture already has mocked IAM
@@ -40,7 +41,7 @@ class TestAPIIntegration:
             "agent_id": "agent:integration-test-001",
             "method": "jwt",
             "credentials": {"token": "test_token"},
-            "source_ip": "127.0.0.1"
+            "source_ip": "127.0.0.1",
         }
 
         # Mock authentication for integration test
@@ -60,7 +61,7 @@ class TestAPIIntegration:
             "agent_id": "agent:integration-test-001",
             "resource": "system:status",
             "action": "read",
-            "context": {}
+            "context": {},
         }
 
         # Authorization handled by mocked IAM from client fixture
@@ -96,13 +97,13 @@ class TestAPIIntegration:
             created_at=datetime.utcnow(),
             last_accessed=datetime.utcnow(),
             expires_at=datetime.utcnow() + timedelta(hours=1),
-            metadata={"source_ip": "127.0.0.1"}
+            metadata={"source_ip": "127.0.0.1"},
         )
 
         # Mock session operations
-        from unittest.mock import MagicMock, AsyncMock
-        iam_instance.session_manager.create_session = AsyncMock(
-            return_value="integration_session_001")
+        from unittest.mock import AsyncMock, MagicMock
+
+        iam_instance.session_manager.create_session = AsyncMock(return_value="integration_session_001")
         iam_instance.session_manager.get_session = MagicMock(return_value=mock_session)
         iam_instance.session_manager.refresh_session = MagicMock(return_value=True)
         iam_instance.session_manager.terminate_session = MagicMock(return_value=True)
@@ -112,7 +113,7 @@ class TestAPIIntegration:
             "agent_id": "agent:test-001",
             "auth_method": "jwt",
             "trust_level": 0.8,
-            "metadata": {"test": "integration"}
+            "metadata": {"test": "integration"},
         }
 
         response = client.post("/api/v1/sessions", json=session_request)
@@ -140,8 +141,9 @@ class TestAPIIntegration:
         """Test audit logging integration across API calls"""
 
         # Mock audit manager
-        from audit_compliance import AuditEvent, AuditEventType, EventSeverity
-        from unittest.mock import MagicMock, AsyncMock
+        from unittest.mock import AsyncMock, MagicMock
+
+        from audit_compliance import AuditEvent, EventSeverity
 
         audit_events = []
 
@@ -153,7 +155,7 @@ class TestAPIIntegration:
                 severity=EventSeverity.LOW,
                 component="api",
                 outcome="success",
-                **kwargs
+                **kwargs,
             )
             audit_events.append(event)
 
@@ -161,19 +163,13 @@ class TestAPIIntegration:
         iam_instance.audit_manager.query_events = MagicMock(return_value=audit_events)
 
         # Perform operations that should generate audit events
-        auth_request = {
-            "agent_id": "agent:test-001",
-            "method": "jwt",
-            "credentials": {"token": "test"}
-        }
+        auth_request = {"agent_id": "agent:test-001", "method": "jwt", "credentials": {"token": "test"}}
 
         # Mock authentication result
         from authentication import AuthenticationResult
+
         mock_auth_result = AuthenticationResult(
-            success=True,
-            agent_id="agent:test-001",
-            auth_method="jwt",
-            trust_level=0.8
+            success=True, agent_id="agent:test-001", auth_method="jwt", trust_level=0.8
         )
         iam_instance.authenticate = AsyncMock(return_value=mock_auth_result)
         iam_instance.create_session = AsyncMock(return_value="session_001")
@@ -192,26 +188,21 @@ class TestAPIIntegration:
         """Test trust scoring integration"""
 
         # Mock intelligence engine
-        from agent_intelligence import TrustScore, RiskLevel
         from unittest.mock import AsyncMock
+
+        from agent_intelligence import RiskLevel, TrustScore
 
         mock_trust_score = TrustScore(
             agent_id="agent:test-001",
             overall_score=0.85,
             risk_level=RiskLevel.LOW,
             confidence=0.92,
-            component_scores={
-                "authentication": 0.9,
-                "authorization": 0.8,
-                "behavior": 0.85
-            },
+            component_scores={"authentication": 0.9, "authorization": 0.8, "behavior": 0.85},
             last_updated=datetime.utcnow(),
-            factors=[]
+            factors=[],
         )
 
-        iam_instance.intelligence_engine.calculate_trust_score = AsyncMock(
-            return_value=mock_trust_score
-        )
+        iam_instance.intelligence_engine.calculate_trust_score = AsyncMock(return_value=mock_trust_score)
 
         # Get trust score
         response = client.get("/api/v1/intelligence/trust-score/agent:test-001")
@@ -237,10 +228,7 @@ class TestAPIIntegration:
         assert error_data["error"]["code"] == 404
 
         # Test with invalid data
-        invalid_agent_data = {
-            "agent_id": "invalid_id",  # Should start with "agent:"
-            "agent_type": "service"
-        }
+        invalid_agent_data = {"agent_id": "invalid_id", "agent_type": "service"}  # Should start with "agent:"
 
         response = client.post("/api/v1/agents", json=invalid_agent_data)
         assert response.status_code == 422  # Validation error
@@ -248,7 +236,7 @@ class TestAPIIntegration:
         # Test authentication with missing credentials
         auth_request = {
             "agent_id": "agent:test-001",
-            "method": "jwt"
+            "method": "jwt",
             # Missing credentials
         }
 
@@ -269,7 +257,6 @@ class TestAPIIntegration:
 
         # Simulate concurrent requests
         import threading
-        import time
 
         results = []
 
@@ -279,12 +266,7 @@ class TestAPIIntegration:
 
         # Create multiple threads for concurrent requests
         threads = []
-        endpoints = [
-            "/health",
-            "/api/v1/auth/methods",
-            "/health/ready",
-            "/api/v1"
-        ]
+        endpoints = ["/health", "/api/v1/auth/methods", "/health/ready", "/api/v1"]
 
         for endpoint in endpoints:
             thread = threading.Thread(target=make_request, args=(endpoint,))
@@ -308,12 +290,11 @@ class TestAPIIntegration:
         # Mock operations for performance test
         from unittest.mock import AsyncMock
 
-        iam_instance.get_platform_status = AsyncMock(return_value={
-            "platform": {"version": "1.0.0", "uptime": 3600}
-        })
+        iam_instance.get_platform_status = AsyncMock(return_value={"platform": {"version": "1.0.0", "uptime": 3600}})
 
         # Measure response times
         import time
+
         response_times = []
 
         for i in range(100):  # Make 100 requests
@@ -330,7 +311,7 @@ class TestAPIIntegration:
 
         # Assert reasonable performance (adjust thresholds as needed)
         assert avg_response_time < 0.1  # Average response time under 100ms
-        assert max_response_time < 1.0   # Max response time under 1 second
+        assert max_response_time < 1.0  # Max response time under 1 second
 
         print(f"Average response time: {avg_response_time:.3f}s")
         print(f"Max response time: {max_response_time:.3f}s")
@@ -345,13 +326,11 @@ class TestDatabaseIntegration:
         """Test agent data persistence"""
 
         # Create and register agent
-        agent_identity = AgentIdentity.generate(
-            agent_id="agent:persistence-test",
-            metadata={"test": "persistence"}
-        )
+        agent_identity = AgentIdentity.generate(agent_id="agent:persistence-test", metadata={"test": "persistence"})
 
         # Mock the registration process
         from unittest.mock import AsyncMock
+
         iam_instance.register_agent = AsyncMock(return_value="reg_persistence_001")
 
         registration_id = await iam_instance.register_agent(agent_identity)
@@ -373,7 +352,7 @@ class TestDatabaseIntegration:
         session_id = await iam_instance.create_session(
             agent_id="agent:test-persistence",
             auth_result=MagicMock(trust_level=0.8, auth_method="jwt"),
-            source_ip="127.0.0.1"
+            source_ip="127.0.0.1",
         )
 
         assert session_id == "persistent_session_001"
@@ -387,6 +366,7 @@ class TestDatabaseIntegration:
 
         # Mock audit logging
         from unittest.mock import AsyncMock
+
         from audit_compliance import AuditEventType
 
         iam_instance.audit_manager.log_event = AsyncMock()
@@ -396,7 +376,7 @@ class TestDatabaseIntegration:
             event_type=AuditEventType.AUTH_SUCCESS,
             agent_id="agent:audit-test",
             component="test",
-            details={"test": "audit_persistence"}
+            details={"test": "audit_persistence"},
         )
 
         # Verify event was logged
@@ -434,10 +414,7 @@ class TestSecurityIntegration:
         """Test input validation security"""
 
         # Test with malicious input
-        malicious_data = {
-            "agent_id": "agent:<script>alert('xss')</script>",
-            "agent_type": "service"
-        }
+        malicious_data = {"agent_id": "agent:<script>alert('xss')</script>", "agent_type": "service"}
 
         response = client.post("/api/v1/agents", json=malicious_data)
 
@@ -467,15 +444,9 @@ class TestSecurityIntegration:
 
         # Make preflight request
         response = client.options(
-            "/api/v1/auth/methods",
-            headers={
-                "Origin": "http://localhost:3000",
-                "Access-Control-Request-Method": "GET"
-            }
+            "/api/v1/auth/methods", headers={"Origin": "http://localhost:3000", "Access-Control-Request-Method": "GET"}
         )
 
         # Check CORS headers if CORS is enabled
         if "Access-Control-Allow-Origin" in response.headers:
-            assert response.headers["Access-Control-Allow-Origin"] in [
-                "http://localhost:3000", "*"
-            ]
+            assert response.headers["Access-Control-Allow-Origin"] in ["http://localhost:3000", "*"]

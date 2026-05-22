@@ -12,10 +12,10 @@ print("=" * 60)
 print("\n✓  1:  ...")
 try:
     from qa_database import QADatabase
-    from qa_security import QASecurityManager
-    from qa_analytics import QAAnalytics
     from qa_recommendations import QARecommendationEngine
+    from qa_security import QASecurityManager
     from qa_utilities import QAUtilities
+
     print("   ✅     !")
 except Exception as e:
     print(f"   ❌ : {e}")
@@ -32,7 +32,7 @@ try:
 
     q = db.get_random_question()
     if q:
-        sample = q['question'][:50]
+        sample = q["question"][:50]
         print(f"   ✅  : {sample}...")
 except Exception as e:
     print(f"   ❌ : {e}")
@@ -46,7 +46,7 @@ try:
     hashed, salt = QASecurityManager.hash_answer(answer)
     verified = QASecurityManager.verify_answer(answer, hashed, salt)
 
-    print(f"   ✅  : ")
+    print("   ✅  : ")
     status = " ✓" if verified else " ✗"
     print(f"   ✅   : {status}")
 except Exception as e:
@@ -55,12 +55,7 @@ except Exception as e:
 # 4.
 print("\n✓  4:    ...")
 try:
-    points = QAUtilities.calculate_experience_points(
-        correct=True,
-        difficulty=3,
-        time_spent=45,
-        streak=5
-    )
+    points = QAUtilities.calculate_experience_points(correct=True, difficulty=3, time_spent=45, streak=5)
     level = QAUtilities.categorize_performance(80)
     print(f"   ✅   (++streak): {points}")
     print(f"   ✅   (80% ): {level}")
@@ -73,7 +68,7 @@ try:
     rec = QARecommendationEngine(db_path=":memory:")
     rec.create_user_profile("user_test", preferred_category="")
     profile = rec.get_user_profile("user_test")
-    print(f"   ✅   : ")
+    print("   ✅   : ")
     print(f"   ✅  : {profile['preferred_category']}")
 except Exception as e:
     print(f"   ❌ : {e}")

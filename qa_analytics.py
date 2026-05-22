@@ -4,16 +4,13 @@ Advanced Analytics & Statistics System
 """
 
 import sqlite3
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple
-from collections import defaultdict, Counter
-import json
-import statistics as stats
 import tempfile
+from datetime import datetime
+from typing import Dict, List
 
 
 class QAAnalytics:
-    """  """
+    """ """
 
     def __init__(self, db_path: str = "qa_analytics.db"):
         if db_path == ":memory:":
@@ -86,19 +83,14 @@ class QAAnalytics:
         conn.commit()
         conn.close()
 
-    def track_question_attempt(
-        self,
-        user_id: str,
-        question_id: int,
-        is_correct: bool,
-        time_spent: int
-    ) -> bool:
+    def track_question_attempt(self, user_id: str, question_id: int, is_correct: bool, time_spent: int) -> bool:
         """Track user's question attempt"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
         try:
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT OR REPLACE INTO user_progress
                 (user_id, question_id, is_correct, time_spent, attempts, last_attempt)
                 VALUES (
@@ -109,12 +101,14 @@ class QAAnalytics:
                     COALESCE((SELECT attempts FROM user_progress WHERE user_id = ? AND question_id = ?), 0) + 1,
                     CURRENT_TIMESTAMP
                 )
-            """, (user_id, question_id, is_correct, time_spent, user_id, question_id))
+            """,
+                (user_id, question_id, is_correct, time_spent, user_id, question_id),
+            )
 
             conn.commit()
             conn.close()
             return True
-        except Exception:
+        except sqlite3.DatabaseError:
             conn.close()
             return False
 
@@ -126,55 +120,54 @@ class QAAnalytics:
         difficulty_level: str,
         questions_count: int,
         correct_answers: int,
-        time_spent: int
+        time_spent: int,
     ) -> bool:
         """Record a quiz session"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
         try:
-            score_percentage = (
-                correct_answers /
-                questions_count *
-                100) if questions_count > 0 else 0
+            score_percentage = (correct_answers / questions_count * 100) if questions_count > 0 else 0
 
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO quiz_sessions
                 (user_id, session_id, category, difficulty_level, questions_count,
                  correct_answers, score_percentage, time_spent, completed_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-            """, (user_id, session_id, category, difficulty_level, questions_count,
-                  correct_answers, score_percentage, time_spent))
+            """,
+                (
+                    user_id,
+                    session_id,
+                    category,
+                    difficulty_level,
+                    questions_count,
+                    correct_answers,
+                    score_percentage,
+                    time_spent,
+                ),
+            )
 
             # Update learning path
-            self._update_learning_path(
-                user_id,
-                category,
-                difficulty_level,
-                questions_count,
-                correct_answers)
+            self._update_learning_path(user_id, category, difficulty_level, questions_count, correct_answers)
 
             conn.commit()
             conn.close()
             return True
-        except Exception:
+        except sqlite3.DatabaseError:
             conn.close()
             return False
 
     def _update_learning_path(
-        self,
-        user_id: str,
-        category: str,
-        current_level: str,
-        questions_seen: int,
-        correct_answers: int
+        self, user_id: str, category: str, current_level: str, questions_seen: int, correct_answers: int
     ):
         """Update user's learning path"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
         try:
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT OR REPLACE INTO learning_paths
                 (user_id, category, current_level, total_questions_seen, total_correct, last_activity)
                 VALUES (
@@ -185,11 +178,25 @@ class QAAnalytics:
                     COALESCE((SELECT total_correct FROM learning_paths WHERE user_id = ? AND category = ?), 0) + ?,
                     CURRENT_TIMESTAMP
                 )
-            """, (user_id, category, current_level, user_id, category, questions_seen, user_id, category, correct_answers))
+            """,
+                (
+                    user_id,
+                    category,
+                    current_level,
+                    user_id,
+                    category,
+                    questions_seen,
+                    user_id,
+                    category,
+                    correct_answers,
+                ),
+            )
 
             conn.commit()
-        except Exception:
-            pass
+        except sqlite3.DatabaseError as e:
+            import logging
+
+            logging.getLogger(__name__).debug("Failed to update learning path: %s", e)
         finally:
             conn.close()
 
@@ -200,10 +207,13 @@ class QAAnalytics:
 
         try:
             # Total questions attempted
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT COUNT(*), SUM(CASE WHEN is_correct = 1 THEN 1 ELSE 0 END)
                 FROM user_progress WHERE user_id = ?
-            """, (user_id,))
+            """,
+                (user_id,),
+            )
 
             result = cursor.fetchone()
             total_attempted = result[0] or 0
@@ -211,10 +221,13 @@ class QAAnalytics:
             accuracy = (total_correct / total_attempted * 100) if total_attempted > 0 else 0
 
             # Quiz sessions
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT COUNT(*), AVG(score_percentage), MAX(score_percentage), MIN(score_percentage)
                 FROM quiz_sessions WHERE user_id = ?
-            """, (user_id,))
+            """,
+                (user_id,),
+            )
 
             result = cursor.fetchone()
             quiz_count = result[0] or 0
@@ -223,31 +236,39 @@ class QAAnalytics:
             worst_score = result[3] or 0
 
             # Time spent
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT SUM(time_spent), AVG(time_spent)
                 FROM user_progress WHERE user_id = ?
-            """, (user_id,))
+            """,
+                (user_id,),
+            )
 
             result = cursor.fetchone()
             total_time = result[0] or 0
             avg_time_per_question = result[1] or 0
 
             # Learning paths
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT category, current_level, total_questions_seen, total_correct
                 FROM learning_paths WHERE user_id = ?
-            """, (user_id,))
+            """,
+                (user_id,),
+            )
 
             learning_paths = []
             for row in cursor.fetchall():
                 category, level, seen, correct = row
-                learning_paths.append({
-                    "category": category,
-                    "level": level,
-                    "questions_seen": seen,
-                    "correct_answers": correct,
-                    "category_accuracy": (correct / seen * 100) if seen > 0 else 0
-                })
+                learning_paths.append(
+                    {
+                        "category": category,
+                        "level": level,
+                        "questions_seen": seen,
+                        "correct_answers": correct,
+                        "category_accuracy": (correct / seen * 100) if seen > 0 else 0,
+                    }
+                )
 
             conn.close()
 
@@ -263,7 +284,7 @@ class QAAnalytics:
                 "total_time_spent_seconds": total_time,
                 "average_time_per_question_seconds": round(avg_time_per_question, 2),
                 "learning_paths": learning_paths,
-                "generated_at": datetime.now().isoformat()
+                "generated_at": datetime.now().isoformat(),
             }
 
         except Exception as e:
@@ -278,10 +299,13 @@ class QAAnalytics:
         try:
             if user_id:
                 # Per-user category stats
-                cursor.execute("""
+                cursor.execute(
+                    """
                     SELECT category, current_level, total_questions_seen, total_correct
                     FROM learning_paths WHERE user_id = ?
-                """, (user_id,))
+                """,
+                    (user_id,),
+                )
             else:
                 # System-wide category stats
                 cursor.execute("""
@@ -300,13 +324,13 @@ class QAAnalytics:
                         "current_level": level,
                         "questions_seen": seen,
                         "correct_answers": correct,
-                        "accuracy": (correct / seen * 100) if seen > 0 else 0
+                        "accuracy": (correct / seen * 100) if seen > 0 else 0,
                     }
                 else:
                     category, count, avg_score = row
                     stats_data[category] = {
                         "quiz_attempts": count,
-                        "average_score": round(avg_score, 2) if avg_score else 0
+                        "average_score": round(avg_score, 2) if avg_score else 0,
                     }
 
             return stats_data
@@ -321,29 +345,34 @@ class QAAnalytics:
         cursor = conn.cursor()
 
         try:
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT user_id, AVG(score_percentage) as avg_score, COUNT(*) as quiz_count
                 FROM quiz_sessions
                 GROUP BY user_id
                 ORDER BY avg_score DESC, quiz_count DESC
                 LIMIT ?
-            """, (limit,))
+            """,
+                (limit,),
+            )
 
             results = cursor.fetchall()
             conn.close()
 
             leaderboard = []
             for rank, (user_id, avg_score, quiz_count) in enumerate(results, 1):
-                leaderboard.append({
-                    "rank": rank,
-                    "user_id": user_id,
-                    "average_score": round(avg_score, 2),
-                    "quiz_sessions": quiz_count
-                })
+                leaderboard.append(
+                    {
+                        "rank": rank,
+                        "user_id": user_id,
+                        "average_score": round(avg_score, 2),
+                        "quiz_sessions": quiz_count,
+                    }
+                )
 
             return leaderboard
 
-        except Exception as e:
+        except Exception:
             conn.close()
             return []
 
@@ -353,7 +382,8 @@ class QAAnalytics:
         cursor = conn.cursor()
 
         try:
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT question_id, COUNT(*) as attempt_count,
                        SUM(CASE WHEN is_correct = 1 THEN 1 ELSE 0 END) as correct_count,
                        ROUND(SUM(CASE WHEN is_correct = 1 THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) as success_rate
@@ -361,23 +391,27 @@ class QAAnalytics:
                 GROUP BY question_id
                 ORDER BY attempt_count DESC
                 LIMIT ?
-            """, (limit,))
+            """,
+                (limit,),
+            )
 
             results = cursor.fetchall()
             conn.close()
 
             trending = []
             for question_id, attempts, correct, success_rate in results:
-                trending.append({
-                    "question_id": question_id,
-                    "attempt_count": attempts,
-                    "correct_count": correct,
-                    "success_rate_percentage": success_rate
-                })
+                trending.append(
+                    {
+                        "question_id": question_id,
+                        "attempt_count": attempts,
+                        "correct_count": correct,
+                        "success_rate_percentage": success_rate,
+                    }
+                )
 
             return trending
 
-        except Exception as e:
+        except Exception:
             conn.close()
             return []
 
@@ -388,52 +422,54 @@ class QAAnalytics:
 
         try:
             # Difficulty progression
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT difficulty_level, AVG(score_percentage), COUNT(*)
                 FROM quiz_sessions WHERE user_id = ?
                 GROUP BY difficulty_level
-            """, (user_id,))
+            """,
+                (user_id,),
+            )
 
             difficulty_stats = {}
             for level, avg_score, count in cursor.fetchall():
-                difficulty_stats[level] = {
-                    "average_score": round(avg_score, 2),
-                    "attempts": count
-                }
+                difficulty_stats[level] = {"average_score": round(avg_score, 2), "attempts": count}
 
             # Weak areas (categories with lowest accuracy)
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT category, total_correct, total_questions_seen
                 FROM learning_paths WHERE user_id = ?
                 ORDER BY (total_correct * 100.0 / total_questions_seen) ASC
                 LIMIT 5
-            """, (user_id,))
+            """,
+                (user_id,),
+            )
 
             weak_areas = []
             for category, correct, seen in cursor.fetchall():
                 if seen > 0:
-                    weak_areas.append({
-                        "category": category,
-                        "accuracy": round(correct * 100.0 / seen, 2),
-                        "questions_seen": seen
-                    })
+                    weak_areas.append(
+                        {"category": category, "accuracy": round(correct * 100.0 / seen, 2), "questions_seen": seen}
+                    )
 
             # Strong areas
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT category, total_correct, total_questions_seen
                 FROM learning_paths WHERE user_id = ?
                 ORDER BY (total_correct * 100.0 / total_questions_seen) DESC
                 LIMIT 5
-            """, (user_id,))
+            """,
+                (user_id,),
+            )
 
             strong_areas = []
             for category, correct, seen in cursor.fetchall():
                 if seen > 0:
-                    strong_areas.append({
-                        "category": category,
-                        "accuracy": round(correct * 100.0 / seen, 2),
-                        "questions_seen": seen
-                    })
+                    strong_areas.append(
+                        {"category": category, "accuracy": round(correct * 100.0 / seen, 2), "questions_seen": seen}
+                    )
 
             conn.close()
 
@@ -442,7 +478,7 @@ class QAAnalytics:
                 "difficulty_progression": difficulty_stats,
                 "weak_areas": weak_areas,
                 "strong_areas": strong_areas,
-                "insights_generated_at": datetime.now().isoformat()
+                "insights_generated_at": datetime.now().isoformat(),
             }
 
         except Exception as e:
@@ -492,7 +528,7 @@ class QAAnalytics:
                 "average_system_score": round(avg_system_score, 2),
                 "most_popular_category": most_popular_category,
                 "active_users_last_24h": active_users_24h,
-                "health_check_timestamp": datetime.now().isoformat()
+                "health_check_timestamp": datetime.now().isoformat(),
             }
 
         except Exception as e:

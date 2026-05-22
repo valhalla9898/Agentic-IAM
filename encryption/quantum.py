@@ -17,17 +17,15 @@ in preparation for quantum computing threats.
 - Integration with existing TLS
 """
 
-import os
-import hashlib
-import hmac
-import json
-from typing import Tuple, bytes, Optional
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.asymmetric import rsa, padding
-from cryptography.hazmat.primitives.kdf.hkdf import HKDF
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from cryptography.hazmat.backends import default_backend
 import logging
+import os
+from typing import Tuple, bytes
+
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import padding, rsa
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 
 logger = logging.getLogger(__name__)
 
@@ -45,9 +43,9 @@ class KyberKEM:
         """
         self.security_level = security_level
         self.params = {
-            2: {'n': 256, 'k': 2, 'eta1': 3, 'eta2': 2, 'du': 10, 'dv': 4},
-            3: {'n': 256, 'k': 3, 'eta1': 2, 'eta2': 2, 'du': 10, 'dv': 4},
-            4: {'n': 256, 'k': 4, 'eta1': 2, 'eta2': 2, 'du': 11, 'dv': 5}
+            2: {"n": 256, "k": 2, "eta1": 3, "eta2": 2, "du": 10, "dv": 4},
+            3: {"n": 256, "k": 3, "eta1": 2, "eta2": 2, "du": 10, "dv": 4},
+            4: {"n": 256, "k": 4, "eta1": 2, "eta2": 2, "du": 11, "dv": 5},
         }[security_level]
 
     def keygen(self) -> Tuple[bytes, bytes]:
@@ -63,11 +61,7 @@ class KyberKEM:
 
         # Derive keys using HKDF
         hkdf = HKDF(
-            algorithm=hashes.SHA256(),
-            length=64,
-            salt=None,
-            info=b'Kyber-KEM-Keygen',
-            backend=default_backend()
+            algorithm=hashes.SHA256(), length=64, salt=None, info=b"Kyber-KEM-Keygen", backend=default_backend()
         )
 
         key_material = hkdf.derive(seed)
@@ -86,13 +80,7 @@ class KyberKEM:
 
         # In real Kyber, this would be a complex lattice operation
         # Simplified: use HKDF with public key and random message
-        hkdf = HKDF(
-            algorithm=hashes.SHA256(),
-            length=64,
-            salt=public_key,
-            info=m,
-            backend=default_backend()
-        )
+        hkdf = HKDF(algorithm=hashes.SHA256(), length=64, salt=public_key, info=m, backend=default_backend())
 
         key_material = hkdf.derive(m)
         ciphertext = key_material[:32]  # Would be actual ciphertext in real impl
@@ -106,13 +94,7 @@ class KyberKEM:
         """
         # In real Kyber, this would recover the shared secret
         # Simplified: recreate the HKDF derivation
-        hkdf = HKDF(
-            algorithm=hashes.SHA256(),
-            length=32,
-            salt=private_key,
-            info=ciphertext,
-            backend=default_backend()
-        )
+        hkdf = HKDF(algorithm=hashes.SHA256(), length=32, salt=private_key, info=ciphertext, backend=default_backend())
 
         shared_secret = hkdf.derive(ciphertext)
         return shared_secret
@@ -134,23 +116,19 @@ class DilithiumSignature:
         """
         # Generate RSA keys as a placeholder for Dilithium
         # In real implementation, this would be lattice-based
-        private_key = rsa.generate_private_key(
-            public_exponent=65537,
-            key_size=2048,
-            backend=default_backend()
-        )
+        private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048, backend=default_backend())
         public_key = private_key.public_key()
 
         # Serialize keys
         from cryptography.hazmat.primitives import serialization
+
         verification_key = public_key.public_bytes(
-            encoding=serialization.Encoding.PEM,
-            format=serialization.PublicFormat.SubjectPublicKeyInfo
+            encoding=serialization.Encoding.PEM, format=serialization.PublicFormat.SubjectPublicKeyInfo
         )
         signing_key = private_key.private_bytes(
             encoding=serialization.Encoding.PEM,
             format=serialization.PrivateFormat.PKCS8,
-            encryption_algorithm=serialization.NoEncryption()
+            encryption_algorithm=serialization.NoEncryption(),
         )
 
         return verification_key, signing_key
@@ -161,17 +139,10 @@ class DilithiumSignature:
         """
         from cryptography.hazmat.primitives import serialization
 
-        private_key = serialization.load_pem_private_key(
-            signing_key, password=None, backend=default_backend()
-        )
+        private_key = serialization.load_pem_private_key(signing_key, password=None, backend=default_backend())
 
         signature = private_key.sign(
-            message,
-            padding.PSS(
-                mgf=padding.MGF1(hashes.SHA256()),
-                salt_length=padding.PSS.MAX_LENGTH
-            ),
-            hashes.SHA256()
+            message, padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH), hashes.SHA256()
         )
 
         return signature
@@ -182,19 +153,14 @@ class DilithiumSignature:
         """
         from cryptography.hazmat.primitives import serialization
 
-        public_key = serialization.load_pem_public_key(
-            verification_key, backend=default_backend()
-        )
+        public_key = serialization.load_pem_public_key(verification_key, backend=default_backend())
 
         try:
             public_key.verify(
                 signature,
                 message,
-                padding.PSS(
-                    mgf=padding.MGF1(hashes.SHA256()),
-                    salt_length=padding.PSS.MAX_LENGTH
-                ),
-                hashes.SHA256()
+                padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH),
+                hashes.SHA256(),
             )
             return True
         except BaseException:
@@ -220,22 +186,18 @@ class QuantumEncryptor:
             return self.kyber.keygen()
         else:
             # Fallback to classical RSA
-            private_key = rsa.generate_private_key(
-                public_exponent=65537,
-                key_size=2048,
-                backend=self.backend
-            )
+            private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048, backend=self.backend)
             public_key = private_key.public_key()
 
             from cryptography.hazmat.primitives import serialization
+
             pub_bytes = public_key.public_bytes(
-                encoding=serialization.Encoding.PEM,
-                format=serialization.PublicFormat.SubjectPublicKeyInfo
+                encoding=serialization.Encoding.PEM, format=serialization.PublicFormat.SubjectPublicKeyInfo
             )
             priv_bytes = private_key.private_bytes(
                 encoding=serialization.Encoding.PEM,
                 format=serialization.PrivateFormat.PKCS8,
-                encryption_algorithm=serialization.NoEncryption()
+                encryption_algorithm=serialization.NoEncryption(),
             )
 
             return pub_bytes, priv_bytes
@@ -250,13 +212,7 @@ class QuantumEncryptor:
 
             # Use shared secret for AES encryption
             salt = os.urandom(16)
-            hkdf = HKDF(
-                algorithm=hashes.SHA256(),
-                length=32,
-                salt=salt,
-                info=b'quantum-aes-key',
-                backend=self.backend
-            )
+            hkdf = HKDF(algorithm=hashes.SHA256(), length=32, salt=salt, info=b"quantum-aes-key", backend=self.backend)
             aes_key = hkdf.derive(shared_secret)
 
             iv = os.urandom(16)
@@ -270,17 +226,14 @@ class QuantumEncryptor:
         else:
             # Classical path
             from cryptography.hazmat.primitives import serialization
+
             pub_key = serialization.load_pem_public_key(public_key, backend=self.backend)
 
             # Generate symmetric key
             symmetric_key = os.urandom(32)
             encrypted_key = pub_key.encrypt(
                 symmetric_key,
-                padding.OAEP(
-                    mgf=padding.MGF1(algorithm=hashes.SHA256()),
-                    algorithm=hashes.SHA256(),
-                    label=None
-                )
+                padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()), algorithm=hashes.SHA256(), label=None),
             )
 
             # Encrypt data with AES
@@ -309,13 +262,7 @@ class QuantumEncryptor:
             shared_secret = self.kyber.decapsulate(ciphertext, private_key)
 
             # Derive AES key
-            hkdf = HKDF(
-                algorithm=hashes.SHA256(),
-                length=32,
-                salt=salt,
-                info=b'quantum-aes-key',
-                backend=self.backend
-            )
+            hkdf = HKDF(algorithm=hashes.SHA256(), length=32, salt=salt, info=b"quantum-aes-key", backend=self.backend)
             aes_key = hkdf.derive(shared_secret)
 
             # Decrypt
@@ -327,24 +274,20 @@ class QuantumEncryptor:
         else:
             # Parse classical encrypted data
             from cryptography.hazmat.primitives import serialization
-            priv_key = serialization.load_pem_private_key(
-                private_key, password=None, backend=self.backend)
+
+            priv_key = serialization.load_pem_private_key(private_key, password=None, backend=self.backend)
 
             # Parse components (this is approximate - real implementation would need proper parsing)
             encrypted_key_len = 256  # RSA-2048 encrypted key length
             encrypted_key = encrypted_data[:encrypted_key_len]
-            iv = encrypted_data[encrypted_key_len:encrypted_key_len + 16]
-            tag = encrypted_data[encrypted_key_len + 16:encrypted_key_len + 32]
-            data = encrypted_data[encrypted_key_len + 32:]
+            iv = encrypted_data[encrypted_key_len : encrypted_key_len + 16]
+            tag = encrypted_data[encrypted_key_len + 16 : encrypted_key_len + 32]
+            data = encrypted_data[encrypted_key_len + 32 :]
 
             # Decrypt symmetric key
             symmetric_key = priv_key.decrypt(
                 encrypted_key,
-                padding.OAEP(
-                    mgf=padding.MGF1(algorithm=hashes.SHA256()),
-                    algorithm=hashes.SHA256(),
-                    label=None
-                )
+                padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()), algorithm=hashes.SHA256(), label=None),
             )
 
             # Decrypt data
@@ -373,22 +316,18 @@ class QuantumSignature:
             return self.dilithium.keygen()
         else:
             # Fallback to RSA
-            private_key = rsa.generate_private_key(
-                public_exponent=65537,
-                key_size=2048,
-                backend=default_backend()
-            )
+            private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048, backend=default_backend())
             public_key = private_key.public_key()
 
             from cryptography.hazmat.primitives import serialization
+
             verification_key = public_key.public_bytes(
-                encoding=serialization.Encoding.PEM,
-                format=serialization.PublicFormat.SubjectPublicKeyInfo
+                encoding=serialization.Encoding.PEM, format=serialization.PublicFormat.SubjectPublicKeyInfo
             )
             signing_key = private_key.private_bytes(
                 encoding=serialization.Encoding.PEM,
                 format=serialization.PrivateFormat.PKCS8,
-                encryption_algorithm=serialization.NoEncryption()
+                encryption_algorithm=serialization.NoEncryption(),
             )
 
             return verification_key, signing_key
@@ -401,17 +340,13 @@ class QuantumSignature:
             return self.dilithium.sign(message, signing_key)
         else:
             from cryptography.hazmat.primitives import serialization
-            private_key = serialization.load_pem_private_key(
-                signing_key, password=None, backend=default_backend()
-            )
+
+            private_key = serialization.load_pem_private_key(signing_key, password=None, backend=default_backend())
 
             signature = private_key.sign(
                 message,
-                padding.PSS(
-                    mgf=padding.MGF1(hashes.SHA256()),
-                    salt_length=padding.PSS.MAX_LENGTH
-                ),
-                hashes.SHA256()
+                padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH),
+                hashes.SHA256(),
             )
             return signature
 
@@ -423,19 +358,15 @@ class QuantumSignature:
             return self.dilithium.verify(message, signature, verification_key)
         else:
             from cryptography.hazmat.primitives import serialization
-            public_key = serialization.load_pem_public_key(
-                verification_key, backend=default_backend()
-            )
+
+            public_key = serialization.load_pem_public_key(verification_key, backend=default_backend())
 
             try:
                 public_key.verify(
                     signature,
                     message,
-                    padding.PSS(
-                        mgf=padding.MGF1(hashes.SHA256()),
-                        salt_length=padding.PSS.MAX_LENGTH
-                    ),
-                    hashes.SHA256()
+                    padding.PSS(mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH),
+                    hashes.SHA256(),
                 )
                 return True
             except BaseException:

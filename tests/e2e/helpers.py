@@ -1,7 +1,7 @@
 """Shared helpers for Streamlit Playwright E2E tests."""
 
-import re
 import os
+import re
 from pathlib import Path
 
 
@@ -32,7 +32,10 @@ def login_as_admin(page):
     page.fill('input[type="password"]', admin_password)
     try:
         page.click("button:has-text('Login')")
-    except Exception:
+    except Exception as e:
+        import logging
+
+        logging.getLogger(__name__).debug("Login button click failed, pressing Enter: %s", e)
         page.keyboard.press("Enter")
     page.wait_for_load_state("networkidle")
 
@@ -42,14 +45,13 @@ def choose_selectbox_option(page, label_fragment, option_text):
     combobox.click()
     try:
         page.locator('[role="option"]').first.wait_for(state="attached", timeout=1000)
-    except Exception:
+    except Exception as e:
+        import logging
+
+        logging.getLogger(__name__).debug("Selectbox initial wait failed: %s", e)
         combobox.press("Alt+ArrowDown")
         page.locator('[role="option"]').first.wait_for(state="attached", timeout=5000)
-    page.get_by_role(
-        "option",
-        name=re.compile(
-            f"^{re.escape(option_text)}$",
-            re.IGNORECASE)).click()
+    page.get_by_role("option", name=re.compile(f"^{re.escape(option_text)}$", re.IGNORECASE)).click()
 
 
 def select_combobox_value(page, label_fragment, value):
