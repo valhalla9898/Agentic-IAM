@@ -16,13 +16,12 @@ for live monitoring of agent activities, trust scores, and security events.
 import asyncio
 import json
 import logging
+import websockets
+from typing import Dict, List, Set, Callable, Any, Optional
+from dataclasses import dataclass, asdict
+from datetime import datetime
 import threading
 import time
-from dataclasses import asdict, dataclass
-from datetime import datetime
-from typing import Any, Callable, Dict, List, Optional, Set
-
-import websockets
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +29,6 @@ logger = logging.getLogger(__name__)
 @dataclass
 class AgentStatus:
     """Real-time agent status"""
-
     agent_id: str
     status: str  # online, offline, suspicious
     trust_score: float
@@ -42,7 +40,6 @@ class AgentStatus:
 @dataclass
 class SecurityAlert:
     """Real-time security alert"""
-
     alert_id: str
     severity: str  # low, medium, high, critical
     message: str
@@ -54,7 +51,6 @@ class SecurityAlert:
 @dataclass
 class AuditEvent:
     """Real-time audit event"""
-
     event_id: str
     event_type: str
     agent_id: str
@@ -98,7 +94,7 @@ class WebSocketDashboard:
             "type": "initial_data",
             "agent_statuses": [asdict(status) for status in self.agent_statuses.values()],
             "recent_alerts": [asdict(alert) for alert in self.alerts[-10:]],  # Last 10 alerts
-            "recent_audit": [asdict(event) for event in self.audit_stream[-50:]],  # Last 50 events
+            "recent_audit": [asdict(event) for event in self.audit_stream[-50:]]  # Last 50 events
         }
 
         try:
@@ -111,7 +107,11 @@ class WebSocketDashboard:
         if not self.connected_clients:
             return
 
-        message = {"type": update_type, "data": data, "timestamp": datetime.now().isoformat()}
+        message = {
+            "type": update_type,
+            "data": data,
+            "timestamp": datetime.now().isoformat()
+        }
 
         # Remove disconnected clients
         disconnected = set()
@@ -129,14 +129,8 @@ class WebSocketDashboard:
         if disconnected:
             logger.info(f"Cleaned up {len(disconnected)} disconnected clients")
 
-    def update_agent_status(
-        self,
-        agent_id: str,
-        status: str,
-        trust_score: float,
-        location: Optional[str] = None,
-        current_action: Optional[str] = None,
-    ):
+    def update_agent_status(self, agent_id: str, status: str, trust_score: float,
+                            location: Optional[str] = None, current_action: Optional[str] = None):
         """Update agent status and broadcast"""
         agent_status = AgentStatus(
             agent_id=agent_id,
@@ -144,7 +138,7 @@ class WebSocketDashboard:
             trust_score=trust_score,
             last_seen=datetime.now().isoformat(),
             location=location,
-            current_action=current_action,
+            current_action=current_action
         )
 
         self.agent_statuses[agent_id] = agent_status
@@ -152,9 +146,8 @@ class WebSocketDashboard:
         # Broadcast update
         asyncio.create_task(self.broadcast_update("agent_status_update", asdict(agent_status)))
 
-    def add_security_alert(
-        self, severity: str, message: str, agent_id: Optional[str] = None, details: Optional[Dict[str, Any]] = None
-    ):
+    def add_security_alert(self, severity: str, message: str, agent_id: Optional[str] = None,
+                           details: Optional[Dict[str, Any]] = None):
         """Add security alert and broadcast"""
         alert = SecurityAlert(
             alert_id=f"alert_{int(time.time() * 1000)}",
@@ -162,7 +155,7 @@ class WebSocketDashboard:
             message=message,
             agent_id=agent_id,
             timestamp=datetime.now().isoformat(),
-            details=details or {},
+            details=details or {}
         )
 
         self.alerts.append(alert)
@@ -174,7 +167,8 @@ class WebSocketDashboard:
         # Broadcast alert
         asyncio.create_task(self.broadcast_update("security_alert", asdict(alert)))
 
-    def add_audit_event(self, event_type: str, agent_id: str, action: str, details: Optional[Dict[str, Any]] = None):
+    def add_audit_event(self, event_type: str, agent_id: str, action: str,
+                        details: Optional[Dict[str, Any]] = None):
         """Add audit event and broadcast"""
         event = AuditEvent(
             event_id=f"event_{int(time.time() * 1000)}",
@@ -182,14 +176,14 @@ class WebSocketDashboard:
             agent_id=agent_id,
             action=action,
             timestamp=datetime.now().isoformat(),
-            details=details or {},
+            details=details or {}
         )
 
         self.audit_stream.append(event)
 
         # Keep only recent events
         if len(self.audit_stream) > self.max_audit_events:
-            self.audit_stream = self.audit_stream[-self.max_audit_events :]
+            self.audit_stream = self.audit_stream[-self.max_audit_events:]
 
         # Broadcast event
         asyncio.create_task(self.broadcast_update("audit_event", asdict(event)))
@@ -218,7 +212,11 @@ class WebSocketDashboard:
         logger.info(f"Starting WebSocket dashboard server on {self.host}:{self.port}")
 
         self.server = await websockets.serve(
-            self.websocket_handler, self.host, self.port, ping_interval=30, ping_timeout=10
+            self.websocket_handler,
+            self.host,
+            self.port,
+            ping_interval=30,
+            ping_timeout=10
         )
 
         logger.info("WebSocket server started successfully")
@@ -226,7 +224,6 @@ class WebSocketDashboard:
 
     def start_server(self):
         """Start the WebSocket server in a separate thread"""
-
         def run_async():
             asyncio.run(self.start_server_async())
 
@@ -255,11 +252,9 @@ class StreamlitWebSocketClient:
 
     def on_data_update(self, update_type: str):
         """Decorator to register callback for data updates"""
-
         def decorator(func: Callable):
             self.data_callbacks[update_type] = func
             return func
-
         return decorator
 
     async def connect_async(self):
@@ -299,7 +294,6 @@ class StreamlitWebSocketClient:
 
     def connect(self):
         """Connect to WebSocket server in a separate thread"""
-
         def run_async():
             asyncio.run(self.connect_async())
 
@@ -311,7 +305,6 @@ class StreamlitWebSocketClient:
         self.connected = False
         if self.websocket:
             asyncio.create_task(self.websocket.close())
-
 
 # Example usage and integration with Streamlit
 
@@ -325,14 +318,11 @@ def create_sample_dashboard():
     dashboard.update_agent_status("agent-002", "suspicious", 0.45, "eu-west-1", "idle")
     dashboard.update_agent_status("agent-003", "offline", 0.80, "ap-southeast-1", None)
 
-    dashboard.add_security_alert(
-        "high",
-        "Anomaly detected in agent behavior",
-        "agent-002",
-        {"anomaly_score": 0.87, "pattern": "unusual_api_calls"},
-    )
+    dashboard.add_security_alert("high", "Anomaly detected in agent behavior", "agent-002",
+                                 {"anomaly_score": 0.87, "pattern": "unusual_api_calls"})
 
-    dashboard.add_audit_event("authentication", "agent-001", "login_success", {"ip": "192.168.1.100", "method": "jwt"})
+    dashboard.add_audit_event("authentication", "agent-001", "login_success",
+                              {"ip": "192.168.1.100", "method": "jwt"})
 
     return dashboard
 
@@ -347,11 +337,10 @@ if __name__ == "__main__":
         while True:
             time.sleep(1)
             # Simulate real-time updates
-            import secrets
-
-            if secrets.randbelow(100) < 10:  # 10% chance every second
-                agent_id = f"agent-{secrets.randbelow(3) + 1:03d}"
-                trust_score = 0.3 + (secrets.randbelow(700) / 1000.0)
+            import random
+            if random.random() < 0.1:  # 10% chance every second
+                agent_id = f"agent-{random.randint(1, 3):03d}"
+                trust_score = random.uniform(0.3, 1.0)
                 status = "online" if trust_score > 0.6 else "suspicious"
                 dashboard.update_agent_status(agent_id, status, trust_score)
 

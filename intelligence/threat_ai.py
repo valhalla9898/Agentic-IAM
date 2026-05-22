@@ -11,5 +11,6 @@ class ThreatIntelligenceAI:
         return {
             "threats": [],
             "summary": "no threats detected",
-            "input_size": len(log_data) if hasattr(log_data, "__len__") else 0,
-        }
+            "input_size": len(log_data) if hasattr(
+                log_data,
+                "__len__") else 0}

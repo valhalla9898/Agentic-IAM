@@ -1,7 +1,6 @@
-import os
-
 import streamlit as st
-
+import os
+from . import ai_kb
 from utils.faq_engine import get_faq_engine
 
 
@@ -54,8 +53,8 @@ def _local_helper(prompt: str) -> str:
             "```bash\n"
             "POST /api/auth/login\n"
             "{\n"
-            '  "username": "<your-admin-user>",\n'
-            '  "password": "<your-admin-password>"\n'
+            "  \"username\": \"<your-admin-user>\",\n"
+            "  \"password\": \"<your-admin-password>\"\n"
             "}\n"
             "```"
         )
@@ -89,7 +88,13 @@ def _local_helper(prompt: str) -> str:
         )
 
     # Permissions & Authorization
-    if any(keyword in p for keyword in ["permission", "role", "authorize", "access control", "rbac"]):
+    if any(
+        keyword in p for keyword in [
+            "permission",
+            "role",
+            "authorize",
+            "access control",
+            "rbac"]):
         return (
             "🔑 **Permissions & Authorization**\n\n"
             "**Role-Based Access Control (RBAC):**\n\n"
@@ -120,7 +125,13 @@ def _local_helper(prompt: str) -> str:
         )
 
     # User Management
-    if any(keyword in p for keyword in ["user", "create user", "manage user", "delete user", "user admin"]):
+    if any(
+        keyword in p for keyword in [
+            "user",
+            "create user",
+            "manage user",
+            "delete user",
+            "user admin"]):
         return (
             "👥 **User Management**\n\n"
             "**Create New User:**\n"
@@ -149,7 +160,14 @@ def _local_helper(prompt: str) -> str:
         )
 
     # Security & Compliance
-    if any(keyword in p for keyword in ["security", "encrypt", "ssl", "tls", "certificate", "compliance"]):
+    if any(
+        keyword in p for keyword in [
+            "security",
+            "encrypt",
+            "ssl",
+            "tls",
+            "certificate",
+            "compliance"]):
         return (
             "🔒 **Security Features**\n\n"
             "**Transport Security:**\n"
@@ -242,25 +260,23 @@ def _local_helper(prompt: str) -> str:
         "6. **⚠️ Risk Assessment** - Security scoring and monitoring\n"
         "7. **📊 Reports** - Analytics and reporting\n\n"
         "**Try asking:**\n"
-        '- "How do I login?"\n'
-        '- "How to create a new user?"\n'
-        '- "What are the available roles?"\n'
-        '- "How do I register an agent?"\n'
-        '- "What is risk assessment?"\n\n'
+        "- \"How do I login?\"\n"
+        "- \"How to create a new user?\"\n"
+        "- \"What are the available roles?\"\n"
+        "- \"How do I register an agent?\"\n"
+        "- \"What is risk assessment?\"\n\n"
         "Or describe what you need help with!"
     )
 
 
 def show_ai_assistant():
     st.header("🤖 AI Assistant - Smart Q&A Engine")
-    st.write(
-        "🚀 Ask any question about Agentic-IAM (Arabic or English, typos OK!) and get multiple answer options to choose from."
-    )
+    st.write("🚀 Ask any question about Agentic-IAM (Arabic or English, typos OK!) and get multiple answer options to choose from.")
 
     # Initialize session state for answer selection
-    if "faq_answers" not in st.session_state:
+    if 'faq_answers' not in st.session_state:
         st.session_state.faq_answers = None
-    if "faq_selected_option" not in st.session_state:
+    if 'faq_selected_option' not in st.session_state:
         st.session_state.faq_selected_option = None
 
     # Tab 1: Smart FAQ
@@ -273,7 +289,7 @@ def show_ai_assistant():
         with col1:
             user_question = st.text_input(
                 "Type your question (English or , spelling errors are OK!)",
-                placeholder="E.g., '   ?' or 'How do I register an agent?'",
+                placeholder="E.g., '   ?' or 'How do I register an agent?'"
             )
 
         with col2:
@@ -291,7 +307,8 @@ def show_ai_assistant():
                         st.session_state.faq_selected_option = None
 
                         if not answers:
-                            st.info("❌ No answers found. Try different keywords or check 'Browse Categories' tab.")
+                            st.info(
+                                "❌ No answers found. Try different keywords or check 'Browse Categories' tab.")
                         else:
                             st.success(f"✅ Found {len(answers)} answer options!")
                     except Exception as e:
@@ -318,11 +335,12 @@ def show_ai_assistant():
                             st.session_state.faq_selected_option = i
 
                     with col3:
-                        if st.button("Copy", key=f"copy_ans_{i}"):
+                        if st.button(f"Copy", key=f"copy_ans_{i}"):
                             st.success("✅ Copied to clipboard (implementation needed)")
 
                     # Show preview
-                    preview = answer["answer"][:150] + "..." if len(answer["answer"]) > 150 else answer["answer"]
+                    preview = answer['answer'][:150] + \
+                        "..." if len(answer['answer']) > 150 else answer['answer']
                     st.markdown(f"> {preview}")
                     st.markdown("---")
 
@@ -340,19 +358,19 @@ def show_ai_assistant():
                     st.markdown(f"**Difficulty Level:** {selected_answer['difficulty'].upper()}")
 
                 with col2:
-                    if selected_answer.get("related_topics"):
-                        st.markdown("**Related Topics:**")
-                        for topic in selected_answer["related_topics"]:
+                    if selected_answer.get('related_topics'):
+                        st.markdown(f"**Related Topics:**")
+                        for topic in selected_answer['related_topics']:
                             st.caption(f"📌 {topic}")
 
                 st.markdown("---")
-                st.markdown(selected_answer["answer"])
+                st.markdown(selected_answer['answer'])
                 st.markdown("---")
 
                 # Related topics
-                if selected_answer.get("related_topics"):
+                if selected_answer.get('related_topics'):
                     st.markdown("**🔗 Related Topics:**")
-                    for topic in selected_answer["related_topics"]:
+                    for topic in selected_answer['related_topics']:
                         st.caption(f"• {topic}")
 
     with tab2:
@@ -373,14 +391,14 @@ def show_ai_assistant():
 
                         for item in questions[:10]:  # Show first 10
                             st.markdown(f"**Q:** {item.get('question_en', '')}")
-                            if item.get("question_ar"):
+                            if item.get('question_ar'):
                                 st.caption(f"(: {item['question_ar']})")
 
-                            answers = item.get("answers", [])
+                            answers = item.get('answers', [])
                             if answers:
                                 for ans in answers[:2]:  # Show first 2 answers
                                     with st.expander(f"Answer ({ans.get('difficulty', 'beginner').upper()})"):
-                                        st.markdown(ans.get("text", ""))
+                                        st.markdown(ans.get('text', ''))
                             st.markdown("---")
                     else:
                         st.info("No questions found in this category")

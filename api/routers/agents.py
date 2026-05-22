@@ -1,14 +1,12 @@
 """Agent management endpoints"""
-
-import re
-from typing import Any, Dict, List, Optional
-
 from fastapi import APIRouter, Depends, HTTPException
+import re
 from pydantic import BaseModel, field_validator
+from typing import Optional, List, Dict, Any
 
+from core.agentic_iam import AgenticIAM
 from agent_identity import AgentIdentity
 from api.dependencies import get_iam
-from core.agentic_iam import AgenticIAM
 
 router = APIRouter()
 
@@ -39,7 +37,10 @@ class AgentResponse(BaseModel):
 
 
 @router.post("/", status_code=201, tags=["Agent Management"])
-async def register_agent(payload: AgentRegisterRequest, iam: AgenticIAM = Depends(get_iam)) -> AgentResponse:
+async def register_agent(
+    payload: AgentRegisterRequest,
+    iam: AgenticIAM = Depends(get_iam)
+) -> AgentResponse:
     """Register a new agent"""
     try:
         # Create identity
@@ -53,22 +54,36 @@ async def register_agent(payload: AgentRegisterRequest, iam: AgenticIAM = Depend
         identity = AgentIdentity.generate(payload.agent_id, metadata)
 
         # Register in IAM system
-        await iam.register_agent(identity, initial_permissions=payload.initial_permissions)
+        await iam.register_agent(
+            identity,
+            initial_permissions=payload.initial_permissions
+        )
 
-        return AgentResponse(agent_id=payload.agent_id, status="active", metadata=metadata)
+        return AgentResponse(
+            agent_id=payload.agent_id,
+            status="active",
+            metadata=metadata
+        )
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Failed to register agent: {str(e)}")
 
 
 @router.get("/{agent_id}", tags=["Agent Management"])
-async def get_agent(agent_id: str, iam: AgenticIAM = Depends(get_iam)) -> Dict[str, Any]:
+async def get_agent(
+    agent_id: str,
+    iam: AgenticIAM = Depends(get_iam)
+) -> Dict[str, Any]:
     """Get agent details"""
     try:
         agent_entry = iam.agent_registry.get_agent(agent_id)
         if not agent_entry:
             raise HTTPException(status_code=404, detail="Agent not found")
 
-        return {"agent_id": agent_id, "status": "active", "metadata": getattr(agent_entry, "metadata", {})}
+        return {
+            "agent_id": agent_id,
+            "status": "active",
+            "metadata": getattr(agent_entry, 'metadata', {})
+        }
     except HTTPException:
         raise
     except Exception as e:
@@ -76,7 +91,10 @@ async def get_agent(agent_id: str, iam: AgenticIAM = Depends(get_iam)) -> Dict[s
 
 
 @router.delete("/{agent_id}", tags=["Agent Management"])
-async def delete_agent(agent_id: str, iam: AgenticIAM = Depends(get_iam)) -> Dict[str, str]:
+async def delete_agent(
+    agent_id: str,
+    iam: AgenticIAM = Depends(get_iam)
+) -> Dict[str, str]:
     """Delete an agent"""
     try:
         if not iam.agent_registry.get_agent(agent_id):
@@ -88,7 +106,7 @@ async def delete_agent(agent_id: str, iam: AgenticIAM = Depends(get_iam)) -> Dic
             "status": "deleted",
             "agent_id": agent_id,
             "sessions_terminated": str(result.get("sessions_terminated", 0)),
-            "registry_deleted": str(result.get("registry_deleted", False)),
+            "registry_deleted": str(result.get("registry_deleted", False))
         }
     except HTTPException:
         raise
@@ -97,10 +115,15 @@ async def delete_agent(agent_id: str, iam: AgenticIAM = Depends(get_iam)) -> Dic
 
 
 @router.get("/", tags=["Agent Management"])
-async def list_agents(iam: AgenticIAM = Depends(get_iam)) -> Dict[str, Any]:
+async def list_agents(
+    iam: AgenticIAM = Depends(get_iam)
+) -> Dict[str, Any]:
     """List all registered agents"""
     try:
         agents = iam.agent_registry.list_agents()
-        return {"agents": [agent.agent_id for agent in agents], "count": len(agents)}
+        return {
+            "agents": [agent.agent_id for agent in agents],
+            "count": len(agents)
+        }
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))

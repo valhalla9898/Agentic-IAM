@@ -9,7 +9,7 @@
   "enable_sso": true,
   "admin_username": "valhalla_admin",
   "admin_email": "admin@valhalla.local",
-  "admin_password": "",
+  "admin_password": "Valhalla@12345",
   "company_app_url": "http://localhost:8501",
   "tenant_display_name": "Valhalla Demo Tenant",
   "support_contact": "support@valhalla.local",

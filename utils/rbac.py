@@ -5,19 +5,17 @@ Provides comprehensive permission management and access control for the Agentic-
 Supports role-based access control with fine-grained permissions.
 """
 
-import functools
-import logging
 from enum import Enum
-from typing import Dict, List, Optional, Set
-
+from typing import Set, Dict, List, Optional, Callable
+import functools
 import streamlit as st
+import logging
 
 logger = logging.getLogger(__name__)
 
 
 class Permission(Enum):
     """System permissions"""
-
     # Agent management permissions
     AGENT_CREATE = "agent:create"
     AGENT_READ = "agent:read"
@@ -58,7 +56,6 @@ class Permission(Enum):
 
 class Role(Enum):
     """System roles"""
-
     ADMIN = "admin"
     USER = "user"
     GUEST = "guest"
@@ -136,7 +133,7 @@ class RBACManager:
         if not user:
             return Role.GUEST
 
-        role_str = user.get("role", "user").lower()
+        role_str = user.get('role', 'user').lower()
         try:
             return Role[role_str.upper()]
         except KeyError:
@@ -164,89 +161,78 @@ class RBACManager:
 
     def require_permission(self, permission: Permission):
         """Decorator to require specific permission for a function"""
-
         def decorator(func):
             @functools.wraps(func)
             def wrapper(*args, **kwargs):
-                user = st.session_state.get("user")
+                user = st.session_state.get('user')
                 if not self.has_permission(user, permission):
                     st.error(f"❌ Access Denied: You don't have permission to {permission.value}")
                     logger.warning(
-                        f"Access denied for {user.get('username', 'unknown') if user else 'guest'} to {permission.value}"
-                    )
+                        f"Access denied for {user.get('username', 'unknown') if user else 'guest'} to {permission.value}")
                     return None
                 return func(*args, **kwargs)
-
             return wrapper
-
         return decorator
 
     def require_any_permission(self, *permissions: Permission):
         """Decorator to require any of the given permissions"""
-
         def decorator(func):
             @functools.wraps(func)
             def wrapper(*args, **kwargs):
-                user = st.session_state.get("user")
+                user = st.session_state.get('user')
                 if not self.has_any_permission(user, list(permissions)):
-                    st.error("❌ Access Denied: Insufficient permissions")
-                    logger.warning(f"Access denied for {user.get('username', 'unknown') if user else 'guest'}")
+                    st.error(f"❌ Access Denied: Insufficient permissions")
+                    logger.warning(
+                        f"Access denied for {user.get('username', 'unknown') if user else 'guest'}")
                     return None
                 return func(*args, **kwargs)
-
             return wrapper
-
         return decorator
 
     def require_all_permissions(self, *permissions: Permission):
         """Decorator to require all of the given permissions"""
-
         def decorator(func):
             @functools.wraps(func)
             def wrapper(*args, **kwargs):
-                user = st.session_state.get("user")
+                user = st.session_state.get('user')
                 if not self.has_all_permissions(user, list(permissions)):
-                    st.error("❌ Access Denied: Insufficient permissions")
-                    logger.warning(f"Access denied for {user.get('username', 'unknown') if user else 'guest'}")
+                    st.error(f"❌ Access Denied: Insufficient permissions")
+                    logger.warning(
+                        f"Access denied for {user.get('username', 'unknown') if user else 'guest'}")
                     return None
                 return func(*args, **kwargs)
-
             return wrapper
-
         return decorator
 
     def require_role(self, *roles: Role):
         """Decorator to require specific role(s)"""
-
         def decorator(func):
             @functools.wraps(func)
             def wrapper(*args, **kwargs):
-                user = st.session_state.get("user")
+                user = st.session_state.get('user')
                 user_role = self.get_user_role(user)
                 if user_role not in roles:
-                    st.error(f"❌ Access Denied: This action requires one of {[r.value for r in roles]}")
+                    st.error(
+                        f"❌ Access Denied: This action requires one of {[r.value for r in roles]}")
                     logger.warning(
-                        f"Access denied for {user.get('username', 'unknown') if user else 'guest'} role {user_role.value}"
-                    )
+                        f"Access denied for {user.get('username', 'unknown') if user else 'guest'} role {user_role.value}")
                     return None
                 return func(*args, **kwargs)
-
             return wrapper
-
         return decorator
 
 
 def check_permission(permission: Permission) -> bool:
     """Check if current user has permission"""
     rbac = RBACManager()
-    user = st.session_state.get("user")
+    user = st.session_state.get('user')
     return rbac.has_permission(user, permission)
 
 
 def check_role(*roles: Role) -> bool:
     """Check if current user has required role"""
     rbac = RBACManager()
-    user = st.session_state.get("user")
+    user = st.session_state.get('user')
     user_role = rbac.get_user_role(user)
     return user_role in roles
 
@@ -254,14 +240,14 @@ def check_role(*roles: Role) -> bool:
 def get_current_user_role() -> Role:
     """Get current user's role"""
     rbac = RBACManager()
-    user = st.session_state.get("user")
+    user = st.session_state.get('user')
     return rbac.get_user_role(user)
 
 
 def get_current_user_permissions() -> Set[Permission]:
     """Get current user's permissions"""
     rbac = RBACManager()
-    user = st.session_state.get("user")
+    user = st.session_state.get('user')
     return rbac.get_user_permissions(user)
 
 
@@ -277,7 +263,7 @@ def is_operator() -> bool:
 
 def is_authenticated() -> bool:
     """Check if user is authenticated"""
-    return st.session_state.get("authenticated", False) and st.session_state.get("user") is not None
+    return st.session_state.get('authenticated', False) and st.session_state.get('user') is not None
 
 
 # Global RBAC manager instance
@@ -293,16 +279,16 @@ def get_rbac_manager() -> RBACManager:
 
 
 __all__ = [
-    "Permission",
-    "Role",
-    "RBACManager",
-    "check_permission",
-    "check_role",
-    "get_current_user_role",
-    "get_current_user_permissions",
-    "is_admin",
-    "is_operator",
-    "is_authenticated",
-    "get_rbac_manager",
-    "ROLE_PERMISSIONS",
+    'Permission',
+    'Role',
+    'RBACManager',
+    'check_permission',
+    'check_role',
+    'get_current_user_role',
+    'get_current_user_permissions',
+    'is_admin',
+    'is_operator',
+    'is_authenticated',
+    'get_rbac_manager',
+    'ROLE_PERMISSIONS',
 ]

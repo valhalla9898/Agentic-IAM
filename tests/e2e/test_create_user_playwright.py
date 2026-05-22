@@ -3,8 +3,9 @@ from uuid import uuid4
 
 from playwright.sync_api import sync_playwright
 
-from config.settings import get_settings
 from database import Database
+from config.settings import get_settings
+
 from tests.e2e.helpers import (
     choose_selectbox_option,
     login_as_admin,
@@ -27,8 +28,9 @@ def test_create_user_flow():
             page.goto(base_url)
             login_as_admin(page)
 
-            page.locator('[data-testid="stSidebar"] p').filter(has_text="User Management").first.click()
-            page.wait_for_selector("text=Manage Users", timeout=10000)
+            page.locator(
+                '[data-testid="stSidebar"] p').filter(has_text='User Management').first.click()
+            page.wait_for_selector('text=Manage Users', timeout=10000)
 
             page.get_by_label("New username").fill(username)
             page.get_by_label("New email").fill(email)
@@ -38,7 +40,8 @@ def test_create_user_flow():
 
             created_user = None
             for _ in range(20):
-                created_user = next((user for user in db.list_users() if user["username"] == username), None)
+                created_user = next(
+                    (user for user in db.list_users() if user["username"] == username), None)
                 if created_user is not None:
                     break
                 time.sleep(0.5)
@@ -51,11 +54,8 @@ def test_create_user_flow():
 
             assert db.delete_user(created_user["id"]) is True
             assert db.get_user_by_id(created_user["id"]) is None
-        except Exception as e:
+        except Exception:
             save_artifacts(page, "create_user_failure")
-            import logging
-
-            logging.getLogger(__name__).debug("create_user_flow failed: %s", e)
             raise
         finally:
             browser.close()

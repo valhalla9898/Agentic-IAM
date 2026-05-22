@@ -4,15 +4,14 @@ Comprehensive logging configuration for Agentic-IAM
 Supports multiple handlers (console, file, structured logging)
 with JSON output for production environments.
 """
-
-import json
 import logging
 import logging.handlers
+import json
 import sys
-import traceback
-from datetime import datetime
 from pathlib import Path
+from datetime import datetime
 from typing import Optional
+import traceback
 
 
 class JSONFormatter(logging.Formatter):
@@ -31,7 +30,7 @@ class JSONFormatter(logging.Formatter):
         }
 
         # Add extra fields if present
-        if hasattr(record, "extra"):
+        if hasattr(record, 'extra'):
             log_data.update(record.extra)
 
         # Add exception info if present
@@ -39,7 +38,7 @@ class JSONFormatter(logging.Formatter):
             log_data["exception"] = {
                 "type": record.exc_info[0].__name__,
                 "message": str(record.exc_info[1]),
-                "traceback": traceback.format_exception(*record.exc_info),
+                "traceback": traceback.format_exception(*record.exc_info)
             }
 
         return json.dumps(log_data)
@@ -69,7 +68,7 @@ def setup_logging(
     log_format: str = "plain",
     enable_console: bool = True,
     max_file_size: int = 104857600,  # 100MB
-    backup_count: int = 10,
+    backup_count: int = 10
 ) -> None:
     """
     Configure logging for the application
@@ -107,7 +106,11 @@ def setup_logging(
         log_path = Path(log_file)
         log_path.parent.mkdir(parents=True, exist_ok=True)
 
-        file_handler = logging.handlers.RotatingFileHandler(log_file, maxBytes=max_file_size, backupCount=backup_count)
+        file_handler = logging.handlers.RotatingFileHandler(
+            log_file,
+            maxBytes=max_file_size,
+            backupCount=backup_count
+        )
         file_handler.setLevel(getattr(logging, log_level.upper()))
         file_handler.setFormatter(formatter)
         root_logger.addHandler(file_handler)
@@ -172,7 +175,12 @@ class StructuredLogger:
 # Module-level setup
 if __name__ == "__main__":
     # Test logging configuration
-    setup_logging(log_level="DEBUG", log_file="test.log", log_format="json", enable_console=True)
+    setup_logging(
+        log_level="DEBUG",
+        log_file="test.log",
+        log_format="json",
+        enable_console=True
+    )
 
     logger = get_logger(__name__)
     logger.info("Logging configured successfully")

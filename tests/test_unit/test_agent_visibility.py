@@ -1,5 +1,6 @@
 from dashboard.components.agent_selection import filter_visible_agents
 
+
 AGENTS = [
     {
         "id": "agent-public",

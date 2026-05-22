@@ -3,23 +3,19 @@ Agentic-IAM: API Models
 
 Pydantic models for request/response serialization and validation.
 """
-
 from datetime import datetime
-from typing import Any, Dict, List, Optional
-
+from typing import Optional, Dict, Any, List
 from pydantic import BaseModel, Field, field_validator
 
 
 # Base models
 class BaseResponse(BaseModel):
     """Base response model"""
-
     timestamp: datetime = Field(default_factory=datetime.utcnow)
 
 
 class SuccessResponse(BaseResponse):
     """Success response model"""
-
     success: bool = True
     message: str
     data: Optional[Dict[str, Any]] = None
@@ -27,7 +23,6 @@ class SuccessResponse(BaseResponse):
 
 class ErrorResponse(BaseResponse):
     """Error response model"""
-
     success: bool = False
     error_code: str
     error_message: str
@@ -37,24 +32,22 @@ class ErrorResponse(BaseResponse):
 # Authentication models
 class AuthenticationRequest(BaseModel):
     """Authentication request"""
-
     agent_id: str = Field(..., min_length=1, description="Agent identifier")
     method: str = Field(default="auto", description="Authentication method")
     credentials: Dict[str, Any] = Field(..., description="Authentication credentials")
     source_ip: Optional[str] = Field(None, description="Source IP address")
     user_agent: Optional[str] = Field(None, description="User agent string")
 
-    @field_validator("agent_id")
+    @field_validator('agent_id')
     @classmethod
     def validate_agent_id(cls, v):
-        if not v.startswith("agent:"):
+        if not v.startswith('agent:'):
             raise ValueError('Agent ID must start with "agent:"')
         return v
 
 
 class AuthenticationResponse(BaseResponse):
     """Authentication response"""
-
     success: bool
     agent_id: Optional[str] = None
     token: Optional[str] = None
@@ -67,7 +60,6 @@ class AuthenticationResponse(BaseResponse):
 
 class TokenRefreshRequest(BaseModel):
     """Token refresh request"""
-
     session_id: str = Field(..., description="Session identifier")
     refresh_token: Optional[str] = Field(None, description="Refresh token")
 
@@ -75,7 +67,6 @@ class TokenRefreshRequest(BaseModel):
 # Agent models
 class AgentCreateRequest(BaseModel):
     """Agent creation request"""
-
     agent_id: str = Field(..., description="Unique agent identifier")
     agent_type: str = Field(..., description="Type of agent")
     description: Optional[str] = Field(None, description="Agent description")
@@ -83,32 +74,30 @@ class AgentCreateRequest(BaseModel):
     metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
     initial_permissions: List[str] = Field(default_factory=list, description="Initial permissions")
 
-    @field_validator("agent_id")
+    @field_validator('agent_id')
     @classmethod
     def validate_agent_id(cls, v):
-        if not v.startswith("agent:"):
+        if not v.startswith('agent:'):
             raise ValueError('Agent ID must start with "agent:"')
         return v
 
 
 class AgentUpdateRequest(BaseModel):
     """Agent update request"""
-
     description: Optional[str] = None
     metadata: Optional[Dict[str, Any]] = None
     status: Optional[str] = None
 
-    @field_validator("status")
+    @field_validator('status')
     @classmethod
     def validate_status(cls, v):
-        if v and v not in ["active", "inactive", "suspended", "deactivated"]:
-            raise ValueError("Invalid status")
+        if v and v not in ['active', 'inactive', 'suspended', 'deactivated']:
+            raise ValueError('Invalid status')
         return v
 
 
 class AgentResponse(BaseResponse):
     """Agent information response"""
-
     agent_id: str
     status: str
     agent_type: str
@@ -123,7 +112,6 @@ class AgentResponse(BaseResponse):
 
 class AgentListResponse(BaseResponse):
     """Agent list response"""
-
     agents: List[AgentResponse]
     total: int
     page: int = 1
@@ -134,7 +122,6 @@ class AgentListResponse(BaseResponse):
 # Session models
 class SessionCreateRequest(BaseModel):
     """Session creation request"""
-
     agent_id: str
     auth_method: str = "jwt"
     trust_level: float = Field(default=1.0, ge=0.0, le=1.0)
@@ -144,7 +131,6 @@ class SessionCreateRequest(BaseModel):
 
 class SessionResponse(BaseResponse):
     """Session information response"""
-
     session_id: str
     agent_id: str
     status: str
@@ -159,7 +145,6 @@ class SessionResponse(BaseResponse):
 # Authorization models
 class AuthorizationRequest(BaseModel):
     """Authorization request"""
-
     agent_id: str
     resource: str = Field(..., description="Resource being accessed")
     action: str = Field(..., description="Action being performed")
@@ -168,7 +153,6 @@ class AuthorizationRequest(BaseModel):
 
 class AuthorizationResponse(BaseResponse):
     """Authorization response"""
-
     agent_id: str
     resource: str
     action: str
@@ -180,7 +164,6 @@ class AuthorizationResponse(BaseResponse):
 # Trust scoring models
 class TrustScoreRequest(BaseModel):
     """Trust score calculation request"""
-
     agent_id: str
     include_history: bool = False
     time_window_hours: int = Field(default=24, ge=1, le=8760)  # 1 hour to 1 year
@@ -188,7 +171,6 @@ class TrustScoreRequest(BaseModel):
 
 class TrustScoreResponse(BaseResponse):
     """Trust score response"""
-
     agent_id: str
     overall_score: float = Field(..., ge=0.0, le=1.0)
     risk_level: str
@@ -202,7 +184,6 @@ class TrustScoreResponse(BaseResponse):
 # Audit models
 class AuditEventResponse(BaseResponse):
     """Audit event response"""
-
     event_id: str
     event_type: str
     agent_id: Optional[str]
@@ -216,7 +197,6 @@ class AuditEventResponse(BaseResponse):
 
 class AuditQueryRequest(BaseModel):
     """Audit query request"""
-
     event_types: Optional[List[str]] = None
     agent_id: Optional[str] = None
     start_time: Optional[datetime] = None
@@ -230,25 +210,23 @@ class AuditQueryRequest(BaseModel):
 # Compliance models
 class ComplianceReportRequest(BaseModel):
     """Compliance report request"""
-
     framework: str = Field(..., description="Compliance framework")
     start_date: datetime
     end_date: datetime
     include_violations: bool = True
     include_recommendations: bool = True
 
-    @field_validator("framework")
+    @field_validator('framework')
     @classmethod
     def validate_framework(cls, v):
-        allowed = ["gdpr", "hipaa", "sox", "pci_dss"]
+        allowed = ['gdpr', 'hipaa', 'sox', 'pci_dss']
         if v.lower() not in allowed:
-            raise ValueError(f"Framework must be one of: {allowed}")
+            raise ValueError(f'Framework must be one of: {allowed}')
         return v.lower()
 
 
 class ComplianceReportResponse(BaseResponse):
     """Compliance report response"""
-
     report_id: str
     framework: str
     report_period: Dict[str, str]
@@ -262,24 +240,22 @@ class ComplianceReportResponse(BaseResponse):
 # Analytics models
 class AnalyticsRequest(BaseModel):
     """Analytics request"""
-
     metric_type: str = Field(..., description="Type of metric")
     time_range: str = Field(default="24h", description="Time range")
     agent_id: Optional[str] = None
     granularity: str = Field(default="hour", description="Data granularity")
 
-    @field_validator("time_range")
+    @field_validator('time_range')
     @classmethod
     def validate_time_range(cls, v):
-        allowed = ["1h", "6h", "24h", "7d", "30d"]
+        allowed = ['1h', '6h', '24h', '7d', '30d']
         if v not in allowed:
-            raise ValueError(f"Time range must be one of: {allowed}")
+            raise ValueError(f'Time range must be one of: {allowed}')
         return v
 
 
 class AnalyticsResponse(BaseResponse):
     """Analytics response"""
-
     metric_type: str
     time_range: str
     data_points: List[Dict[str, Any]]
@@ -290,7 +266,6 @@ class AnalyticsResponse(BaseResponse):
 # Health models
 class HealthResponse(BaseResponse):
     """Health check response"""
-
     status: str
     version: str
     uptime: float
@@ -301,23 +276,21 @@ class HealthResponse(BaseResponse):
 # Pagination models
 class PaginationRequest(BaseModel):
     """Pagination request"""
-
     page: int = Field(default=1, ge=1, description="Page number")
     page_size: int = Field(default=100, ge=1, le=1000, description="Items per page")
     sort_by: Optional[str] = Field(None, description="Sort field")
     sort_order: str = Field(default="asc", description="Sort order")
 
-    @field_validator("sort_order")
+    @field_validator('sort_order')
     @classmethod
     def validate_sort_order(cls, v):
-        if v not in ["asc", "desc"]:
+        if v not in ['asc', 'desc']:
             raise ValueError('Sort order must be "asc" or "desc"')
         return v
 
 
 class PaginatedResponse(BaseResponse):
     """Paginated response"""
-
     items: List[Any]
     total: int
     page: int
@@ -330,22 +303,20 @@ class PaginatedResponse(BaseResponse):
 # Configuration models
 class ConfigurationUpdateRequest(BaseModel):
     """Configuration update request"""
-
     section: str = Field(..., description="Configuration section")
     settings: Dict[str, Any] = Field(..., description="Settings to update")
 
-    @field_validator("section")
+    @field_validator('section')
     @classmethod
     def validate_section(cls, v):
-        allowed = ["auth", "session", "trust", "audit", "compliance"]
+        allowed = ['auth', 'session', 'trust', 'audit', 'compliance']
         if v not in allowed:
-            raise ValueError(f"Section must be one of: {allowed}")
+            raise ValueError(f'Section must be one of: {allowed}')
         return v
 
 
 class ConfigurationResponse(BaseResponse):
     """Configuration response"""
-
     section: str
     settings: Dict[str, Any]
     last_updated: datetime
@@ -355,7 +326,6 @@ class ConfigurationResponse(BaseResponse):
 # Metrics models
 class MetricsResponse(BaseResponse):
     """Metrics response"""
-
     metrics: Dict[str, Any]
     timestamp: datetime
     collection_interval: int
@@ -364,23 +334,21 @@ class MetricsResponse(BaseResponse):
 # Notification models
 class NotificationRequest(BaseModel):
     """Notification request"""
-
     recipient: str = Field(..., description="Notification recipient")
     message: str = Field(..., description="Notification message")
     priority: str = Field(default="normal", description="Notification priority")
     channel: str = Field(default="email", description="Notification channel")
 
-    @field_validator("priority")
+    @field_validator('priority')
     @classmethod
     def validate_priority(cls, v):
-        if v not in ["low", "normal", "high", "critical"]:
-            raise ValueError("Priority must be low, normal, high, or critical")
+        if v not in ['low', 'normal', 'high', 'critical']:
+            raise ValueError('Priority must be low, normal, high, or critical')
         return v
 
 
 class NotificationResponse(BaseResponse):
     """Notification response"""
-
     notification_id: str
     status: str
     sent_at: datetime

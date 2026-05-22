@@ -4,16 +4,17 @@ Advanced Security & Protection System
 """
 
 import hashlib
-import hmac
 import secrets
-import sqlite3
-import tempfile
+import hmac
 from datetime import datetime, timedelta
-from typing import Dict, Optional, Tuple
+from typing import Optional, Dict, Tuple
+import sqlite3
+import json
+import tempfile
 
 
 class QASecurityManager:
-    """Q&A System"""
+    """    Q&A System"""
 
     def __init__(self, db_path: str = "qa_security.db"):
         if db_path == ":memory:":
@@ -82,7 +83,11 @@ class QASecurityManager:
         conn.close()
 
     def check_rate_limit(
-        self, user_id: str, endpoint: str, max_requests: int = 100, time_window: int = 3600
+        self,
+        user_id: str,
+        endpoint: str,
+        max_requests: int = 100,
+        time_window: int = 3600
     ) -> Tuple[bool, Dict]:
         """Check if user exceeds rate limit"""
         conn = sqlite3.connect(self.db_path)
@@ -99,7 +104,7 @@ class QASecurityManager:
                         conn.close()
                         return False, {
                             "message": f"Rate limit exceeded. Max {max_requests} requests per {time_window}s",
-                            "retry_after": time_window - int(elapsed),
+                            "retry_after": time_window - int(elapsed)
                         }
 
                     state["request_count"] += 1
@@ -116,69 +121,63 @@ class QASecurityManager:
                 }
                 self._rate_limit_state[state_key] = state
 
-            cursor.execute(
-                """
+            cursor.execute("""
                 INSERT OR IGNORE INTO rate_limit (user_id, endpoint, request_count, first_request_time)
                 VALUES (?, ?, 1, CURRENT_TIMESTAMP)
-            """,
-                (user_id, endpoint),
-            )
+            """, (user_id, endpoint))
 
-            cursor.execute(
-                """
+            cursor.execute("""
                 UPDATE rate_limit
                 SET request_count = ?, first_request_time = ?
                 WHERE user_id = ? AND endpoint = ?
-            """,
-                (
-                    state["request_count"],
-                    state["first_request_time"].isoformat(sep=" ", timespec="seconds"),
-                    user_id,
-                    endpoint,
-                ),
-            )
+            """, (
+                state["request_count"],
+                state["first_request_time"].isoformat(sep=" ", timespec="seconds"),
+                user_id,
+                endpoint,
+            ))
 
             conn.commit()
             conn.close()
 
             return True, {"message": "Request allowed"}
 
-        except sqlite3.DatabaseError as e:
+        except Exception as e:
             conn.close()
-            import logging
-
-            logging.getLogger(__name__).debug("Error checking rate limit: %s", e)
-            return False, {"message": "Error checking rate limit"}
+            return False, {"message": f"Error checking rate limit: {str(e)}"}
 
     def log_suspicious_activity(
-        self, user_id: str, activity_type: str, description: str = "", ip_address: str = None, severity: int = 1
+        self,
+        user_id: str,
+        activity_type: str,
+        description: str = "",
+        ip_address: str = None,
+        severity: int = 1
     ) -> bool:
         """Log suspicious activity"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
         try:
-            cursor.execute(
-                """
+            cursor.execute("""
                 INSERT INTO suspicious_activity
                 (user_id, activity_type, description, ip_address, severity)
                 VALUES (?, ?, ?, ?, ?)
-            """,
-                (user_id, activity_type, description, ip_address, severity),
-            )
+            """, (user_id, activity_type, description, ip_address, severity))
 
             conn.commit()
             conn.close()
             return True
-        except sqlite3.DatabaseError as e:
+        except Exception:
             conn.close()
-            import logging
-
-            logging.getLogger(__name__).debug("Failed to log suspicious activity: %s", e)
             return False
 
     def create_session(
-        self, user_id: str, ip_address: str = None, user_agent: str = None, expires_in: int = 86400
+        self,
+        user_id: str,
+        ip_address: str = None,
+        user_agent: str = None,
+        expires_in: int = 86400
     ) -> Optional[str]:
         """Create a secure session"""
         conn = sqlite3.connect(self.db_path)
@@ -188,24 +187,18 @@ class QASecurityManager:
             session_token = secrets.token_urlsafe(32)
             expires_at = datetime.now() + timedelta(seconds=expires_in)
 
-            cursor.execute(
-                """
+            cursor.execute("""
                 INSERT INTO user_sessions
                 (user_id, session_token, ip_address, user_agent, expires_at)
                 VALUES (?, ?, ?, ?, ?)
-            """,
-                (user_id, session_token, ip_address, user_agent, expires_at.isoformat()),
-            )
+            """, (user_id, session_token, ip_address, user_agent, expires_at.isoformat()))
 
             conn.commit()
             conn.close()
 
             return session_token
-        except sqlite3.DatabaseError as e:
+        except Exception:
             conn.close()
-            import logging
-
-            logging.getLogger(__name__).debug("Failed to create session: %s", e)
             return None
 
     def validate_session(self, session_token: str) -> Tuple[bool, Optional[str]]:
@@ -214,13 +207,10 @@ class QASecurityManager:
         cursor = conn.cursor()
 
         try:
-            cursor.execute(
-                """
+            cursor.execute("""
                 SELECT user_id, expires_at, is_active FROM user_sessions
                 WHERE session_token = ?
-            """,
-                (session_token,),
-            )
+            """, (session_token,))
 
             result = cursor.fetchone()
             conn.close()
@@ -238,11 +228,8 @@ class QASecurityManager:
                 return True, user_id
 
             return False, None
-        except sqlite3.DatabaseError as e:
+        except Exception:
             conn.close()
-            import logging
-
-            logging.getLogger(__name__).debug("Failed to validate session: %s", e)
             return False, None
 
     def is_user_blacklisted(self, user_id: str) -> bool:
@@ -251,14 +238,11 @@ class QASecurityManager:
         cursor = conn.cursor()
 
         try:
-            cursor.execute(
-                """
+            cursor.execute("""
                 SELECT expires_at FROM blacklist
                 WHERE user_id = ?
                 ORDER BY expires_at DESC LIMIT 1
-            """,
-                (user_id,),
-            )
+            """, (user_id,))
 
             result = cursor.fetchone()
             conn.close()
@@ -272,11 +256,8 @@ class QASecurityManager:
                 return True
 
             return False
-        except sqlite3.DatabaseError as e:
+        except Exception:
             conn.close()
-            import logging
-
-            logging.getLogger(__name__).debug("Failed to check blacklist for user %s: %s", user_id, e)
             return False
 
     def blacklist_user(self, user_id: str, reason: str = "", duration: int = None):
@@ -289,22 +270,16 @@ class QASecurityManager:
             if duration:
                 expires_at = (datetime.now() + timedelta(seconds=duration)).isoformat()
 
-            cursor.execute(
-                """
+            cursor.execute("""
                 INSERT INTO blacklist (user_id, reason, expires_at)
                 VALUES (?, ?, ?)
-            """,
-                (user_id, reason, expires_at),
-            )
+            """, (user_id, reason, expires_at))
 
             conn.commit()
             conn.close()
             return True
-        except sqlite3.DatabaseError as e:
+        except Exception:
             conn.close()
-            import logging
-
-            logging.getLogger(__name__).debug("Failed to blacklist user %s: %s", user_id, e)
             return False
 
     @staticmethod
@@ -313,7 +288,12 @@ class QASecurityManager:
         if salt is None:
             salt = secrets.token_hex(16)
 
-        hash_obj = hashlib.pbkdf2_hmac("sha256", answer.encode("utf-8"), salt.encode("utf-8"), 100000)
+        hash_obj = hashlib.pbkdf2_hmac(
+            'sha256',
+            answer.encode('utf-8'),
+            salt.encode('utf-8'),
+            100000
+        )
 
         hashed = hash_obj.hex()
 
@@ -333,23 +313,17 @@ class QASecurityManager:
         try:
             if user_id:
                 # Single user report
-                cursor.execute(
-                    """
+                cursor.execute("""
                     SELECT COUNT(*) FROM suspicious_activity
                     WHERE user_id = ?
-                """,
-                    (user_id,),
-                )
+                """, (user_id,))
 
                 suspicious_count = cursor.fetchone()[0]
 
-                cursor.execute(
-                    """
+                cursor.execute("""
                     SELECT COUNT(*) FROM user_sessions
                     WHERE user_id = ? AND is_active = 1
-                """,
-                    (user_id,),
-                )
+                """, (user_id,))
 
                 active_sessions = cursor.fetchone()[0]
 
@@ -362,7 +336,7 @@ class QASecurityManager:
                     "suspicious_activities": suspicious_count,
                     "active_sessions": active_sessions,
                     "is_blacklisted": is_blacklisted,
-                    "report_generated_at": datetime.now().isoformat(),
+                    "report_generated_at": datetime.now().isoformat()
                 }
             else:
                 # System-wide report
@@ -381,15 +355,12 @@ class QASecurityManager:
                     "total_suspicious_activities": total_suspicious,
                     "total_active_sessions": total_active_sessions,
                     "total_blacklisted_users": total_blacklisted,
-                    "report_generated_at": datetime.now().isoformat(),
+                    "report_generated_at": datetime.now().isoformat()
                 }
 
-        except sqlite3.DatabaseError as e:
+        except Exception as e:
             conn.close()
-            import logging
-
-            logging.getLogger(__name__).debug("Failed to generate security report: %s", e)
-            return {"error": "failed to generate security report"}
+            return {"error": str(e)}
 
 
 # Singleton instance

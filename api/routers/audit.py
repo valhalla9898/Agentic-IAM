@@ -3,23 +3,23 @@ Agentic-IAM: Audit & Compliance API Router
 
 REST API endpoints for audit logging, compliance reporting, and regulatory compliance.
 """
-
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from typing import List, Optional, Dict, Any
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, HTTPException, Depends, status
 from pydantic import BaseModel
 
-from api.dependencies import get_iam, get_settings
-from config.settings import Settings
 from core.agentic_iam import AgenticIAM
+from api.dependencies import get_iam, get_settings
+from api.models import SuccessResponse, ErrorResponse
+from config.settings import Settings
+
 
 router = APIRouter()
 
 
 class AuditEventResponse(BaseModel):
     """Audit event information"""
-
     event_id: str
     event_type: str
     agent_id: Optional[str]
@@ -34,7 +34,6 @@ class AuditEventResponse(BaseModel):
 
 class AuditQueryRequest(BaseModel):
     """Request for audit event queries"""
-
     event_types: Optional[List[str]] = None
     agent_id: Optional[str] = None
     start_time: Optional[datetime] = None
@@ -47,7 +46,6 @@ class AuditQueryRequest(BaseModel):
 
 class ComplianceReportRequest(BaseModel):
     """Request for compliance report generation"""
-
     framework: str  # gdpr, hipaa, sox, pci_dss
     start_date: datetime
     end_date: datetime
@@ -57,7 +55,6 @@ class ComplianceReportRequest(BaseModel):
 
 class ComplianceReportResponse(BaseModel):
     """Compliance report information"""
-
     report_id: str
     framework: str
     report_period: Dict[str, str]
@@ -78,7 +75,7 @@ async def list_audit_events(
     severity: Optional[str] = None,
     limit: int = 100,
     offset: int = 0,
-    iam: AgenticIAM = Depends(get_iam),
+    iam: AgenticIAM = Depends(get_iam)
 ):
     """
     List audit events
@@ -87,10 +84,13 @@ async def list_audit_events(
     """
     try:
         if not iam.audit_manager:
-            raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Audit logging not initialized")
+            raise HTTPException(
+                status_code=status.HTTP_501_NOT_IMPLEMENTED,
+                detail="Audit logging not initialized"
+            )
 
         # Build query
-        from audit_compliance import AuditEventType, AuditQuery
+        from audit_compliance import AuditQuery, AuditEventType
 
         # Parse event types
         event_types = None
@@ -98,7 +98,10 @@ async def list_audit_events(
             try:
                 event_types = [AuditEventType(event_type)]
             except ValueError:
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid event type: {event_type}")
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Invalid event type: {event_type}"
+                )
 
         # Set default time range if not provided
         if not start_time:
@@ -113,7 +116,7 @@ async def list_audit_events(
             end_time=end_time,
             severity=severity,
             limit=limit,
-            offset=offset,
+            offset=offset
         )
 
         # Execute query
@@ -122,20 +125,18 @@ async def list_audit_events(
         # Convert to response format
         event_responses = []
         for event in events:
-            event_responses.append(
-                AuditEventResponse(
-                    event_id=event.event_id,
-                    event_type=event.event_type.value,
-                    agent_id=event.agent_id,
-                    timestamp=event.timestamp,
-                    severity=event.severity.value,
-                    component=event.component,
-                    outcome=event.outcome,
-                    source_ip=event.source_ip,
-                    user_agent=event.user_agent,
-                    details=event.details,
-                )
-            )
+            event_responses.append(AuditEventResponse(
+                event_id=event.event_id,
+                event_type=event.event_type.value,
+                agent_id=event.agent_id,
+                timestamp=event.timestamp,
+                severity=event.severity.value,
+                component=event.component,
+                outcome=event.outcome,
+                source_ip=event.source_ip,
+                user_agent=event.user_agent,
+                details=event.details
+            ))
 
         return {
             "events": event_responses,
@@ -147,20 +148,24 @@ async def list_audit_events(
                 "end_time": end_time.isoformat(),
                 "severity": severity,
                 "limit": limit,
-                "offset": offset,
-            },
+                "offset": offset
+            }
         }
 
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to list audit events: {str(e)}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to list audit events: {str(e)}"
         )
 
 
 @router.post("/events/query")
-async def query_audit_events(request: AuditQueryRequest, iam: AgenticIAM = Depends(get_iam)):
+async def query_audit_events(
+    request: AuditQueryRequest,
+    iam: AgenticIAM = Depends(get_iam)
+):
     """
     Advanced audit event query
 
@@ -168,10 +173,13 @@ async def query_audit_events(request: AuditQueryRequest, iam: AgenticIAM = Depen
     """
     try:
         if not iam.audit_manager:
-            raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Audit logging not initialized")
+            raise HTTPException(
+                status_code=status.HTTP_501_NOT_IMPLEMENTED,
+                detail="Audit logging not initialized"
+            )
 
         # Build query
-        from audit_compliance import AuditEventType, AuditQuery
+        from audit_compliance import AuditQuery, AuditEventType
 
         # Parse event types
         event_types = None
@@ -179,7 +187,10 @@ async def query_audit_events(request: AuditQueryRequest, iam: AgenticIAM = Depen
             try:
                 event_types = [AuditEventType(et) for et in request.event_types]
             except ValueError as e:
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid event type: {str(e)}")
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Invalid event type: {str(e)}"
+                )
 
         query = AuditQuery(
             event_types=event_types,
@@ -189,7 +200,7 @@ async def query_audit_events(request: AuditQueryRequest, iam: AgenticIAM = Depen
             severity=request.severity,
             outcome=request.outcome,
             limit=request.limit,
-            offset=request.offset,
+            offset=request.offset
         )
 
         # Execute query
@@ -198,33 +209,39 @@ async def query_audit_events(request: AuditQueryRequest, iam: AgenticIAM = Depen
         # Convert to response format
         event_responses = []
         for event in events:
-            event_responses.append(
-                AuditEventResponse(
-                    event_id=event.event_id,
-                    event_type=event.event_type.value,
-                    agent_id=event.agent_id,
-                    timestamp=event.timestamp,
-                    severity=event.severity.value,
-                    component=event.component,
-                    outcome=event.outcome,
-                    source_ip=event.source_ip,
-                    user_agent=event.user_agent,
-                    details=event.details,
-                )
-            )
+            event_responses.append(AuditEventResponse(
+                event_id=event.event_id,
+                event_type=event.event_type.value,
+                agent_id=event.agent_id,
+                timestamp=event.timestamp,
+                severity=event.severity.value,
+                component=event.component,
+                outcome=event.outcome,
+                source_ip=event.source_ip,
+                user_agent=event.user_agent,
+                details=event.details
+            ))
 
-        return {"events": event_responses, "total": len(event_responses), "query": request.dict()}
+        return {
+            "events": event_responses,
+            "total": len(event_responses),
+            "query": request.dict()
+        }
 
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to query audit events: {str(e)}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to query audit events: {str(e)}"
         )
 
 
 @router.get("/events/{event_id}", response_model=AuditEventResponse)
-async def get_audit_event(event_id: str, iam: AgenticIAM = Depends(get_iam)):
+async def get_audit_event(
+    event_id: str,
+    iam: AgenticIAM = Depends(get_iam)
+):
     """
     Get specific audit event
 
@@ -232,12 +249,18 @@ async def get_audit_event(event_id: str, iam: AgenticIAM = Depends(get_iam)):
     """
     try:
         if not iam.audit_manager:
-            raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Audit logging not initialized")
+            raise HTTPException(
+                status_code=status.HTTP_501_NOT_IMPLEMENTED,
+                detail="Audit logging not initialized"
+            )
 
         # Get event
         event = iam.audit_manager.get_event(event_id)
         if not event:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Audit event {event_id} not found")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Audit event {event_id} not found"
+            )
 
         return AuditEventResponse(
             event_id=event.event_id,
@@ -249,19 +272,23 @@ async def get_audit_event(event_id: str, iam: AgenticIAM = Depends(get_iam)):
             outcome=event.outcome,
             source_ip=event.source_ip,
             user_agent=event.user_agent,
-            details=event.details,
+            details=event.details
         )
 
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to get audit event: {str(e)}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get audit event: {str(e)}"
         )
 
 
 @router.get("/statistics")
-async def get_audit_statistics(time_window: int = 24, iam: AgenticIAM = Depends(get_iam)):  # hours
+async def get_audit_statistics(
+    time_window: int = 24,  # hours
+    iam: AgenticIAM = Depends(get_iam)
+):
     """
     Get audit statistics
 
@@ -269,19 +296,27 @@ async def get_audit_statistics(time_window: int = 24, iam: AgenticIAM = Depends(
     """
     try:
         if not iam.audit_manager:
-            raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Audit logging not initialized")
+            raise HTTPException(
+                status_code=status.HTTP_501_NOT_IMPLEMENTED,
+                detail="Audit logging not initialized"
+            )
 
         # Get statistics
         start_time = datetime.utcnow() - timedelta(hours=time_window)
         stats = await iam.audit_manager.get_statistics(start_time)
 
-        return {"statistics": stats, "time_window_hours": time_window, "generated_at": datetime.utcnow().isoformat()}
+        return {
+            "statistics": stats,
+            "time_window_hours": time_window,
+            "generated_at": datetime.utcnow().isoformat()
+        }
 
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to get audit statistics: {str(e)}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get audit statistics: {str(e)}"
         )
 
 
@@ -290,7 +325,7 @@ async def verify_audit_integrity(
     start_time: Optional[datetime] = None,
     end_time: Optional[datetime] = None,
     iam: AgenticIAM = Depends(get_iam),
-    settings: Settings = Depends(get_settings),
+    settings: Settings = Depends(get_settings)
 ):
     """
     Verify audit log integrity
@@ -299,11 +334,15 @@ async def verify_audit_integrity(
     """
     try:
         if not iam.audit_manager:
-            raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Audit logging not initialized")
+            raise HTTPException(
+                status_code=status.HTTP_501_NOT_IMPLEMENTED,
+                detail="Audit logging not initialized"
+            )
 
         if not settings.enable_audit_integrity:
             raise HTTPException(
-                status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Audit integrity verification not enabled"
+                status_code=status.HTTP_501_NOT_IMPLEMENTED,
+                detail="Audit integrity verification not enabled"
             )
 
         # Set default time range
@@ -317,20 +356,26 @@ async def verify_audit_integrity(
 
         return {
             "integrity_check": result,
-            "time_range": {"start": start_time.isoformat(), "end": end_time.isoformat()},
-            "verified_at": datetime.utcnow().isoformat(),
+            "time_range": {
+                "start": start_time.isoformat(),
+                "end": end_time.isoformat()
+            },
+            "verified_at": datetime.utcnow().isoformat()
         }
 
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to verify audit integrity: {str(e)}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to verify audit integrity: {str(e)}"
         )
 
 
 @router.get("/compliance/frameworks")
-async def list_compliance_frameworks(iam: AgenticIAM = Depends(get_iam)):
+async def list_compliance_frameworks(
+    iam: AgenticIAM = Depends(get_iam)
+):
     """
     List available compliance frameworks
 
@@ -339,24 +384,32 @@ async def list_compliance_frameworks(iam: AgenticIAM = Depends(get_iam)):
     try:
         if not iam.compliance_manager:
             raise HTTPException(
-                status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Compliance management not initialized"
+                status_code=status.HTTP_501_NOT_IMPLEMENTED,
+                detail="Compliance management not initialized"
             )
 
         # Get available frameworks
         frameworks = iam.compliance_manager.get_available_frameworks()
 
-        return {"frameworks": frameworks, "total": len(frameworks)}
+        return {
+            "frameworks": frameworks,
+            "total": len(frameworks)
+        }
 
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to list compliance frameworks: {str(e)}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to list compliance frameworks: {str(e)}"
         )
 
 
 @router.post("/compliance/reports", response_model=ComplianceReportResponse)
-async def generate_compliance_report(request: ComplianceReportRequest, iam: AgenticIAM = Depends(get_iam)):
+async def generate_compliance_report(
+    request: ComplianceReportRequest,
+    iam: AgenticIAM = Depends(get_iam)
+):
     """
     Generate compliance report
 
@@ -365,7 +418,8 @@ async def generate_compliance_report(request: ComplianceReportRequest, iam: Agen
     try:
         if not iam.compliance_manager:
             raise HTTPException(
-                status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Compliance management not initialized"
+                status_code=status.HTTP_501_NOT_IMPLEMENTED,
+                detail="Compliance management not initialized"
             )
 
         # Generate report
@@ -374,45 +428,52 @@ async def generate_compliance_report(request: ComplianceReportRequest, iam: Agen
             start_date=request.start_date,
             end_date=request.end_date,
             include_violations=request.include_violations,
-            include_recommendations=request.include_recommendations,
+            include_recommendations=request.include_recommendations
         )
 
         # Log report generation
         if iam.audit_manager:
             from audit_compliance import AuditEventType
-
             await iam.audit_manager.log_event(
                 event_type=AuditEventType.COMPLIANCE_REPORT_GENERATED,
                 details={
                     "framework": request.framework,
                     "report_id": report.report_id,
                     "compliance_score": report.compliance_score,
-                    "violations_found": report.violations_found,
-                },
+                    "violations_found": report.violations_found
+                }
             )
 
         return ComplianceReportResponse(
             report_id=report.report_id,
             framework=report.framework,
-            report_period={"start": request.start_date.isoformat(), "end": request.end_date.isoformat()},
+            report_period={
+                "start": request.start_date.isoformat(),
+                "end": request.end_date.isoformat()
+            },
             compliance_score=report.compliance_score,
             violations_found=report.violations_found,
             recommendations_count=len(report.recommendations),
             sections=report.sections,
             generated_at=report.generated_at,
-            generated_by="system",
+            generated_by="system"
         )
 
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to generate compliance report: {str(e)}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to generate compliance report: {str(e)}"
         )
 
 
 @router.get("/compliance/reports")
-async def list_compliance_reports(framework: Optional[str] = None, limit: int = 50, iam: AgenticIAM = Depends(get_iam)):
+async def list_compliance_reports(
+    framework: Optional[str] = None,
+    limit: int = 50,
+    iam: AgenticIAM = Depends(get_iam)
+):
     """
     List compliance reports
 
@@ -421,37 +482,50 @@ async def list_compliance_reports(framework: Optional[str] = None, limit: int = 
     try:
         if not iam.compliance_manager:
             raise HTTPException(
-                status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Compliance management not initialized"
+                status_code=status.HTTP_501_NOT_IMPLEMENTED,
+                detail="Compliance management not initialized"
             )
 
         # Get reports
-        reports = await iam.compliance_manager.list_reports(framework=framework, limit=limit)
+        reports = await iam.compliance_manager.list_reports(
+            framework=framework,
+            limit=limit
+        )
 
         report_responses = []
         for report in reports:
-            report_responses.append(
-                {
-                    "report_id": report.report_id,
-                    "framework": report.framework,
-                    "compliance_score": report.compliance_score,
-                    "violations_found": report.violations_found,
-                    "generated_at": report.generated_at.isoformat(),
-                    "report_period": {"start": report.start_date.isoformat(), "end": report.end_date.isoformat()},
+            report_responses.append({
+                "report_id": report.report_id,
+                "framework": report.framework,
+                "compliance_score": report.compliance_score,
+                "violations_found": report.violations_found,
+                "generated_at": report.generated_at.isoformat(),
+                "report_period": {
+                    "start": report.start_date.isoformat(),
+                    "end": report.end_date.isoformat()
                 }
-            )
+            })
 
-        return {"reports": report_responses, "total": len(report_responses), "framework_filter": framework}
+        return {
+            "reports": report_responses,
+            "total": len(report_responses),
+            "framework_filter": framework
+        }
 
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to list compliance reports: {str(e)}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to list compliance reports: {str(e)}"
         )
 
 
 @router.get("/compliance/reports/{report_id}")
-async def get_compliance_report(report_id: str, iam: AgenticIAM = Depends(get_iam)):
+async def get_compliance_report(
+    report_id: str,
+    iam: AgenticIAM = Depends(get_iam)
+):
     """
     Get detailed compliance report
 
@@ -460,28 +534,37 @@ async def get_compliance_report(report_id: str, iam: AgenticIAM = Depends(get_ia
     try:
         if not iam.compliance_manager:
             raise HTTPException(
-                status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Compliance management not initialized"
+                status_code=status.HTTP_501_NOT_IMPLEMENTED,
+                detail="Compliance management not initialized"
             )
 
         # Get report
         report = await iam.compliance_manager.get_report(report_id)
         if not report:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail=f"Compliance report {report_id} not found"
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Compliance report {report_id} not found"
             )
 
-        return {"report": report, "retrieved_at": datetime.utcnow().isoformat()}
+        return {
+            "report": report,
+            "retrieved_at": datetime.utcnow().isoformat()
+        }
 
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to get compliance report: {str(e)}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get compliance report: {str(e)}"
         )
 
 
 @router.post("/compliance/assess")
-async def assess_compliance(framework: str, iam: AgenticIAM = Depends(get_iam)):
+async def assess_compliance(
+    framework: str,
+    iam: AgenticIAM = Depends(get_iam)
+):
     """
     Perform real-time compliance assessment
 
@@ -490,7 +573,8 @@ async def assess_compliance(framework: str, iam: AgenticIAM = Depends(get_iam)):
     try:
         if not iam.compliance_manager:
             raise HTTPException(
-                status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Compliance management not initialized"
+                status_code=status.HTTP_501_NOT_IMPLEMENTED,
+                detail="Compliance management not initialized"
             )
 
         # Perform assessment
@@ -499,23 +583,27 @@ async def assess_compliance(framework: str, iam: AgenticIAM = Depends(get_iam)):
         # Log assessment
         if iam.audit_manager:
             from audit_compliance import AuditEventType
-
             await iam.audit_manager.log_event(
                 event_type=AuditEventType.COMPLIANCE_ASSESSMENT,
                 details={
                     "framework": framework,
                     "compliance_score": assessment.compliance_score,
-                    "violations_found": len(assessment.violations),
-                },
+                    "violations_found": len(assessment.violations)
+                }
             )
 
-        return {"assessment": assessment, "framework": framework, "assessed_at": datetime.utcnow().isoformat()}
+        return {
+            "assessment": assessment,
+            "framework": framework,
+            "assessed_at": datetime.utcnow().isoformat()
+        }
 
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to assess compliance: {str(e)}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to assess compliance: {str(e)}"
         )
 
 
@@ -524,7 +612,7 @@ async def export_audit_events(
     format: str = "json",  # json, csv, xml
     start_time: Optional[datetime] = None,
     end_time: Optional[datetime] = None,
-    iam: AgenticIAM = Depends(get_iam),
+    iam: AgenticIAM = Depends(get_iam)
 ):
     """
     Export audit events
@@ -533,7 +621,10 @@ async def export_audit_events(
     """
     try:
         if not iam.audit_manager:
-            raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Audit logging not initialized")
+            raise HTTPException(
+                status_code=status.HTTP_501_NOT_IMPLEMENTED,
+                detail="Audit logging not initialized"
+            )
 
         # Set default time range
         if not start_time:
@@ -542,31 +633,41 @@ async def export_audit_events(
             end_time = datetime.utcnow()
 
         # Export events
-        export_data = await iam.audit_manager.export_events(format=format, start_time=start_time, end_time=end_time)
+        export_data = await iam.audit_manager.export_events(
+            format=format,
+            start_time=start_time,
+            end_time=end_time
+        )
 
         # Log export operation
         if iam.audit_manager:
             from audit_compliance import AuditEventType
-
             await iam.audit_manager.log_event(
                 event_type=AuditEventType.DATA_EXPORT,
                 details={
                     "export_type": "audit_events",
                     "format": format,
-                    "time_range": {"start": start_time.isoformat(), "end": end_time.isoformat()},
-                },
+                    "time_range": {
+                        "start": start_time.isoformat(),
+                        "end": end_time.isoformat()
+                    }
+                }
             )
 
         return {
             "export_data": export_data,
             "format": format,
-            "time_range": {"start": start_time.isoformat(), "end": end_time.isoformat()},
-            "exported_at": datetime.utcnow().isoformat(),
+            "time_range": {
+                "start": start_time.isoformat(),
+                "end": end_time.isoformat()
+            },
+            "exported_at": datetime.utcnow().isoformat()
         }
 
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to export audit events: {str(e)}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to export audit events: {str(e)}"
         )

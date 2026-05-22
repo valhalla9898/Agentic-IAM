@@ -3,7 +3,6 @@
 This module provides a `secret_manager` with a `get_secret(name)` method.
 In production this would be replaced by an actual secret backend.
 """
-
 import os
 from typing import Optional
 
@@ -43,21 +42,14 @@ class SecretManager:
             try:
                 from azure.identity import DefaultAzureCredential
                 from azure.keyvault.secrets import SecretClient
-            except ImportError:
-                # Azure SDK not installed; fall back
-                SecretClient = None
 
-            if SecretClient is not None:
-                try:
-                    credential = DefaultAzureCredential()
-                    client = SecretClient(vault_url=self.azure_vault_url, credential=credential)
-                    secret = client.get_secret(name)
-                    return secret.value
-                except Exception as e:
-                    import logging
-
-                    logging.getLogger(__name__).debug("Azure KeyVault get_secret failed: %s", e)
-                    # fallthrough to other sources
+                credential = DefaultAzureCredential()
+                client = SecretClient(vault_url=self.azure_vault_url, credential=credential)
+                secret = client.get_secret(name)
+                return secret.value
+            except Exception:
+                # silent fallback to other sources
+                pass
 
         # 2) Environment variable
         env_val = os.getenv(name)
@@ -69,7 +61,7 @@ class SecretManager:
         try:
             with open(local_path, "r", encoding="utf-8") as f:
                 return f.read().strip()
-        except (OSError, UnicodeDecodeError):
+        except Exception:
             return None
 
 

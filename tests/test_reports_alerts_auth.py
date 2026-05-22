@@ -1,6 +1,5 @@
-import importlib
 import os
-
+import importlib
 from fastapi.testclient import TestClient
 
 
@@ -13,10 +12,8 @@ def reload_app_with_env(env):
             os.environ[k] = v
     # reload config.settings first so Settings picks up env changes
     import config.settings as settingsmod
-
     importlib.reload(settingsmod)
     import api.app as appmod
-
     importlib.reload(appmod)
     return appmod.app
 

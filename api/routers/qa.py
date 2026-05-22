@@ -4,17 +4,18 @@ API Router  Questions & Answers System
 Advanced Q&A System with Security, Analytics & Recommendations
 """
 
-import uuid
-from datetime import datetime
-from typing import List, Optional
-
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
+from fastapi import APIRouter, HTTPException, Query, Depends, Header, Request
 from pydantic import BaseModel, Field
+from typing import List, Optional
+import time
+import json
+from datetime import datetime
+import uuid
 
-from qa_analytics import get_analytics
-from qa_database import CATEGORIES, QADatabase
-from qa_recommendations import get_recommendation_engine
+from qa_database import QADatabase, CATEGORIES
 from qa_security import get_security_manager
+from qa_analytics import get_analytics
+from qa_recommendations import get_recommendation_engine
 
 # Initialize components
 qa_db = QADatabase()
@@ -22,29 +23,40 @@ security_mgr = get_security_manager()
 analytics = get_analytics()
 recommendation_engine = get_recommendation_engine()
 
-router = APIRouter(prefix="/api/v1/qa", tags=["Questions & Answers"], responses={404: {"description": "Not found"}})
+router = APIRouter(
+    prefix="/api/v1/qa",
+    tags=["Questions & Answers"],
+    responses={404: {"description": "Not found"}}
+)
 
 # ============= Security Dependencies =============
 
 
-async def verify_user(header_user_id: str = Header(None, alias="X-User-ID")) -> str:
+async def verify_user(user_id: str = Header(None, alias="X-User-ID")) -> str:
     """Verify user identity from header"""
-    if not header_user_id:
+    if not user_id:
         raise HTTPException(status_code=401, detail="User ID required in X-User-ID header")
 
     # Check if user is blacklisted
-    if security_mgr.is_user_blacklisted(header_user_id):
+    if security_mgr.is_user_blacklisted(user_id):
         raise HTTPException(status_code=403, detail="User is blacklisted")
 
-    return header_user_id
+    return user_id
 
 
-async def check_rate_limit(user_id: str = Depends(verify_user), request: Request = None, endpoint: str = None) -> str:
+async def check_rate_limit(
+    user_id: str = Depends(verify_user),
+    request: Request = None,
+    endpoint: str = None
+) -> str:
     """Check rate limiting for user"""
     endpoint = endpoint or request.url.path
 
     allowed, info = security_mgr.check_rate_limit(
-        user_id=user_id, endpoint=endpoint, max_requests=100, time_window=3600
+        user_id=user_id,
+        endpoint=endpoint,
+        max_requests=100,
+        time_window=3600
     )
 
     if not allowed:
@@ -53,15 +65,15 @@ async def check_rate_limit(user_id: str = Depends(verify_user), request: Request
             activity_type="rate_limit_exceeded",
             description=info.get("message"),
             ip_address=request.client.host if request else None,
-            severity=1,
+            severity=1
         )
 
         raise HTTPException(
-            status_code=429, detail=f"Rate limit exceeded. Retry after {info.get('retry_after')} seconds"
+            status_code=429,
+            detail=f"Rate limit exceeded. Retry after {info.get('retry_after')} seconds"
         )
 
     return user_id
-
 
 # ============= Pydantic Models =============
 
@@ -109,7 +121,6 @@ class CategoryInfo(BaseModel):
     arabic_name: str
     count: int
 
-
 # ============= Endpoints =============
 
 
@@ -123,7 +134,7 @@ async def qa_health():
         "status": "healthy",
         "total_questions": total_questions,
         "categories": len(categories),
-        "system": "Q&A System   ",
+        "system": "Q&A System   "
     }
 
 
@@ -135,10 +146,16 @@ async def get_categories() -> List[CategoryInfo]:
 
 
 @router.get("/random")
-async def get_random_question(category: Optional[str] = Query(None, description="  category   ")) -> QuestionResponse:
-    """- category : security, ai, tech, management, general"""
+async def get_random_question(
+    category: Optional[str] = Query(None, description="  category   ")
+) -> QuestionResponse:
+    """ - category : security, ai, tech, management, general
+    """
     if category and category not in CATEGORIES:
-        raise HTTPException(status_code=400, detail=f" category .  : {', '.join(CATEGORIES.keys())}")
+        raise HTTPException(
+            status_code=400,
+            detail=f" category .  : {', '.join(CATEGORIES.keys())}"
+        )
 
     question = qa_db.get_random_question(category=category)
 
@@ -147,10 +164,10 @@ async def get_random_question(category: Optional[str] = Query(None, description=
 
     # Don't return answer in the question endpoint
     return QuestionResponse(
-        id=question["id"],
-        question=question["question"],
-        category=question["category"],
-        difficulty=question["difficulty"],
+        id=question['id'],
+        question=question['question'],
+        category=question['category'],
+        difficulty=question['difficulty']
     )
 
 
@@ -163,16 +180,18 @@ async def get_question(question_id: int) -> QuestionResponse:
         raise HTTPException(status_code=404, detail="  ")
 
     return QuestionResponse(
-        id=question["id"],
-        question=question["question"],
-        category=question["category"],
-        difficulty=question["difficulty"],
+        id=question['id'],
+        question=question['question'],
+        category=question['category'],
+        difficulty=question['difficulty']
     )
 
 
 @router.post("/answer")
 async def submit_answer(
-    submission: AnswerSubmission, user_id: str = Depends(check_rate_limit), request: Request = None
+    submission: AnswerSubmission,
+    user_id: str = Depends(check_rate_limit),
+    request: Request = None
 ) -> AnswerResponse:
     """
     Submit an answer to a question
@@ -184,7 +203,7 @@ async def submit_answer(
 
     # Check if answer is correct (simple string matching for now)
     # In a real system, you'd use more sophisticated NLP/semantic matching
-    is_correct = _check_answer(submission.user_answer, question["answer"])
+    is_correct = _check_answer(submission.user_answer, question['answer'])
 
     points = 10 if is_correct else 2
 
@@ -194,7 +213,7 @@ async def submit_answer(
         question_id=submission.question_id,
         user_answer=submission.user_answer,
         is_correct=is_correct,
-        time_taken=submission.time_taken,
+        time_taken=submission.time_taken
     )
 
     # Track analytics
@@ -202,19 +221,21 @@ async def submit_answer(
         user_id=submission.user_id,
         question_id=submission.question_id,
         is_correct=is_correct,
-        time_spent=submission.time_taken or 0,
+        time_spent=submission.time_taken or 0
     )
 
     # Update spaced repetition
     recommendation_engine.update_spaced_repetition(
-        user_id=submission.user_id, question_id=submission.question_id, is_correct=is_correct
+        user_id=submission.user_id,
+        question_id=submission.question_id,
+        is_correct=is_correct
     )
 
     return AnswerResponse(
         correct=is_correct,
-        actual_answer=question["answer"],
+        actual_answer=question['answer'],
         points_earned=points,
-        message=_get_feedback_message(is_correct, question["difficulty"]),
+        message=_get_feedback_message(is_correct, question['difficulty'])
     )
 
 
@@ -225,13 +246,25 @@ async def get_user_stats(user_id: str) -> UserStatsResponse:
 
     if not stats:
         # Return default stats if user is new
-        return UserStatsResponse(user_id=user_id, total_questions=0, correct_answers=0, accuracy=0.0, level=1, points=0)
+        return UserStatsResponse(
+            user_id=user_id,
+            total_questions=0,
+            correct_answers=0,
+            accuracy=0.0,
+            level=1,
+            points=0
+        )
 
-    return UserStatsResponse(user_id=user_id, **stats)
+    return UserStatsResponse(
+        user_id=user_id,
+        **stats
+    )
 
 
 @router.get("/leaderboard")
-async def get_leaderboard(limit: int = Query(100, ge=1, le=1000)) -> List[LeaderboardEntry]:
+async def get_leaderboard(
+    limit: int = Query(100, ge=1, le=1000)
+) -> List[LeaderboardEntry]:
     """Get top users leaderboard"""
     leaderboard = qa_db.get_leaderboard(limit=limit)
     return [LeaderboardEntry(**entry) for entry in leaderboard]
@@ -239,16 +272,25 @@ async def get_leaderboard(limit: int = Query(100, ge=1, le=1000)) -> List[Leader
 
 @router.get("/search")
 async def search_questions(
-    keyword: str = Query(..., min_length=2), category: Optional[str] = Query(None)
+    keyword: str = Query(..., min_length=2),
+    category: Optional[str] = Query(None)
 ) -> List[QuestionResponse]:
     """Search for questions by keyword"""
     if category and category not in CATEGORIES:
-        raise HTTPException(status_code=400, detail=f" category .  : {', '.join(CATEGORIES.keys())}")
+        raise HTTPException(
+            status_code=400,
+            detail=f" category .  : {', '.join(CATEGORIES.keys())}"
+        )
 
     results = qa_db.search_questions(keyword, category=category)
 
     return [
-        QuestionResponse(id=r["id"], question=r["question"], category=r["category"], difficulty=r["difficulty"])
+        QuestionResponse(
+            id=r['id'],
+            question=r['question'],
+            category=r['category'],
+            difficulty=r['difficulty']
+        )
         for r in results
     ]
 
@@ -257,40 +299,50 @@ async def search_questions(
 async def get_category_stats(category: str) -> dict:
     """Get statistics for a specific category"""
     if category not in CATEGORIES:
-        raise HTTPException(status_code=400, detail=f" category .  : {', '.join(CATEGORIES.keys())}")
+        raise HTTPException(
+            status_code=400,
+            detail=f" category .  : {', '.join(CATEGORIES.keys())}"
+        )
 
     categories = qa_db.get_categories()
-    cat_info = next((c for c in categories if c["category"] == category), None)
+    cat_info = next((c for c in categories if c['category'] == category), None)
 
     if not cat_info:
         raise HTTPException(status_code=404, detail="Category not found")
 
     return {
-        "category": cat_info["category"],
-        "arabic_name": cat_info["arabic_name"],
-        "total_questions": cat_info["count"],
-        "message": f" {cat_info['count']}    {cat_info['arabic_name']}",
+        "category": cat_info['category'],
+        "arabic_name": cat_info['arabic_name'],
+        "total_questions": cat_info['count'],
+        "message": f" {cat_info['count']}    {cat_info['arabic_name']}"
     }
-
 
 # ============= Advanced Features: Analytics, Security, Recommendations =============
 
 
 @router.get("/recommendations/{user_id}")
-async def get_recommendations(
-    user_id: str, verified_user_id: str = Depends(verify_user), limit: int = Query(10, ge=1, le=50)
+async def get_personalized_recommendations(
+    user_id: str = Depends(verify_user),
+    limit: int = Query(10, ge=1, le=50)
 ) -> List[dict]:
     """Get personalized recommendations based on user performance"""
     # Get user profile and stats
-    recommendation_engine.get_user_profile(user_id)
-    user_stats = qa_db.get_user_stats(user_id) or {"accuracy": 50, "weak_areas": [], "already_correct": {}}
+    profile = recommendation_engine.get_user_profile(user_id)
+    user_stats = qa_db.get_user_stats(user_id) or {
+        "accuracy": 50,
+        "weak_areas": [],
+        "already_correct": {}
+    }
 
     # Get available questions
     all_questions = qa_db.get_all_questions()
 
     # Generate recommendations
     recommendations = recommendation_engine.generate_recommendations(
-        user_id=user_id, user_stats=user_stats, available_questions=all_questions, limit=limit
+        user_id=user_id,
+        user_stats=user_stats,
+        available_questions=all_questions,
+        limit=limit
     )
 
     return recommendations
@@ -298,16 +350,26 @@ async def get_recommendations(
 
 @router.get("/reviews/{user_id}")
 async def get_spaced_repetition_reviews(
-    user_id: str = Depends(verify_user), limit: int = Query(5, ge=1, le=20)
+    user_id: str = Depends(verify_user),
+    limit: int = Query(5, ge=1, le=20)
 ) -> List[dict]:
     """Get questions due for spaced repetition review"""
-    questions = recommendation_engine.get_next_review_questions(user_id=user_id, limit=limit)
+    questions = recommendation_engine.get_next_review_questions(
+        user_id=user_id,
+        limit=limit
+    )
 
-    return {"user_id": user_id, "due_for_review": len(questions), "questions": questions}
+    return {
+        "user_id": user_id,
+        "due_for_review": len(questions),
+        "questions": questions
+    }
 
 
 @router.get("/analytics/{user_id}")
-async def get_user_analytics(user_id: str = Depends(verify_user)) -> dict:
+async def get_user_analytics(
+    user_id: str = Depends(verify_user)
+) -> dict:
     """Get comprehensive user analytics and insights"""
     user_stats = analytics.get_user_statistics(user_id)
     insights = recommendation_engine.get_recommendation_engine().get_performance_insights(user_id)
@@ -318,7 +380,7 @@ async def get_user_analytics(user_id: str = Depends(verify_user)) -> dict:
         "statistics": user_stats,
         "performance_insights": insights,
         "category_breakdown": category_stats,
-        "generated_at": datetime.now().isoformat(),
+        "generated_at": datetime.now().isoformat()
     }
 
 
@@ -328,22 +390,36 @@ async def get_system_health() -> dict:
     health = analytics.get_system_health()
     trending = analytics.get_trending_questions(limit=20)
 
-    return {"health_metrics": health, "trending_questions": trending, "timestamp": datetime.now().isoformat()}
+    return {
+        "health_metrics": health,
+        "trending_questions": trending,
+        "timestamp": datetime.now().isoformat()
+    }
 
 
 @router.get("/security/{user_id}")
-async def get_user_security_report(user_id: str = Depends(verify_user)) -> dict:
+async def get_user_security_report(
+    user_id: str = Depends(verify_user)
+) -> dict:
     """Get user security report"""
     report = security_mgr.get_security_report(user_id=user_id)
 
-    return {"security_report": report, "generated_at": datetime.now().isoformat()}
+    return {
+        "security_report": report,
+        "generated_at": datetime.now().isoformat()
+    }
 
 
 @router.post("/session/create")
-async def create_session(user_id: str = Depends(verify_user), request: Request = None) -> dict:
+async def create_session(
+    user_id: str = Depends(verify_user),
+    request: Request = None
+) -> dict:
     """Create a secure session for user"""
     session_token = security_mgr.create_session(
-        user_id=user_id, ip_address=request.client.host if request else None, expires_in=86400  # 24 hours
+        user_id=user_id,
+        ip_address=request.client.host if request else None,
+        expires_in=86400  # 24 hours
     )
 
     if not session_token:
@@ -353,19 +429,25 @@ async def create_session(user_id: str = Depends(verify_user), request: Request =
         "session_token": session_token,
         "user_id": user_id,
         "expires_in_seconds": 86400,
-        "created_at": datetime.now().isoformat(),
+        "created_at": datetime.now().isoformat()
     }
 
 
 @router.post("/session/validate")
-async def validate_session(session_token: str = Header(..., alias="X-Session-Token")) -> dict:
+async def validate_session(
+    session_token: str = Header(..., alias="X-Session-Token")
+) -> dict:
     """Validate a session token"""
     is_valid, user_id = security_mgr.validate_session(session_token)
 
     if not is_valid:
         raise HTTPException(status_code=401, detail="Invalid or expired session")
 
-    return {"valid": True, "user_id": user_id, "timestamp": datetime.now().isoformat()}
+    return {
+        "valid": True,
+        "user_id": user_id,
+        "timestamp": datetime.now().isoformat()
+    }
 
 
 @router.post("/admin/log-activity")
@@ -373,7 +455,7 @@ async def log_suspicious_activity(
     user_id: str = Depends(verify_user),
     activity_type: str = Query(...),
     description: str = Query(None),
-    request: Request = None,
+    request: Request = None
 ) -> dict:
     """Log suspicious activity (admin endpoint)"""
     success = security_mgr.log_suspicious_activity(
@@ -381,15 +463,20 @@ async def log_suspicious_activity(
         activity_type=activity_type,
         description=description,
         ip_address=request.client.host if request else None,
-        severity=2,
+        severity=2
     )
 
-    return {"logged": success, "activity_type": activity_type, "timestamp": datetime.now().isoformat()}
+    return {
+        "logged": success,
+        "activity_type": activity_type,
+        "timestamp": datetime.now().isoformat()
+    }
 
 
 @router.get("/leaderboard/advanced")
 async def get_advanced_leaderboard(
-    time_period: str = Query("all", regex="^(day|week|month|all)$"), limit: int = Query(100, ge=1, le=1000)
+    time_period: str = Query("all", regex="^(day|week|month|all)$"),
+    limit: int = Query(100, ge=1, le=1000)
 ) -> List[dict]:
     """Get advanced leaderboard with filters"""
     leaderboard = analytics.get_leaderboard(limit=limit)
@@ -401,7 +488,7 @@ async def get_advanced_leaderboard(
         "time_period": time_period,
         "count": len(filtered_leaderboard),
         "leaderboard": filtered_leaderboard,
-        "generated_at": datetime.now().isoformat(),
+        "generated_at": datetime.now().isoformat()
     }
 
 
@@ -410,14 +497,14 @@ async def start_adaptive_quiz(
     user_id: str = Depends(verify_user),
     category: Optional[str] = Query(None),
     difficulty: Optional[str] = Query(None),
-    size: int = Query(10, ge=1, le=50),
+    size: int = Query(10, ge=1, le=50)
 ) -> dict:
     """Start an adaptive quiz session"""
     # Create session
     session_id = str(uuid.uuid4())
 
     # Get user stats for adaptive sizing
-    qa_db.get_user_stats(user_id) or {}
+    user_stats = qa_db.get_user_stats(user_id) or {}
 
     # Track session
     analytics.record_quiz_session(
@@ -427,11 +514,15 @@ async def start_adaptive_quiz(
         difficulty_level=difficulty or "",
         questions_count=size,
         correct_answers=0,
-        time_spent=0,
+        time_spent=0
     )
 
     # Get questions
-    questions = qa_db.get_random_questions(limit=size, category=category, difficulty_level=difficulty)
+    questions = qa_db.get_random_questions(
+        limit=size,
+        category=category,
+        difficulty_level=difficulty
+    )
 
     return {
         "session_id": session_id,
@@ -440,12 +531,15 @@ async def start_adaptive_quiz(
         "category": category,
         "difficulty": difficulty,
         "questions": [
-            {"id": q["id"], "question": q["question"], "category": q["category"], "difficulty": q["difficulty"]}
-            for q in questions
+            {
+                "id": q["id"],
+                "question": q["question"],
+                "category": q["category"],
+                "difficulty": q["difficulty"]
+            } for q in questions
         ],
-        "created_at": datetime.now().isoformat(),
+        "created_at": datetime.now().isoformat()
     }
-
 
 # ============= Helper Functions =============
 
@@ -472,7 +566,6 @@ def _check_answer(user_answer: str, correct_answer: str) -> bool:
 
     # Partial match (at least 70% similar)
     from difflib import SequenceMatcher
-
     similarity = SequenceMatcher(None, user_ans_normalized, correct_ans_normalized).ratio()
 
     return similarity >= 0.7
@@ -481,10 +574,21 @@ def _check_answer(user_answer: str, correct_answer: str) -> bool:
 def _get_feedback_message(is_correct: bool, difficulty: int) -> str:
     """Generate appropriate feedback message"""
     if is_correct:
-        messages = [" ! 🎉", "! ", "! 🌟", "   !", "!  "]
+        messages = [
+            " ! 🎉",
+            "! ",
+            "! 🌟",
+            "   !",
+            "!  "
+        ]
     else:
-        messages = ["   ", "    ", "!  ", "    ", "    "]
+        messages = [
+            "   ",
+            "    ",
+            "!  ",
+            "    ",
+            "    "
+        ]
 
-    import secrets
-
-    return secrets.choice(messages)
+    import random
+    return random.choice(messages)

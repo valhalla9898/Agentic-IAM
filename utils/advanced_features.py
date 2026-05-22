@@ -4,9 +4,10 @@ Advanced Features Module for Agentic-IAM
 Provides advanced features like agent analytics, health monitoring, and reporting.
 """
 
-import logging
 from datetime import datetime, timedelta
-from typing import Any, Dict, List
+from typing import Dict, List, Any, Optional
+import json
+import logging
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +31,7 @@ class AgentHealthMonitor:
 
             # Calculate health based on events
             total_events = len(events)
-            successful_events = len([e for e in events if e.get("status") == "success"])
+            successful_events = len([e for e in events if e.get('status') == 'success'])
 
             if total_events == 0:
                 health_score = 100
@@ -39,17 +40,17 @@ class AgentHealthMonitor:
 
             # Get sessions
             sessions = self.db.get_agent_sessions(agent_id)
-            active_sessions = len([s for s in sessions if s.get("status") == "active"])
+            active_sessions = len([s for s in sessions if s.get('status') == 'active'])
 
             return {
                 "agent_id": agent_id,
-                "agent_name": agent.get("name", "Unknown"),
-                "status": agent.get("status", "unknown"),
+                "agent_name": agent.get('name', 'Unknown'),
+                "status": agent.get('status', 'unknown'),
                 "health_score": health_score,
                 "recent_events": total_events,
                 "active_sessions": active_sessions,
-                "last_activity": events[0].get("created_at") if events else "Never",
-                "uptime_percentage": 99.5,  # Placeholder
+                "last_activity": events[0].get('created_at') if events else "Never",
+                "uptime_percentage": 99.5  # Placeholder
             }
         except Exception as e:
             logger.error(f"Error getting agent health: {e}")
@@ -68,14 +69,14 @@ class AgentHealthMonitor:
                     "total_agents": 0,
                     "healthy_agents": 0,
                     "total_events": 0,
-                    "system_uptime": "99.9%",
+                    "system_uptime": "99.9%"
                 }
 
             # Calculate health scores for all agents
             health_scores = []
             for agent in agents:
-                health = self.get_agent_health(agent["id"])
-                health_scores.append(health.get("health_score", 50))
+                health = self.get_agent_health(agent['id'])
+                health_scores.append(health.get('health_score', 50))
 
             avg_health = sum(health_scores) / len(health_scores) if health_scores else 50
 
@@ -86,7 +87,7 @@ class AgentHealthMonitor:
                 "total_events": len(events),
                 "total_users": len(users),
                 "system_uptime": "99.95%",
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.utcnow().isoformat()
             }
         except Exception as e:
             logger.error(f"Error getting system health: {e}")
@@ -107,17 +108,17 @@ class AgentAnalytics:
 
             # Filter events from the last N days
             cutoff_date = (datetime.utcnow() - timedelta(days=days)).isoformat()
-            recent_events = [e for e in events if e.get("created_at", "") >= cutoff_date]
+            recent_events = [e for e in events if e.get('created_at', '') >= cutoff_date]
 
             # Count events by type
             event_types = {}
             for event in recent_events:
-                event_type = event.get("event_type", "unknown")
+                event_type = event.get('event_type', 'unknown')
                 event_types[event_type] = event_types.get(event_type, 0) + 1
 
             # Count successful vs failed
-            successful = len([e for e in recent_events if e.get("status") == "success"])
-            failed = len([e for e in recent_events if e.get("status") != "success"])
+            successful = len([e for e in recent_events if e.get('status') == 'success'])
+            failed = len([e for e in recent_events if e.get('status') != 'success'])
 
             return {
                 "agent_id": agent_id,
@@ -125,10 +126,14 @@ class AgentAnalytics:
                 "total_events": len(recent_events),
                 "successful_events": successful,
                 "failed_events": failed,
-                "success_rate": (successful / len(recent_events) * 100) if recent_events else 0,
+                "success_rate": (
+                    successful /
+                    len(recent_events) *
+                    100) if recent_events else 0,
                 "event_types": event_types,
-                "most_common_event": max(event_types.items(), key=lambda x: x[1])[0] if event_types else "none",
-            }
+                "most_common_event": max(
+                    event_types.items(),
+                    key=lambda x: x[1])[0] if event_types else "none"}
         except Exception as e:
             logger.error(f"Error getting agent activity summary: {e}")
             return {"error": str(e)}
@@ -142,16 +147,16 @@ class AgentAnalytics:
             # Count events by type
             event_stats = {}
             for event in events:
-                event_type = event.get("event_type", "unknown")
+                event_type = event.get('event_type', 'unknown')
                 event_stats[event_type] = event_stats.get(event_type, 0) + 1
 
             # Success rate
-            successful = len([e for e in events if e.get("status") == "success"])
+            successful = len([e for e in events if e.get('status') == 'success'])
             total = len(events)
             success_rate = (successful / total * 100) if total > 0 else 0
 
             # Agent statistics
-            active_agents = len([a for a in agents if a.get("status") == "active"])
+            active_agents = len([a for a in agents if a.get('status') == 'active'])
 
             return {
                 "total_agents": len(agents),
@@ -159,9 +164,10 @@ class AgentAnalytics:
                 "total_events": total,
                 "success_rate": success_rate,
                 "event_distribution": event_stats,
-                "most_active_event": max(event_stats.items(), key=lambda x: x[1])[0] if event_stats else "none",
-                "timestamp": datetime.utcnow().isoformat(),
-            }
+                "most_active_event": max(
+                    event_stats.items(),
+                    key=lambda x: x[1])[0] if event_stats else "none",
+                "timestamp": datetime.utcnow().isoformat()}
         except Exception as e:
             logger.error(f"Error getting system analytics: {e}")
             return {"error": str(e)}
@@ -175,20 +181,21 @@ class AgentAnalytics:
                 agent = self.db.get_agent(agent_id)
                 events = self.db.get_events(agent_id=agent_id, limit=100)
 
-                successful = len([e for e in events if e.get("status") == "success"])
+                successful = len([e for e in events if e.get('status') == 'success'])
                 success_rate = (successful / len(events) * 100) if events else 0
 
-                comparison_data.append(
-                    {
-                        "agent_id": agent_id,
-                        "agent_name": agent.get("name", "Unknown") if agent else "Unknown",
-                        "total_events": len(events),
-                        "success_rate": success_rate,
-                        "status": agent.get("status", "unknown") if agent else "unknown",
-                    }
-                )
+                comparison_data.append({
+                    "agent_id": agent_id,
+                    "agent_name": agent.get('name', 'Unknown') if agent else 'Unknown',
+                    "total_events": len(events),
+                    "success_rate": success_rate,
+                    "status": agent.get('status', 'unknown') if agent else 'unknown'
+                })
 
-            return {"comparison": comparison_data, "timestamp": datetime.utcnow().isoformat()}
+            return {
+                "comparison": comparison_data,
+                "timestamp": datetime.utcnow().isoformat()
+            }
         except Exception as e:
             logger.error(f"Error comparing agents: {e}")
             return {"error": str(e)}
@@ -216,7 +223,7 @@ class ReportGenerator:
                 "agent_details": agent,
                 "health_metrics": health,
                 "activity_metrics": activity,
-                "generated_at": datetime.utcnow().isoformat(),
+                "generated_at": datetime.utcnow().isoformat()
             }
         except Exception as e:
             logger.error(f"Error generating agent report: {e}")
@@ -235,12 +242,12 @@ class ReportGenerator:
                 "summary": {
                     "total_agents": len(agents),
                     "total_users": len(users),
-                    "system_health": health.get("overall_health", 0),
-                    "success_rate": analytics.get("success_rate", 0),
+                    "system_health": health.get('overall_health', 0),
+                    "success_rate": analytics.get('success_rate', 0)
                 },
                 "health_metrics": health,
                 "analytics": analytics,
-                "generated_at": datetime.utcnow().isoformat(),
+                "generated_at": datetime.utcnow().isoformat()
             }
         except Exception as e:
             logger.error(f"Error generating system report: {e}")
@@ -254,28 +261,29 @@ class ReportGenerator:
 
             # Audit trail
             audit_events = [
-                e
-                for e in events
-                if e.get("event_type") in ["user_login", "user_logout", "agent_created", "agent_deleted"]
-            ]
+                e for e in events if e.get('event_type') in [
+                    'user_login',
+                    'user_logout',
+                    'agent_created',
+                    'agent_deleted']]
 
             return {
                 "report_type": "compliance_audit",
                 "audit_trail": {
                     "total_events": len(events),
                     "significant_events": len(audit_events),
-                    "user_actions": len([e for e in events if e.get("event_type").startswith("user_")]),
+                    "user_actions": len([e for e in events if e.get('event_type').startswith('user_')])
                 },
                 "users_summary": {
                     "total_users": len(users),
-                    "active_users": len([u for u in users if u.get("status") == "active"]),
-                    "administrators": len([u for u in users if u.get("role") == "admin"]),
+                    "active_users": len([u for u in users if u.get('status') == 'active']),
+                    "administrators": len([u for u in users if u.get('role') == 'admin'])
                 },
-                "generated_at": datetime.utcnow().isoformat(),
+                "generated_at": datetime.utcnow().isoformat()
             }
         except Exception as e:
             logger.error(f"Error generating compliance report: {e}")
             return {"error": str(e)}
 
 
-__all__ = ["AgentHealthMonitor", "AgentAnalytics", "ReportGenerator"]
+__all__ = ['AgentHealthMonitor', 'AgentAnalytics', 'ReportGenerator']

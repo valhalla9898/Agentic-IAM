@@ -4,9 +4,8 @@ from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-
-from api.dependencies import get_iam
 from core.agentic_iam import AgenticIAM
+from api.dependencies import get_iam
 
 router = APIRouter()
 

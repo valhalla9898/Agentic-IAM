@@ -15,13 +15,15 @@ Comprehensive security features to protect against common attacks:
 
 import hashlib
 import hmac
-import json
-import logging
-import re
 import secrets
+import re
+import logging
 from datetime import datetime, timedelta
+from typing import Dict, List, Optional, Any, Tuple
+from functools import wraps
+import json
+from urllib.parse import quote, unquote
 from html import escape
-from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -40,19 +42,19 @@ class InputValidator:
         # Escape HTML special characters
         value = escape(value)
         # Remove null bytes
-        value = value.replace("\x00", "")
+        value = value.replace('\x00', '')
         return value.strip()
 
     @staticmethod
     def validate_email(email: str) -> bool:
         """Validate email format"""
-        pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+        pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
         return bool(re.match(pattern, email)) and len(email) <= 254
 
     @staticmethod
     def validate_username(username: str) -> bool:
         """Validate username format (alphanumeric, underscores, hyphens)"""
-        pattern = r"^[a-zA-Z0-9_-]{3,32}$"
+        pattern = r'^[a-zA-Z0-9_-]{3,32}$'
         return bool(re.match(pattern, username))
 
     @staticmethod
@@ -61,13 +63,13 @@ class InputValidator:
         if len(password) < 8:
             return False, "Password must be at least 8 characters"
 
-        if not re.search(r"[a-z]", password):
+        if not re.search(r'[a-z]', password):
             return False, "Password must contain lowercase letters"
 
-        if not re.search(r"[A-Z]", password):
+        if not re.search(r'[A-Z]', password):
             return False, "Password must contain uppercase letters"
 
-        if not re.search(r"[0-9]", password):
+        if not re.search(r'[0-9]', password):
             return False, "Password must contain numbers"
 
         if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
@@ -78,13 +80,13 @@ class InputValidator:
     @staticmethod
     def validate_agent_id(agent_id: str) -> bool:
         """Validate agent ID format"""
-        pattern = r"^agent_[a-zA-Z0-9]{1,32}$"
+        pattern = r'^agent_[a-zA-Z0-9]{1,32}$'
         return bool(re.match(pattern, agent_id))
 
     @staticmethod
     def validate_uuid(value: str) -> bool:
         """Validate UUID format"""
-        pattern = r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        pattern = r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
         return bool(re.match(pattern, value.lower()))
 
     @staticmethod
@@ -157,7 +159,9 @@ class RateLimiter:
 
         # Clean old attempts outside window
         cutoff = now - timedelta(seconds=self.window_seconds)
-        self.attempts[identifier] = [t for t in self.attempts[identifier] if t > cutoff]
+        self.attempts[identifier] = [
+            t for t in self.attempts[identifier] if t > cutoff
+        ]
 
         if len(self.attempts[identifier]) >= self.max_attempts:
             logger.warning(f"Rate limit exceeded for {identifier}")
@@ -177,7 +181,9 @@ class RateLimiter:
 
         now = datetime.utcnow()
         cutoff = now - timedelta(seconds=self.window_seconds)
-        valid_attempts = len([t for t in self.attempts[identifier] if t > cutoff])
+        valid_attempts = len([
+            t for t in self.attempts[identifier] if t > cutoff
+        ])
 
         return max(0, self.max_attempts - valid_attempts)
 
@@ -204,10 +210,10 @@ class SessionSecurityManager:
     def secure_cookie_params() -> Dict[str, Any]:
         """Get secure cookie parameters"""
         return {
-            "secure": True,  # Only send over HTTPS
-            "httponly": True,  # Not accessible via JavaScript
-            "samesite": "Strict",  # CSRF protection
-            "max_age": 3600,  # 1 hour expiry
+            'secure': True,  # Only send over HTTPS
+            'httponly': True,  # Not accessible via JavaScript
+            'samesite': 'Strict',  # CSRF protection
+            'max_age': 3600  # 1 hour expiry
         }
 
 
@@ -249,11 +255,15 @@ class AccountSecurity:
 
         # Clean old attempts (24 hours)
         cutoff = datetime.utcnow() - timedelta(hours=24)
-        self.failed_attempts[username] = [t for t in self.failed_attempts[username] if t > cutoff]
+        self.failed_attempts[username] = [
+            t for t in self.failed_attempts[username] if t > cutoff
+        ]
 
         # Lock account if too many failures
         if len(self.failed_attempts[username]) >= self.max_failed_attempts:
-            self.locked_accounts[username] = datetime.utcnow() + timedelta(seconds=self.lockout_duration)
+            self.locked_accounts[username] = (
+                datetime.utcnow() + timedelta(seconds=self.lockout_duration)
+            )
             logger.error(f"Account locked due to failed attempts: {username}")
 
     def record_successful_login(self, username: str):
@@ -278,14 +288,14 @@ class EncryptionManager:
         if salt is None:
             salt = secrets.token_bytes(32)
 
-        hash_obj = hashlib.pbkdf2_hmac("sha256", data.encode(), salt, 100000)
+        hash_obj = hashlib.pbkdf2_hmac('sha256', data.encode(), salt, 100000)
         return hash_obj.hex(), salt.hex()
 
     @staticmethod
     def verify_hash(data: str, data_hash: str, salt_hex: str) -> bool:
         """Verify hashed data"""
         salt = bytes.fromhex(salt_hex)
-        hash_obj = hashlib.pbkdf2_hmac("sha256", data.encode(), salt, 100000)
+        hash_obj = hashlib.pbkdf2_hmac('sha256', data.encode(), salt, 100000)
         return hmac.compare_digest(hash_obj.hex(), data_hash)
 
 
@@ -296,13 +306,13 @@ class SecurityHeaders:
     def get_security_headers() -> Dict[str, str]:
         """Get recommended security headers"""
         return {
-            "X-Content-Type-Options": "nosniff",
-            "X-Frame-Options": "DENY",
-            "X-XSS-Protection": "1; mode=block",
-            "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
-            "Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline'",
-            "Referrer-Policy": "strict-origin-when-cross-origin",
-            "Permissions-Policy": "geolocation=(), microphone=(), camera=()",
+            'X-Content-Type-Options': 'nosniff',
+            'X-Frame-Options': 'DENY',
+            'X-XSS-Protection': '1; mode=block',
+            'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+            'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline'",
+            'Referrer-Policy': 'strict-origin-when-cross-origin',
+            'Permissions-Policy': 'geolocation=(), microphone=(), camera=()',
         }
 
 
@@ -311,18 +321,23 @@ class AuditLogger:
 
     @staticmethod
     def log_security_event(
-        event_type: str, user: str, action: str, resource: str, result: str, details: Optional[str] = None
+        event_type: str,
+        user: str,
+        action: str,
+        resource: str,
+        result: str,
+        details: Optional[str] = None
     ):
         """Log security-relevant event"""
         timestamp = datetime.utcnow().isoformat()
         log_entry = {
-            "timestamp": timestamp,
-            "event_type": event_type,
-            "user": user,
-            "action": action,
-            "resource": resource,
-            "result": result,
-            "details": details,
+            'timestamp': timestamp,
+            'event_type': event_type,
+            'user': user,
+            'action': action,
+            'resource': resource,
+            'result': result,
+            'details': details
         }
 
         logger.info(f"SECURITY_EVENT: {json.dumps(log_entry)}")
@@ -336,7 +351,7 @@ class AuditLogger:
             action="authentication",
             resource="user_session",
             result="denied",
-            details=reason,
+            details=reason
         )
 
     @staticmethod
@@ -347,14 +362,18 @@ class AuditLogger:
             user=username,
             action="authentication",
             resource="user_session",
-            result="allowed",
+            result="allowed"
         )
 
     @staticmethod
     def log_permission_denied(username: str, resource: str, action: str):
         """Log permission denied event"""
         AuditLogger.log_security_event(
-            event_type="permission_denied", user=username, action=action, resource=resource, result="denied"
+            event_type="permission_denied",
+            user=username,
+            action=action,
+            resource=resource,
+            result="denied"
         )
 
     @staticmethod
@@ -366,7 +385,7 @@ class AuditLogger:
             action="monitoring",
             resource="user_activity",
             result="flagged",
-            details=activity,
+            details=activity
         )
 
 
@@ -386,7 +405,9 @@ class DDoSProtection:
 
         # Clean requests older than 1 minute
         cutoff = now - timedelta(minutes=1)
-        self.request_log[ip_address] = [t for t in self.request_log[ip_address] if t > cutoff]
+        self.request_log[ip_address] = [
+            t for t in self.request_log[ip_address] if t > cutoff
+        ]
 
         if len(self.request_log[ip_address]) >= self.max_requests:
             logger.warning(f"DDoS protection triggered for IP: {ip_address}")
@@ -402,37 +423,37 @@ class XSSProtection:
     @staticmethod
     def sanitize_html(html_content: str) -> str:
         """Sanitize HTML to prevent XSS"""
-        dangerous_tags = ["<script", "<iframe", "<object", "<embed", "javascript:"]
+        dangerous_tags = ['<script', '<iframe', '<object', '<embed', 'javascript:']
 
         for tag in dangerous_tags:
             if tag.lower() in html_content.lower():
                 logger.warning("Dangerous HTML tag detected")
-                html_content = html_content.replace(tag, "")
+                html_content = html_content.replace(tag, '')
 
         return escape(html_content)
 
     @staticmethod
     def validate_url(url: str) -> bool:
         """Validate URL is safe"""
-        dangerous_schemes = ["javascript:", "data:", "vbscript:"]
+        dangerous_schemes = ['javascript:', 'data:', 'vbscript:']
 
         for scheme in dangerous_schemes:
             if url.lower().startswith(scheme):
                 return False
 
         # Check URL format
-        return url.startswith(("http://", "https://", "/"))
+        return url.startswith(('http://', 'https://', '/'))
 
 
 __all__ = [
-    "InputValidator",
-    "SQLInjectionProtection",
-    "RateLimiter",
-    "SessionSecurityManager",
-    "AccountSecurity",
-    "EncryptionManager",
-    "SecurityHeaders",
-    "AuditLogger",
-    "DDoSProtection",
-    "XSSProtection",
+    'InputValidator',
+    'SQLInjectionProtection',
+    'RateLimiter',
+    'SessionSecurityManager',
+    'AccountSecurity',
+    'EncryptionManager',
+    'SecurityHeaders',
+    'AuditLogger',
+    'DDoSProtection',
+    'XSSProtection',
 ]

@@ -4,26 +4,25 @@ Production Security Hardening and Secrets Management
 Comprehensive security hardening, secrets management, and security monitoring
 for production deployment of Agentic-IAM.
 """
-
-import base64
-import binascii
-import hashlib
-import hmac
-import json
-import logging
 import os
 import secrets
+import hashlib
+import hmac
+import base64
+import json
+import logging
 from datetime import datetime, timedelta
+from typing import Dict, List, Optional, Any, Tuple
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
-
-import boto3
-from azure.identity import DefaultAzureCredential
-from azure.keyvault.secrets import SecretClient
 from cryptography.fernet import Fernet
-from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives.asymmetric import rsa, padding
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.backends import default_backend
+import jwt
+import boto3
+from azure.keyvault.secrets import SecretClient
+from azure.identity import DefaultAzureCredential
 
 
 class SecretManager:
@@ -35,22 +34,24 @@ class SecretManager:
 
         # Initialize backend
         if backend == "aws":
-            self.client = boto3.client("secretsmanager", region_name=kwargs.get("region", "us-west-2"))
+            self.client = boto3.client(
+                'secretsmanager', region_name=kwargs.get(
+                    'region', 'us-west-2'))
         elif backend == "azure":
-            vault_url = kwargs.get("vault_url")
+            vault_url = kwargs.get('vault_url')
             if not vault_url:
                 raise ValueError("Azure Key Vault URL required")
             credential = DefaultAzureCredential()
             self.client = SecretClient(vault_url=vault_url, credential=credential)
         elif backend == "local":
-            self.secrets_file = kwargs.get("secrets_file", "/app/secrets/secrets.enc")
+            self.secrets_file = kwargs.get('secrets_file', '/app/secrets/secrets.enc')
             self.encryption_key = self._get_encryption_key()
         else:
             raise ValueError(f"Unsupported secrets backend: {backend}")
 
     def _get_encryption_key(self) -> bytes:
         """Get encryption key for local secrets"""
-        key_file = Path("/app/secrets/master.key")
+        key_file = Path('/app/secrets/master.key')
         if key_file.exists():
             return key_file.read_bytes()
         else:
@@ -66,7 +67,7 @@ class SecretManager:
         try:
             if self.backend == "aws":
                 response = self.client.get_secret_value(SecretId=secret_name)
-                return response["SecretString"]
+                return response['SecretString']
 
             elif self.backend == "azure":
                 secret = self.client.get_secret(secret_name)
@@ -84,7 +85,9 @@ class SecretManager:
         try:
             if self.backend == "aws":
                 self.client.create_secret(
-                    Name=secret_name, SecretString=secret_value, Description=f"Agentic-IAM secret: {secret_name}"
+                    Name=secret_name,
+                    SecretString=secret_value,
+                    Description=f"Agentic-IAM secret: {secret_name}"
                 )
                 return True
 
@@ -148,10 +151,10 @@ class SecretManager:
 
     async def rotate_secret(self, secret_name: str) -> Optional[str]:
         """Rotate a secret (generate new value)"""
-        if secret_name.endswith("_key"):
+        if secret_name.endswith('_key'):
             # Generate new encryption key
             new_secret = base64.urlsafe_b64encode(secrets.token_bytes(32)).decode()
-        elif secret_name.endswith("_password"):
+        elif secret_name.endswith('_password'):
             # Generate secure password
             new_secret = self.generate_secure_password()
         else:
@@ -168,7 +171,7 @@ class SecretManager:
     def generate_secure_password(length: int = 32) -> str:
         """Generate cryptographically secure password"""
         alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*"
-        return "".join(secrets.choice(alphabet) for _ in range(length))
+        return ''.join(secrets.choice(alphabet) for _ in range(length))
 
 
 class SecurityHardening:
@@ -178,7 +181,7 @@ class SecurityHardening:
         self.settings = settings
         self.logger = logging.getLogger("security.hardening")
         self.secret_manager = SecretManager(
-            backend=settings.secrets_backend if hasattr(settings, "secrets_backend") else "local"
+            backend=settings.secrets_backend if hasattr(settings, 'secrets_backend') else "local"
         )
 
     def validate_security_configuration(self) -> List[str]:
@@ -196,12 +199,11 @@ class SecurityHardening:
             issues.append("Default or placeholder secret key in use - CRITICAL SECURITY RISK")
 
         if (not encryption_key) or ("your-encryption-key" in encryption_key) or len(encryption_key) != 32:
-            issues.append("Encryption key is missing, a placeholder, or wrong length (must be 32 characters)")
+            issues.append(
+                "Encryption key is missing, a placeholder, or wrong length (must be 32 characters)")
 
-        if jwt_secret_key is None or (
-            isinstance(jwt_secret_key, str)
-            and ("change-in-production" in jwt_secret_key or jwt_secret_key.startswith("jwt-"))
-        ):
+        if jwt_secret_key is None or (isinstance(jwt_secret_key, str) and (
+                "change-in-production" in jwt_secret_key or jwt_secret_key.startswith("jwt-"))):
             issues.append("Default or placeholder JWT secret key in use - CRITICAL SECURITY RISK")
 
         # Additional length-based recommendations
@@ -217,7 +219,8 @@ class SecurityHardening:
             issues.append("Audit log integrity not enabled in production")
 
         # Check database URL security
-        if "password" in self.settings.database_url.lower() and not self.settings.database_url.startswith("postgresql"):
+        if "password" in self.settings.database_url.lower(
+        ) and not self.settings.database_url.startswith("postgresql"):
             issues.append("Database credentials in URL - consider using secrets")
 
         # Check CORS configuration
@@ -236,7 +239,7 @@ class SecurityHardening:
                 "agentic_iam_credential_encryption_key",
                 "postgres_password",
                 "redis_password",
-                "admin_password",
+                "admin_password"
             ]
 
             for secret_name in secrets_to_generate:
@@ -266,7 +269,12 @@ class SecurityHardening:
         """Set secure file permissions"""
         try:
             # Secure configuration files
-            config_files = ["/app/config/", "/app/secrets/", "/app/logs/", "/app/data/"]
+            config_files = [
+                "/app/config/",
+                "/app/secrets/",
+                "/app/logs/",
+                "/app/data/"
+            ]
 
             for path in config_files:
                 if os.path.exists(path):
@@ -277,7 +285,7 @@ class SecurityHardening:
                                 os.chmod(os.path.join(root, d), 0o750)
                             for f in files:
                                 file_path = os.path.join(root, f)
-                                if f.endswith((".key", ".pem", ".cert")):
+                                if f.endswith(('.key', '.pem', '.cert')):
                                     os.chmod(file_path, 0o600)  # rw-------
                                 else:
                                     os.chmod(file_path, 0o640)  # rw-r-----
@@ -294,40 +302,42 @@ class SecurityHardening:
             from cryptography.x509.oid import NameOID
 
             # Generate private key
-            private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048, backend=default_backend())
+            private_key = rsa.generate_private_key(
+                public_exponent=65537,
+                key_size=2048,
+                backend=default_backend()
+            )
 
             # Generate certificate
-            subject = issuer = x509.Name(
-                [
-                    x509.NameAttribute(NameOID.COUNTRY_NAME, "US"),
-                    x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, "CA"),
-                    x509.NameAttribute(NameOID.LOCALITY_NAME, "San Francisco"),
-                    x509.NameAttribute(NameOID.ORGANIZATION_NAME, "Agentic-IAM"),
-                    x509.NameAttribute(NameOID.COMMON_NAME, domain),
-                ]
-            )
+            subject = issuer = x509.Name([
+                x509.NameAttribute(NameOID.COUNTRY_NAME, "US"),
+                x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, "CA"),
+                x509.NameAttribute(NameOID.LOCALITY_NAME, "San Francisco"),
+                x509.NameAttribute(NameOID.ORGANIZATION_NAME, "Agentic-IAM"),
+                x509.NameAttribute(NameOID.COMMON_NAME, domain),
+            ])
 
-            cert = (
-                x509.CertificateBuilder()
-                .subject_name(subject)
-                .issuer_name(issuer)
-                .public_key(private_key.public_key())
-                .serial_number(x509.random_serial_number())
-                .not_valid_before(datetime.utcnow())
-                .not_valid_after(datetime.utcnow() + timedelta(days=365))
-                .add_extension(
-                    x509.SubjectAlternativeName(
-                        [
-                            x509.DNSName(domain),
-                            x509.DNSName(f"*.{domain}"),
-                            x509.DNSName("localhost"),
-                            x509.IPAddress("127.0.0.1"),
-                        ]
-                    ),
-                    critical=False,
-                )
-                .sign(private_key, hashes.SHA256(), default_backend())
-            )
+            cert = x509.CertificateBuilder().subject_name(
+                subject
+            ).issuer_name(
+                issuer
+            ).public_key(
+                private_key.public_key()
+            ).serial_number(
+                x509.random_serial_number()
+            ).not_valid_before(
+                datetime.utcnow()
+            ).not_valid_after(
+                datetime.utcnow() + timedelta(days=365)
+            ).add_extension(
+                x509.SubjectAlternativeName([
+                    x509.DNSName(domain),
+                    x509.DNSName(f"*.{domain}"),
+                    x509.DNSName("localhost"),
+                    x509.IPAddress("127.0.0.1"),
+                ]),
+                critical=False,
+            ).sign(private_key, hashes.SHA256(), default_backend())
 
             # Save certificates
             ssl_dir = Path("/app/ssl")
@@ -335,13 +345,11 @@ class SecurityHardening:
 
             # Private key
             with open(ssl_dir / "tls.key", "wb") as f:
-                f.write(
-                    private_key.private_bytes(
-                        encoding=serialization.Encoding.PEM,
-                        format=serialization.PrivateFormat.PKCS8,
-                        encryption_algorithm=serialization.NoEncryption(),
-                    )
-                )
+                f.write(private_key.private_bytes(
+                    encoding=serialization.Encoding.PEM,
+                    format=serialization.PrivateFormat.PKCS8,
+                    encryption_algorithm=serialization.NoEncryption()
+                ))
 
             # Certificate
             with open(ssl_dir / "tls.crt", "wb") as f:
@@ -375,17 +383,23 @@ class SecurityMonitoring:
         self.max_failed_attempts = 10
         self.max_requests_per_minute = 100
         self.suspicious_patterns = [
-            r"(?i)(\bunion\b.*\bselect\b)",  # SQL injection
-            r"(?i)(<script[^>]*>.*?</script>)",  # XSS
-            r"(?i)(javascript:)",  # JavaScript injection
-            r"(?i)(data:text/html)",  # Data URI XSS
+            r'(?i)(\bunion\b.*\bselect\b)',  # SQL injection
+            r'(?i)(<script[^>]*>.*?</script>)',  # XSS
+            r'(?i)(javascript:)',  # JavaScript injection
+            r'(?i)(data:text/html)',  # Data URI XSS
         ]
 
     def check_ip_reputation(self, ip_address: str) -> Dict[str, Any]:
         """Check IP address reputation"""
         # In production, integrate with threat intelligence APIs
 
-        result = {"ip": ip_address, "is_suspicious": False, "threats": [], "country": None, "asn": None}
+        result = {
+            "ip": ip_address,
+            "is_suspicious": False,
+            "threats": [],
+            "country": None,
+            "asn": None
+        }
 
         # Check against known suspicious IPs
         if ip_address in self.suspicious_ips:
@@ -393,7 +407,7 @@ class SecurityMonitoring:
             result["threats"].append("Previously flagged")
 
         # Check private/local IPs
-        if ip_address.startswith(("127.", "192.168.", "10.", "172.")):
+        if ip_address.startswith(('127.', '192.168.', '10.', '172.')):
             result["threats"].append("Private network")
 
         return result
@@ -412,7 +426,9 @@ class SecurityMonitoring:
 
         # Clean old attempts (last hour)
         cutoff = now - timedelta(hours=1)
-        self.failed_auth_attempts[key] = [t for t in self.failed_auth_attempts[key] if t > cutoff]
+        self.failed_auth_attempts[key] = [
+            t for t in self.failed_auth_attempts[key] if t > cutoff
+        ]
 
         # Check threshold
         if len(self.failed_auth_attempts[key]) >= self.max_failed_attempts:
@@ -433,7 +449,7 @@ class SecurityMonitoring:
 
         # Clean old entries
         for old_key in list(self.rate_limit_violations.keys()):
-            if old_key.split(":")[1] != minute_key:
+            if old_key.split(':')[1] != minute_key:
                 del self.rate_limit_violations[old_key]
 
         # Check threshold
@@ -459,13 +475,14 @@ class SecurityMonitoring:
         now = datetime.utcnow()
 
         # Calculate metrics
-        total_failed_attempts = sum(len(attempts) for attempts in self.failed_auth_attempts.values())
+        total_failed_attempts = sum(len(attempts)
+                                    for attempts in self.failed_auth_attempts.values())
         unique_suspicious_ips = len(self.suspicious_ips)
 
         # Top offending IPs
         ip_attempt_counts = {}
         for key, attempts in self.failed_auth_attempts.items():
-            ip = key.split(":")[0]
+            ip = key.split(':')[0]
             ip_attempt_counts[ip] = ip_attempt_counts.get(ip, 0) + len(attempts)
 
         top_ips = sorted(ip_attempt_counts.items(), key=lambda x: x[1], reverse=True)[:10]
@@ -475,11 +492,13 @@ class SecurityMonitoring:
             "summary": {
                 "total_failed_auth_attempts": total_failed_attempts,
                 "unique_suspicious_ips": unique_suspicious_ips,
-                "rate_limit_violations": len(self.rate_limit_violations),
+                "rate_limit_violations": len(self.rate_limit_violations)
             },
-            "top_offending_ips": [{"ip": ip, "failed_attempts": count} for ip, count in top_ips],
+            "top_offending_ips": [
+                {"ip": ip, "failed_attempts": count} for ip, count in top_ips
+            ],
             "suspicious_ips": list(self.suspicious_ips),
-            "recommendations": self._generate_security_recommendations(),
+            "recommendations": self._generate_security_recommendations()
         }
 
     def _generate_security_recommendations(self) -> List[str]:
@@ -490,10 +509,12 @@ class SecurityMonitoring:
             recommendations.append("Consider implementing IP-based blocking for repeat offenders")
 
         if len(self.failed_auth_attempts) > 100:
-            recommendations.append("High number of failed authentication attempts - review authentication policies")
+            recommendations.append(
+                "High number of failed authentication attempts - review authentication policies")
 
         if len(self.rate_limit_violations) > 50:
-            recommendations.append("Consider lowering rate limits or implementing more aggressive throttling")
+            recommendations.append(
+                "Consider lowering rate limits or implementing more aggressive throttling")
 
         return recommendations
 
@@ -524,7 +545,9 @@ class ComplianceChecker:
             issues.append("Audit logging not enabled")
 
         # Data retention
-        if hasattr(self.settings, "audit_retention_days") and self.settings.audit_retention_days <= 365:
+        if hasattr(
+                self.settings,
+                'audit_retention_days') and self.settings.audit_retention_days <= 365:
             compliance_score += 2
         else:
             issues.append("Data retention policy not configured or too long")
@@ -547,7 +570,7 @@ class ComplianceChecker:
             "max_score": max_score,
             "percentage": (compliance_score / max_score) * 100,
             "status": "compliant" if compliance_score >= 8 else "non-compliant",
-            "issues": issues,
+            "issues": issues
         }
 
     def check_hipaa_compliance(self) -> Dict[str, Any]:
@@ -586,7 +609,7 @@ class ComplianceChecker:
             "max_score": max_score,
             "percentage": (compliance_score / max_score) * 100,
             "status": "compliant" if compliance_score >= 7 else "non-compliant",
-            "issues": issues,
+            "issues": issues
         }
 
     def check_sox_compliance(self) -> Dict[str, Any]:
@@ -619,7 +642,7 @@ class ComplianceChecker:
             "max_score": max_score,
             "percentage": (compliance_score / max_score) * 100,
             "status": "compliant" if compliance_score >= 5 else "non-compliant",
-            "issues": issues,
+            "issues": issues
         }
 
     def generate_compliance_report(self) -> Dict[str, Any]:
@@ -633,14 +656,18 @@ class ComplianceChecker:
         return {
             "generated_at": datetime.utcnow().isoformat(),
             "overall_score": round(overall_score, 2),
-            "frameworks": {"gdpr": gdpr, "hipaa": hipaa, "sox": sox},
+            "frameworks": {
+                "gdpr": gdpr,
+                "hipaa": hipaa,
+                "sox": sox
+            },
             "recommendations": [
                 "Ensure all encryption keys are properly configured",
                 "Enable comprehensive audit logging",
                 "Implement multi-factor authentication",
                 "Configure proper data retention policies",
-                "Enable audit log integrity protection",
-            ],
+                "Enable audit log integrity protection"
+            ]
         }
 
 
@@ -655,7 +682,7 @@ def hash_password(password: str, salt: Optional[bytes] = None) -> Tuple[str, str
     if salt is None:
         salt = secrets.token_bytes(32)
 
-    pwdhash = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, 100000)
+    pwdhash = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt, 100000)
     return base64.b64encode(salt).decode(), base64.b64encode(pwdhash).decode()
 
 
@@ -664,9 +691,9 @@ def verify_password(password: str, salt: str, hash_value: str) -> bool:
     try:
         salt_bytes = base64.b64decode(salt)
         hash_bytes = base64.b64decode(hash_value)
-        pwdhash = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt_bytes, 100000)
+        pwdhash = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt_bytes, 100000)
         return hmac.compare_digest(pwdhash, hash_bytes)
-    except (binascii.Error, ValueError, TypeError):
+    except Exception:
         return False
 
 
@@ -675,7 +702,7 @@ def secure_random_string(length: int = 32, alphabet: str = None) -> str:
     if alphabet is None:
         alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
-    return "".join(secrets.choice(alphabet) for _ in range(length))
+    return ''.join(secrets.choice(alphabet) for _ in range(length))
 
 
 # Production security initialization

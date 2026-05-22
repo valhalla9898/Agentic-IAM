@@ -43,28 +43,34 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    checks: List[tuple[str, List[str]]] = [
-        (
-            "flake8-core",
-            [sys.executable, "-m", "flake8", "app.py", "run_gui.py"],
-        ),
-        (
-            "flake8-ai",
-            [
-                sys.executable,
-                "-m",
-                "flake8",
-                "dashboard/components/ai_assistant.py",
-                "dashboard/components/ai_kb.py",
-                "scripts/ask_ai.py",
-                "tests/test_unit/test_ai_cli.py",
-            ],
-        ),
-        (
-            "ai-cli-smoke-tests",
-            [sys.executable, "-m", "pytest", "tests/test_unit/test_ai_cli.py", "-q", "-o", "addopts="],
-        ),
-    ]
+    checks: List[tuple[str,
+                       List[str]]] = [("flake8-core",
+                                       [sys.executable,
+                                        "-m",
+                                        "flake8",
+                                        "app.py",
+                                        "run_gui.py"],
+                                       ),
+                                      ("flake8-ai",
+                                       [sys.executable,
+                                        "-m",
+                                        "flake8",
+                                        "dashboard/components/ai_assistant.py",
+                                        "dashboard/components/ai_kb.py",
+                                        "scripts/ask_ai.py",
+                                        "tests/test_unit/test_ai_cli.py",
+                                        ],
+                                       ),
+                                      ("ai-cli-smoke-tests",
+                                       [sys.executable,
+                                        "-m",
+                                        "pytest",
+                                        "tests/test_unit/test_ai_cli.py",
+                                        "-q",
+                                        "-o",
+                                        "addopts="],
+                                       ),
+                                      ]
 
     if not args.quick:
         checks.append(

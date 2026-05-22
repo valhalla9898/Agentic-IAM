@@ -3,33 +3,36 @@ Streamlit Dashboard  Q&A System
     3000+
 """
 
-import secrets
-import time
-
-import pandas as pd
 import streamlit as st
-
-from qa_database import CATEGORIES, QADatabase
+import pandas as pd
+import time
+from datetime import datetime
+import random
+from qa_database import QADatabase, CATEGORIES
 
 # Page configuration
-st.set_page_config(page_title="   🎓", page_icon="🧠", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(
+    page_title="   🎓",
+    page_icon="🧠",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
 # Initialize session state
-if "qa_db" not in st.session_state:
+if 'qa_db' not in st.session_state:
     st.session_state.qa_db = QADatabase()
 
-if "user_id" not in st.session_state:
-    st.session_state.user_id = f"user_{secrets.randbelow(9000) + 1000}"
+if 'user_id' not in st.session_state:
+    st.session_state.user_id = f"user_{random.randint(1000, 9999)}"
 
-if "current_question" not in st.session_state:
+if 'current_question' not in st.session_state:
     st.session_state.current_question = None
 
-if "start_time" not in st.session_state:
+if 'start_time' not in st.session_state:
     st.session_state.start_time = None
 
 # Custom CSS
-st.markdown(
-    """
+st.markdown("""
 <style>
     .main-title {
         text-align: center;
@@ -78,9 +81,7 @@ st.markdown(
         text-align: center;
     }
 </style>
-""",
-    unsafe_allow_html=True,
-)
+""", unsafe_allow_html=True)
 
 # Main title
 st.markdown("<h1 class='main-title'>🎓    🎓</h1>", unsafe_allow_html=True)
@@ -89,7 +90,10 @@ st.markdown("---")
 # Sidebar
 with st.sidebar:
     st.title(" ")
-    page = st.radio(" :", ["🏠 ", "❓ ", "📊 ", "🏆 ", "🔍 "])
+    page = st.radio(
+        " :",
+        ["🏠 ", "❓ ", "📊 ", "🏆 ", "🔍 "]
+    )
 
     st.markdown("---")
     st.info(f"🆔  : {st.session_state.user_id}")
@@ -103,18 +107,24 @@ if page == "🏠 ":
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        st.markdown('<div class="stats-card"><h3> </h3><h1>3000+</h1></div>', unsafe_allow_html=True)
+        st.markdown(
+            '<div class="stats-card"><h3> </h3><h1>3000+</h1></div>',
+            unsafe_allow_html=True)
 
     with col2:
         stats = st.session_state.qa_db.get_user_stats(st.session_state.user_id)
         if stats:
-            st.markdown(f'<div class="stats-card"><h3></h3><h1>{stats["points"]}</h1></div>', unsafe_allow_html=True)
+            st.markdown(
+                f'<div class="stats-card"><h3></h3><h1>{stats["points"]}</h1></div>',
+                unsafe_allow_html=True)
         else:
             st.markdown('<div class="stats-card"><h3></h3><h1>0</h1></div>', unsafe_allow_html=True)
 
     with col3:
         categories = st.session_state.qa_db.get_categories()
-        st.markdown(f'<div class="stats-card"><h3></h3><h1>{len(categories)}</h1></div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="stats-card"><h3></h3><h1>{len(categories)}</h1></div>',
+            unsafe_allow_html=True)
 
     st.markdown("---")
 
@@ -128,14 +138,27 @@ if page == "🏠 ":
 
         for idx, (col, cat) in enumerate(zip(cols, categories)):
             with col:
-                st.metric(label=cat["arabic_name"], value=cat["count"], delta="")
+                st.metric(
+                    label=cat['arabic_name'],
+                    value=cat['count'],
+                    delta=""
+                )
 
     st.markdown("---")
 
     # Features
     st.subheader("✨ ")
 
-    features = ["✅ 3000+   ", "✅   ( AI   )", "✅    ", "✅   ", "✅   ", "✅   ", "✅   ", "✅   "]
+    features = [
+        "✅ 3000+   ",
+        "✅   ( AI   )",
+        "✅    ",
+        "✅   ",
+        "✅   ",
+        "✅   ",
+        "✅   ",
+        "✅   "
+    ]
 
     for feature in features:
         st.write(feature)
@@ -148,13 +171,16 @@ elif page == "❓ ":
 
     with col2:
         selected_category = st.selectbox(
-            " :", [""] + list(CATEGORIES.keys()), format_func=lambda x: "" if x == "" else CATEGORIES[x]
+            " :",
+            [""] + list(CATEGORIES.keys()),
+            format_func=lambda x: "" if x == "" else CATEGORIES[x]
         )
 
     with col1:
         if st.button("📝  ", use_container_width=True):
             category = None if selected_category == "" else selected_category
-            st.session_state.current_question = st.session_state.qa_db.get_random_question(category=category)
+            st.session_state.current_question = st.session_state.qa_db.get_random_question(
+                category=category)
             st.session_state.start_time = time.time()
 
     st.markdown("---")
@@ -163,14 +189,16 @@ elif page == "❓ ":
         q = st.session_state.current_question
 
         # Display question
-        st.markdown(f'<div class="question-box"><h2>❓ :</h2><h3>{q["question"]}</h3></div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="question-box"><h2>❓ :</h2><h3>{q["question"]}</h3></div>',
+            unsafe_allow_html=True)
 
         # Display category and difficulty
         col1, col2 = st.columns(2)
         with col1:
             st.badge(f": {CATEGORIES.get(q['category'], q['category'])}")
         with col2:
-            difficulty_text = " 🟢" if q["difficulty"] == 1 else " 🟡" if q["difficulty"] == 2 else " 🔴"
+            difficulty_text = " 🟢" if q['difficulty'] == 1 else " 🟡" if q['difficulty'] == 2 else " 🔴"
             st.badge(f": {difficulty_text}")
 
         st.markdown("---")
@@ -186,17 +214,18 @@ elif page == "❓ ":
                 if not user_answer.strip():
                     st.error("  !")
                 else:
-                    time_taken = int(time.time() - st.session_state.start_time) if st.session_state.start_time else 0
+                    time_taken = int(
+                        time.time() -
+                        st.session_state.start_time) if st.session_state.start_time else 0
 
                     # Check answer
                     from difflib import SequenceMatcher
-
-                    correct_answer = q["answer"].lower().strip()
+                    correct_answer = q['answer'].lower().strip()
                     user_ans_normalized = user_answer.lower().strip()
 
                     is_correct = (
-                        user_ans_normalized == correct_answer
-                        or SequenceMatcher(None, user_ans_normalized, correct_answer).ratio() >= 0.7
+                        user_ans_normalized == correct_answer or
+                        SequenceMatcher(None, user_ans_normalized, correct_answer).ratio() >= 0.7
                     )
 
                     points = 10 if is_correct else 2
@@ -204,10 +233,10 @@ elif page == "❓ ":
                     # Record answer
                     st.session_state.qa_db.record_answer(
                         user_id=st.session_state.user_id,
-                        question_id=q["id"],
+                        question_id=q['id'],
                         user_answer=user_answer,
                         is_correct=is_correct,
-                        time_taken=time_taken,
+                        time_taken=time_taken
                     )
 
                     # Display result
@@ -217,8 +246,8 @@ elif page == "❓ ":
                         st.error(f"❌ . : {points}")
 
                     st.markdown(
-                        f'<div class="answer-box"><h4>✓  :</h4><p>{q["answer"]}</p></div>', unsafe_allow_html=True
-                    )
+                        f'<div class="answer-box"><h4>✓  :</h4><p>{q["answer"]}</p></div>',
+                        unsafe_allow_html=True)
 
                     if time_taken > 0:
                         st.info(f"⏱️  : {time_taken} ")
@@ -226,7 +255,8 @@ elif page == "❓ ":
         with col2:
             if st.button("⏭️  ", use_container_width=True):
                 category = None if selected_category == "" else selected_category
-                st.session_state.current_question = st.session_state.qa_db.get_random_question(category=category)
+                st.session_state.current_question = st.session_state.qa_db.get_random_question(
+                    category=category)
                 st.session_state.start_time = time.time()
                 st.rerun()
 
@@ -246,10 +276,10 @@ elif page == "📊 ":
             st.metric("", f"Level {stats['level']}", "🎯")
 
         with col2:
-            st.metric("", stats["points"], "⭐")
+            st.metric("", stats['points'], "⭐")
 
         with col3:
-            st.metric(" ", stats["total_questions"], "❓")
+            st.metric(" ", stats['total_questions'], "❓")
 
         with col4:
             st.metric("", f"{stats['accuracy']:.1f}%", "🎯")
@@ -259,14 +289,14 @@ elif page == "📊 ":
         # Progress chart
         st.subheader("📈 ")
 
-        if stats["total_questions"] > 0:
+        if stats['total_questions'] > 0:
             progress_data = {
-                "label": ["Correct", "Incorrect"],
-                "count": [stats["correct_answers"], stats["total_questions"] - stats["correct_answers"]],
+                "": ["", ""],
+                "": [stats['correct_answers'], stats['total_questions'] - stats['correct_answers']]
             }
 
             df = pd.DataFrame(progress_data)
-            st.bar_chart(df.set_index("label"))
+            st.bar_chart(df.set_index(''))
 
         st.markdown("---")
 
@@ -290,17 +320,15 @@ elif page == "🏆 ":
 
     if leaderboard:
         # Create DataFrame
-        df = pd.DataFrame(
-            [
-                {
-                    "Rank": entry["rank"],
-                    "User": entry["user_id"],
-                    "Points": entry["points"],
-                    "Accuracy": f"{entry['accuracy']:.1f}%",
-                }
-                for entry in leaderboard
-            ]
-        )
+        df = pd.DataFrame([
+            {
+                "": entry['rank'],
+                "": entry['user_id'],
+                "": entry['points'],
+                "": f"{entry['accuracy']:.1f}%"
+            }
+            for entry in leaderboard
+        ])
 
         st.dataframe(df, use_container_width=True)
 
@@ -308,9 +336,8 @@ elif page == "🏆 ":
         st.markdown("---")
         st.subheader("📍   ")
 
-        user_position = next(
-            (idx + 1 for idx, entry in enumerate(leaderboard) if entry["user_id"] == st.session_state.user_id), None
-        )
+        user_position = next((idx + 1 for idx, entry in enumerate(leaderboard)
+                              if entry['user_id'] == st.session_state.user_id), None)
 
         if user_position:
             st.success(f"   #{user_position} 🎉")
@@ -327,7 +354,9 @@ elif page == "🔍 ":
     search_keyword = st.text_input("  :")
 
     search_category = st.selectbox(
-        "  ():", [""] + list(CATEGORIES.keys()), format_func=lambda x: "" if x == "" else CATEGORIES[x]
+        "  ():",
+        [""] + list(CATEGORIES.keys()),
+        format_func=lambda x: "" if x == "" else CATEGORIES[x]
     )
 
     if st.button("🔎 ", use_container_width=True):
@@ -344,9 +373,7 @@ elif page == "🔍 ":
                         st.write(f"**:** {result['question']}")
                         st.write(f"**:** {CATEGORIES.get(result['category'], result['category'])}")
                         st.write(f"**:** {result['answer']}")
-                        difficulty_text = (
-                            " 🟢" if result["difficulty"] == 1 else " 🟡" if result["difficulty"] == 2 else " 🔴"
-                        )
+                        difficulty_text = " 🟢" if result['difficulty'] == 1 else " 🟡" if result['difficulty'] == 2 else " 🔴"
                         st.write(f"**:** {difficulty_text}")
             else:
                 st.warning("   !")
@@ -355,12 +382,9 @@ elif page == "🔍 ":
 
 # Footer
 st.markdown("---")
-st.markdown(
-    """
+st.markdown("""
 <div style="text-align: center; color: #666;">
     <p>🧠    v1.0 | 3000+   </p>
     <p>👨‍💻 Made with ❤️ for Learning</p>
 </div>
-""",
-    unsafe_allow_html=True,
-)
+""", unsafe_allow_html=True)

@@ -1,10 +1,9 @@
+from agent_registry import AgentRegistry
+from agent_identity import AgentIdentity
+from core.agentic_iam import AgenticIAM
+from config.settings import get_settings
 import sys
 from pathlib import Path
-
-from agent_identity import AgentIdentity
-from agent_registry import AgentRegistry
-from config.settings import get_settings
-from core.agentic_iam import AgenticIAM
 
 # Ensure project root is on sys.path
 ROOT = Path(__file__).resolve().parents[1]
@@ -17,7 +16,9 @@ def main():
 
     # Create a lightweight IAM instance using only the registry
     iam = AgenticIAM(settings)
-    iam.agent_registry = AgentRegistry(storage_path=settings.agent_registry_path, enable_persistence=True)
+    iam.agent_registry = AgentRegistry(
+        storage_path=settings.agent_registry_path,
+        enable_persistence=True)
     iam.is_initialized = True
 
     # Test agent data (from your sample)
@@ -33,8 +34,9 @@ def main():
     # Generate identity and register
     agent_identity = AgentIdentity.generate(agent_id, metadata)
     reg_id = iam.agent_registry.register_agent(
-        agent_identity, endpoints=["https://payment.example.com"], capabilities=metadata["capabilities"]
-    )
+        agent_identity,
+        endpoints=["https://payment.example.com"],
+        capabilities=metadata["capabilities"])
 
     print("Registered agent:", agent_id)
     print("Registration ID:", reg_id)
@@ -42,5 +44,5 @@ def main():
     print(f"Total agents in registry: {len(agents)}")
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

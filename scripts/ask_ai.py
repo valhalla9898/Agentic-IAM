@@ -7,6 +7,7 @@ import os
 import sys
 from pathlib import Path
 
+
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -34,7 +35,8 @@ def _call_openai(prompt: str, model: str = "gpt-3.5-turbo") -> str:
     except Exception as exc:
         fallback = _local_helper(prompt)
         return (
-            f"OpenAI cloud request failed for model '{model}': {exc}\n\n" f"Falling back to local mode.\n\n{fallback}"
+            f"OpenAI cloud request failed for model '{model}': {exc}\n\n"
+            f"Falling back to local mode.\n\n{fallback}"
         )
 
 
@@ -45,13 +47,11 @@ def _local_helper(prompt: str) -> str:
             "Login help:\n- Bootstrap an admin with python setup_admin.py.\n"
             "- If needed, set AGENTIC_IAM_ADMIN_PASSWORD before setup for deterministic credentials.\n"
             "- Additional users can be created in User Management (Admin).\n"
-            "- For API login, POST /api/auth/login with username/password."
-        )
+            "- For API login, POST /api/auth/login with username/password.")
     if "mtls" in prompt_lower or "certificate" in prompt_lower:
         return (
             "mTLS guidance:\n- Enable mTLS in config/settings.py by setting enable_mtls=True.\n"
-            "- Configure your TLS terminator (NGINX/Ingress) to forward x-ssl-client-verify and x-forwarded-client-cert."
-        )
+            "- Configure your TLS terminator (NGINX/Ingress) to forward x-ssl-client-verify and x-forwarded-client-cert.")
     if "secrets" in prompt_lower or "vault" in prompt_lower:
         return (
             "Secrets guidance:\n- Use the SecretManager scaffold at secrets/key_vault.py.\n"

@@ -4,21 +4,26 @@ Database Migration and Schema Management
 Production-grade database migration system for Agentic-IAM platform.
 Supports PostgreSQL, SQLite, and MySQL with version control and rollback capabilities.
 """
-
+from config.settings import Settings
 import asyncio
-import hashlib
-import json
 import logging
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import List, Dict, Any, Optional
+import hashlib
+import json
 
-from sqlalchemy import create_engine, text
-from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.ext.asyncio import create_async_engine
-
-from config.settings import Settings
+import asyncpg
+import aiosqlite
+from sqlalchemy import create_engine, text, MetaData, Table, Column, String, DateTime, Integer, Boolean, Text
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker
+from alembic.config import Config
+from alembic import command
+from alembic.runtime.migration import MigrationContext
+from alembic.operations import Operations
 
 # Add project modules to path
 sys.path.append(str(Path(__file__).parent.parent))
@@ -61,7 +66,7 @@ class DatabaseMigrator:
 
             self.logger.info("Migration tracking table initialized")
 
-        except SQLAlchemyError as e:
+        except Exception as e:
             self.logger.error(f"Failed to initialize migration tracking: {e}")
             raise
 
@@ -76,11 +81,16 @@ class DatabaseMigrator:
                 """))
 
                 return [
-                    {"migration_id": row[0], "migration_name": row[1], "applied_at": row[2], "checksum": row[3]}
+                    {
+                        "migration_id": row[0],
+                        "migration_name": row[1],
+                        "applied_at": row[2],
+                        "checksum": row[3]
+                    }
                     for row in result.fetchall()
                 ]
 
-        except SQLAlchemyError as e:
+        except Exception as e:
             self.logger.error(f"Failed to get applied migrations: {e}")
             return []
 
@@ -93,12 +103,15 @@ class DatabaseMigrator:
             self._create_audit_schema(),
             self._create_trust_scores_schema(),
             self._create_policies_schema(),
-            self._create_compliance_schema(),
+            self._create_compliance_schema()
         ]
 
         for migration_name, sql, rollback_sql in migrations:
             await self.apply_migration(
-                migration_id=f"core_{migration_name}", migration_name=migration_name, sql=sql, rollback_sql=rollback_sql
+                migration_id=f"core_{migration_name}",
+                migration_name=migration_name,
+                sql=sql,
+                rollback_sql=rollback_sql
             )
 
     def _create_agents_schema(self) -> tuple:
@@ -474,22 +487,18 @@ class DatabaseMigrator:
         """Calculate checksum for migration content"""
         return hashlib.sha256(content.encode()).hexdigest()
 
-    async def apply_migration(
-        self, migration_id: str, migration_name: str, sql: str, rollback_sql: str = "", metadata: Dict[str, Any] = None
-    ):
+    async def apply_migration(self, migration_id: str, migration_name: str,
+                              sql: str, rollback_sql: str = "", metadata: Dict[str, Any] = None):
         """Apply a database migration"""
         checksum = self._calculate_checksum(sql)
 
         try:
             # Check if migration already applied
             async with self.async_engine.begin() as conn:
-                result = await conn.execute(
-                    text(f"""
+                result = await conn.execute(text(f"""
                     SELECT checksum FROM {self.migration_table}
                     WHERE migration_id = :migration_id
-                """),
-                    {"migration_id": migration_id},
-                )
+                """), {"migration_id": migration_id})
 
                 existing = result.fetchone()
                 if existing:
@@ -504,20 +513,17 @@ class DatabaseMigrator:
                 await conn.execute(text(sql))
 
                 # Record migration
-                await conn.execute(
-                    text(f"""
+                await conn.execute(text(f"""
                     INSERT INTO {self.migration_table}
                     (migration_id, migration_name, checksum, rollback_sql, metadata)
                     VALUES (:migration_id, :migration_name, :checksum, :rollback_sql, :metadata)
-                """),
-                    {
-                        "migration_id": migration_id,
-                        "migration_name": migration_name,
-                        "checksum": checksum,
-                        "rollback_sql": rollback_sql,
-                        "metadata": json.dumps(metadata or {}),
-                    },
-                )
+                """), {
+                    "migration_id": migration_id,
+                    "migration_name": migration_name,
+                    "checksum": checksum,
+                    "rollback_sql": rollback_sql,
+                    "metadata": json.dumps(metadata or {})
+                })
 
             self.logger.info(f"Migration {migration_name} applied successfully")
 
@@ -530,13 +536,10 @@ class DatabaseMigrator:
         try:
             async with self.async_engine.begin() as conn:
                 # Get migration details
-                result = await conn.execute(
-                    text(f"""
+                result = await conn.execute(text(f"""
                     SELECT migration_name, rollback_sql FROM {self.migration_table}
                     WHERE migration_id = :migration_id
-                """),
-                    {"migration_id": migration_id},
-                )
+                """), {"migration_id": migration_id})
 
                 migration = result.fetchone()
                 if not migration:
@@ -551,13 +554,10 @@ class DatabaseMigrator:
                 await conn.execute(text(rollback_sql))
 
                 # Remove migration record
-                await conn.execute(
-                    text(f"""
+                await conn.execute(text(f"""
                     DELETE FROM {self.migration_table}
                     WHERE migration_id = :migration_id
-                """),
-                    {"migration_id": migration_id},
-                )
+                """), {"migration_id": migration_id})
 
             self.logger.info(f"Migration {migration_name} rolled back successfully")
 
@@ -574,7 +574,7 @@ class DatabaseMigrator:
             async with self.async_engine.begin() as conn:
                 await conn.execute(text("SELECT 1"))
                 db_connected = True
-        except SQLAlchemyError:
+        except Exception:
             db_connected = False
 
         return {
@@ -582,7 +582,7 @@ class DatabaseMigrator:
             "migration_table_exists": len(applied_migrations) >= 0,
             "applied_migrations_count": len(applied_migrations),
             "applied_migrations": applied_migrations,
-            "last_migration": applied_migrations[-1] if applied_migrations else None,
+            "last_migration": applied_migrations[-1] if applied_migrations else None
         }
 
     async def create_backup(self, backup_name: str = None) -> str:
@@ -601,25 +601,23 @@ class DatabaseMigrator:
             if "postgresql" in self.settings.database_url:
                 # Use pg_dump for PostgreSQL
                 import subprocess
-
-                result = subprocess.run(
-                    ["pg_dump", self.settings.database_url, "-f", str(backup_file)], capture_output=True, text=True
-                )
+                result = subprocess.run([
+                    "pg_dump", self.settings.database_url, "-f", str(backup_file)
+                ], capture_output=True, text=True)
 
                 if result.returncode != 0:
-                    raise RuntimeError(f"pg_dump failed: {result.stderr}")
+                    raise Exception(f"pg_dump failed: {result.stderr}")
 
             elif "sqlite" in self.settings.database_url:
                 # Use SQLite backup
                 db_path = self.settings.database_url.replace("sqlite:///", "")
                 import shutil
-
                 shutil.copy2(db_path, backup_file)
 
             self.logger.info(f"Backup created successfully: {backup_file}")
             return str(backup_file)
 
-        except (OSError, RuntimeError) as e:
+        except Exception as e:
             self.logger.error(f"Failed to create backup: {e}")
             raise
 
@@ -629,9 +627,8 @@ async def main():
     import argparse
 
     parser = argparse.ArgumentParser(description="Agentic-IAM Database Migration Tool")
-    parser.add_argument(
-        "--action", choices=["migrate", "rollback", "status", "backup"], default="migrate", help="Migration action"
-    )
+    parser.add_argument("--action", choices=["migrate", "rollback", "status", "backup"],
+                        default="migrate", help="Migration action")
     parser.add_argument("--migration-id", help="Specific migration ID for rollback")
     parser.add_argument("--backup-name", help="Backup name")
     parser.add_argument("--force", action="store_true", help="Force operation")
@@ -639,7 +636,10 @@ async def main():
     args = parser.parse_args()
 
     # Setup logging
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
 
     try:
         # Load settings
@@ -671,10 +671,11 @@ async def main():
             print(f"Database Connected: {'✅' if status['database_connected'] else '❌'}")
             print(f"Applied Migrations: {status['applied_migrations_count']}")
 
-            if status["applied_migrations"]:
+            if status['applied_migrations']:
                 print("\nApplied Migrations:")
-                for migration in status["applied_migrations"][-5:]:  # Last 5
-                    print(f"  - {migration['migration_id']}: {migration['migration_name']} ({migration['applied_at']})")
+                for migration in status['applied_migrations'][-5:]:  # Last 5
+                    print(
+                        f"  - {migration['migration_id']}: {migration['migration_name']} ({migration['applied_at']})")
 
         elif args.action == "backup":
             print("💾 Creating database backup...")

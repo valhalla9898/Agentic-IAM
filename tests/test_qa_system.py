@@ -3,17 +3,18 @@ Comprehensive Tests for Advanced QA System
 
 """
 
+import pytest
+import asyncio
+from datetime import datetime, timedelta
+import json
 import uuid
 
-import pytest
-
-from qa_analytics import QAAnalytics
-
 # Import all QA system components
-from qa_database import QADatabase
-from qa_recommendations import QARecommendationEngine
-from qa_security import QASecurityManager
-from qa_utilities import PerformanceMetrics, QAUtilities
+from qa_database import QADatabase, CATEGORIES
+from qa_security import QASecurityManager, get_security_manager
+from qa_analytics import QAAnalytics, get_analytics
+from qa_recommendations import QARecommendationEngine, get_recommendation_engine
+from qa_utilities import QAUtilities, PerformanceMetrics
 
 
 class TestQADatabase:
@@ -32,24 +33,24 @@ class TestQADatabase:
         categories = db.get_categories()
         assert len(categories) > 0, "Should have categories"
 
-        category_names = [c.get("category") for c in categories]
-        assert "" in category_names or "security" in str(category_names).lower()
+        category_names = [c.get('category') for c in categories]
+        assert '' in category_names or 'security' in str(category_names).lower()
 
     def test_get_random_question(self):
         """Test getting random question"""
         db = QADatabase()
         question = db.get_random_question()
         assert question is not None, "Should get a question"
-        assert "id" in question
-        assert "question" in question
-        assert "answer" in question
+        assert 'id' in question
+        assert 'question' in question
+        assert 'answer' in question
 
     def test_get_question_by_id(self):
         """Test getting question by ID"""
         db = QADatabase()
         question = db.get_question_by_id(1)
         assert question is not None
-        assert question["id"] == 1
+        assert question['id'] == 1
 
 
 class TestQASecurity:
@@ -68,11 +69,19 @@ class TestQASecurity:
 
         # First 100 requests should pass
         for i in range(100):
-            allowed, info = mgr.check_rate_limit(user_id=user_id, endpoint=endpoint, max_requests=100)
+            allowed, info = mgr.check_rate_limit(
+                user_id=user_id,
+                endpoint=endpoint,
+                max_requests=100
+            )
             assert allowed, f"Request {i+1} should be allowed"
 
         # 101st request should fail
-        allowed, info = mgr.check_rate_limit(user_id=user_id, endpoint=endpoint, max_requests=100)
+        allowed, info = mgr.check_rate_limit(
+            user_id=user_id,
+            endpoint=endpoint,
+            max_requests=100
+        )
         assert not allowed, "101st request should be blocked"
 
     def test_session_creation(self):
@@ -103,7 +112,7 @@ class TestQASecurity:
 
     def test_answer_hashing(self):
         """Test answer hashing and verification"""
-        answer = "RSA encryption"
+        answer = " "
 
         hashed, salt = QASecurityManager.hash_answer(answer)
         assert hashed != answer, "Hash should differ from original"
@@ -113,7 +122,7 @@ class TestQASecurity:
         assert is_correct, "Correct answer should verify"
 
         # Verify wrong answer
-        is_wrong = QASecurityManager.verify_answer("AES encryption", hashed, salt)
+        is_wrong = QASecurityManager.verify_answer(" ", hashed, salt)
         assert not is_wrong, "Wrong answer should not verify"
 
 
@@ -132,7 +141,10 @@ class TestQAAnalytics:
         question_id = 1
 
         success = analytics.track_question_attempt(
-            user_id=user_id, question_id=question_id, is_correct=True, time_spent=45
+            user_id=user_id,
+            question_id=question_id,
+            is_correct=True,
+            time_spent=45
         )
         assert success, "Should track question attempt"
 
@@ -149,7 +161,7 @@ class TestQAAnalytics:
             difficulty_level="",
             questions_count=10,
             correct_answers=8,
-            time_spent=300,
+            time_spent=300
         )
         assert success, "Should record quiz session"
 
@@ -161,12 +173,15 @@ class TestQAAnalytics:
         # Track some attempts
         for i in range(10):
             analytics.track_question_attempt(
-                user_id=user_id, question_id=i, is_correct=(i % 2 == 0), time_spent=30 + i * 5
+                user_id=user_id,
+                question_id=i,
+                is_correct=(i % 2 == 0),
+                time_spent=30 + i * 5
             )
 
         stats = analytics.get_user_statistics(user_id)
-        assert stats["total_questions_attempted"] > 0
-        assert "overall_accuracy_percentage" in stats
+        assert stats['total_questions_attempted'] > 0
+        assert 'overall_accuracy_percentage' in stats
 
     def test_leaderboard(self):
         """Test leaderboard generation"""
@@ -184,7 +199,7 @@ class TestQAAnalytics:
                 difficulty_level="",
                 questions_count=10,
                 correct_answers=8 - user_num,
-                time_spent=300,
+                time_spent=300
             )
 
         leaderboard = analytics.get_leaderboard(limit=5)
@@ -204,12 +219,16 @@ class TestQARecommendations:
         engine = QARecommendationEngine(db_path=":memory:")
         user_id = "test_user"
 
-        success = engine.create_user_profile(user_id=user_id, preferred_category="", preferred_difficulty="")
+        success = engine.create_user_profile(
+            user_id=user_id,
+            preferred_category="",
+            preferred_difficulty=""
+        )
         assert success, "Should create user profile"
 
         profile = engine.get_user_profile(user_id)
         assert profile is not None
-        assert profile["preferred_category"] == ""
+        assert profile['preferred_category'] == ""
 
     def test_spaced_repetition_update(self):
         """Test spaced repetition algorithm"""
@@ -218,7 +237,11 @@ class TestQARecommendations:
         question_id = 1
 
         # First correct answer
-        success = engine.update_spaced_repetition(user_id=user_id, question_id=question_id, is_correct=True)
+        success = engine.update_spaced_repetition(
+            user_id=user_id,
+            question_id=question_id,
+            is_correct=True
+        )
         assert success, "Should update spaced repetition"
 
         # Get next review
@@ -232,13 +255,15 @@ class TestQAUtilities:
     def test_difficulty_calculation(self):
         """Test difficulty score calculation"""
         score = QAUtilities.calculate_difficulty_score(
-            question_text="This is a simple question?" * 3, answer_text="Simple answer", category=""
+            question_text="This is a simple question?" * 3,
+            answer_text="Simple answer",
+            category=""
         )
         assert 1 <= score <= 5, "Score should be between 1 and 5"
 
     def test_keyword_extraction(self):
         """Test keyword extraction"""
-        text = "Machine learning security and authentication workflows"
+        text = "        "
         keywords = QAUtilities.extract_keywords(text, limit=5)
         assert len(keywords) > 0, "Should extract keywords"
 
@@ -260,16 +285,25 @@ class TestQAUtilities:
 
     def test_experience_points(self):
         """Test experience point calculation"""
-        points = QAUtilities.calculate_experience_points(correct=True, difficulty=3, time_spent=45, streak=5)
+        points = QAUtilities.calculate_experience_points(
+            correct=True,
+            difficulty=3,
+            time_spent=45,
+            streak=5
+        )
         assert points > 0, "Should calculate positive points"
 
     def test_learning_summary(self):
         """Test learning summary generation"""
-        user_stats = {"overall_accuracy": 75.0, "total_questions_attempted": 100, "total_correct_answers": 75}
+        user_stats = {
+            "overall_accuracy": 75.0,
+            "total_questions_attempted": 100,
+            "total_correct_answers": 75
+        }
 
         summary = QAUtilities.generate_learning_summary(user_stats)
-        assert summary["performance_level"] == " "
-        assert len(summary["recommendations"]) > 0
+        assert summary['performance_level'] == " "
+        assert len(summary['recommendations']) > 0
 
 
 class TestPerformanceMetrics:
@@ -277,15 +311,21 @@ class TestPerformanceMetrics:
 
     def test_time_to_mastery(self):
         """Test time to mastery estimation"""
-        result = PerformanceMetrics.estimate_time_to_mastery(current_accuracy=60.0, questions_per_day=5.0)
-        assert "days_to_mastery" in result
-        assert "questions_needed" in result
-        assert result["days_to_mastery"] > 0
+        result = PerformanceMetrics.estimate_time_to_mastery(
+            current_accuracy=60.0,
+            questions_per_day=5.0
+        )
+        assert 'days_to_mastery' in result
+        assert 'questions_needed' in result
+        assert result['days_to_mastery'] > 0
 
     def test_mastery_already_achieved(self):
         """Test when mastery is already achieved"""
-        result = PerformanceMetrics.estimate_time_to_mastery(current_accuracy=95.0, questions_per_day=5.0)
-        assert result["already_mastered"]
+        result = PerformanceMetrics.estimate_time_to_mastery(
+            current_accuracy=95.0,
+            questions_per_day=5.0
+        )
+        assert result['already_mastered']
 
 
 class TestIntegration:
@@ -317,11 +357,16 @@ class TestIntegration:
         assert question is not None
 
         # Track attempt
-        analytics.track_question_attempt(user_id=user_id, question_id=question["id"], is_correct=True, time_spent=45)
+        analytics.track_question_attempt(
+            user_id=user_id,
+            question_id=question['id'],
+            is_correct=True,
+            time_spent=45
+        )
 
         # Get statistics
         stats = analytics.get_user_statistics(user_id)
-        assert stats["total_questions_attempted"] == 1
+        assert stats['total_questions_attempted'] == 1
 
         print("✅ Integration test passed!")
 
@@ -332,7 +377,6 @@ async def test_async_operations():
     # This would test async API endpoints
     # Placeholder for future async tests
     assert True
-
 
 # Pytest configuration
 if __name__ == "__main__":

@@ -1,11 +1,11 @@
 """
 Unit tests for authentication API endpoints
 """
-
-from datetime import datetime, timedelta
-from unittest.mock import AsyncMock, MagicMock
-
 import pytest
+from unittest.mock import AsyncMock, MagicMock
+from datetime import datetime, timedelta
+
+from api.routers.authentication import router
 
 
 class TestAuthenticationAPI:
@@ -79,7 +79,11 @@ class TestAuthenticationAPI:
     @pytest.mark.api
     def test_login_invalid_request(self, client):
         """Test login with invalid request data"""
-        invalid_request = {"agent_id": "", "method": "jwt", "credentials": {}}  # Invalid: empty agent_id
+        invalid_request = {
+            "agent_id": "",  # Invalid: empty agent_id
+            "method": "jwt",
+            "credentials": {}
+        }
 
         response = client.post("/api/v1/auth/login", json=invalid_request)
 
@@ -115,7 +119,9 @@ class TestAuthenticationAPI:
         assert data["message"] == "Successfully terminated 1 session(s)"
         assert data["data"]["terminated_sessions"] == 1
 
-        mock_iam.session_manager.terminate_session.assert_called_once_with("session_001", reason="user_logout")
+        mock_iam.session_manager.terminate_session.assert_called_once_with(
+            "session_001", reason="user_logout"
+        )
 
     @pytest.mark.unit
     @pytest.mark.api
@@ -168,7 +174,10 @@ class TestAuthenticationAPI:
         mock_jwt_auth.generate_token.return_value = "new_jwt_token_456"
         mock_iam.authentication_manager.methods = {"jwt": mock_jwt_auth}
 
-        refresh_request = {"session_id": "session_001", "refresh_token": "refresh_token_123"}
+        refresh_request = {
+            "session_id": "session_001",
+            "refresh_token": "refresh_token_123"
+        }
 
         response = client.post("/api/v1/auth/refresh", json=refresh_request)
 
@@ -191,7 +200,10 @@ class TestAuthenticationAPI:
         """Test token refresh with invalid session"""
         mock_iam.session_manager.refresh_session.return_value = False
 
-        refresh_request = {"session_id": "invalid_session", "refresh_token": "refresh_token_123"}
+        refresh_request = {
+            "session_id": "invalid_session",
+            "refresh_token": "refresh_token_123"
+        }
 
         response = client.post("/api/v1/auth/refresh", json=refresh_request)
 
@@ -251,7 +263,7 @@ class TestAuthenticationAPI:
         verify_data = {
             "agent_id": "agent:test-001",
             "challenge": "challenge_string_123",
-            "signature": "signature_data_456",
+            "signature": "signature_data_456"
         }
 
         response = client.post("/api/v1/auth/verify-signature", params=verify_data)
@@ -283,7 +295,7 @@ class TestAuthenticationAPI:
         verify_data = {
             "agent_id": "agent:test-001",
             "challenge": "challenge_string_123",
-            "signature": "invalid_signature",
+            "signature": "invalid_signature"
         }
 
         response = client.post("/api/v1/auth/verify-signature", params=verify_data)
@@ -304,7 +316,7 @@ class TestAuthenticationAPI:
         verify_data = {
             "agent_id": "agent:nonexistent",
             "challenge": "challenge_string_123",
-            "signature": "signature_data_456",
+            "signature": "signature_data_456"
         }
 
         response = client.post("/api/v1/auth/verify-signature", params=verify_data)
@@ -325,7 +337,10 @@ class TestAuthenticationAPI:
         mock_crypto_method = MagicMock()
         mock_crypto_method.__class__.__name__ = "CryptographicAuthentication"
 
-        mock_iam.authentication_manager.methods = {"jwt": mock_jwt_method, "crypto": mock_crypto_method}
+        mock_iam.authentication_manager.methods = {
+            "jwt": mock_jwt_method,
+            "crypto": mock_crypto_method
+        }
         mock_iam.authentication_manager.default_method = "jwt"
 
         response = client.get("/api/v1/auth/methods")
@@ -359,7 +374,7 @@ class TestAuthenticationAPI:
         mock_sessions = [
             MagicMock(is_active=lambda: True),
             MagicMock(is_active=lambda: True),
-            MagicMock(is_active=lambda: False),
+            MagicMock(is_active=lambda: False)
         ]
         mock_iam.session_manager.session_store.get_agent_sessions.return_value = mock_sessions
 
@@ -370,7 +385,9 @@ class TestAuthenticationAPI:
         mock_iam.calculate_trust_score = AsyncMock(return_value=mock_trust_score)
 
         # Setup mock audit events
-        mock_audit_events = [MagicMock(timestamp=datetime.utcnow())]
+        mock_audit_events = [
+            MagicMock(timestamp=datetime.utcnow())
+        ]
         mock_iam.audit_manager.query_events.return_value = mock_audit_events
 
         response = client.get("/api/v1/auth/status/agent:test-001")
@@ -408,7 +425,7 @@ class TestAuthenticationAPI:
         mock_mfa_session = {
             "session_id": "mfa_session_001",
             "required_factors": 2,
-            "available_methods": ["totp", "sms"],
+            "available_methods": ["totp", "sms"]
         }
         mock_mfa_method.start_authentication.return_value = mock_mfa_session
 
@@ -453,7 +470,11 @@ class TestAuthenticationAPI:
         mock_mfa_method.authenticate_factor.return_value = mock_result
         mock_iam.authentication_manager.methods = {"mfa": mock_mfa_method}
 
-        verify_data = {"mfa_session_id": "mfa_session_001", "method": "totp", "credentials": {"code": "123456"}}
+        verify_data = {
+            "mfa_session_id": "mfa_session_001",
+            "method": "totp",
+            "credentials": {"code": "123456"}
+        }
 
         response = client.post("/api/v1/auth/mfa/verify", json=verify_data)
 
@@ -465,7 +486,9 @@ class TestAuthenticationAPI:
         assert data["agent_id"] == "agent:test-001"
         assert data["trust_level"] == 0.95
 
-        mock_mfa_method.authenticate_factor.assert_called_once_with("mfa_session_001", "totp", {"code": "123456"})
+        mock_mfa_method.authenticate_factor.assert_called_once_with(
+            "mfa_session_001", "totp", {"code": "123456"}
+        )
 
     @pytest.mark.unit
     @pytest.mark.api
@@ -481,7 +504,11 @@ class TestAuthenticationAPI:
         mock_mfa_method.authenticate_factor.return_value = mock_result
         mock_iam.authentication_manager.methods = {"mfa": mock_mfa_method}
 
-        verify_data = {"mfa_session_id": "mfa_session_001", "method": "totp", "credentials": {"code": "123456"}}
+        verify_data = {
+            "mfa_session_id": "mfa_session_001",
+            "method": "totp",
+            "credentials": {"code": "123456"}
+        }
 
         response = client.post("/api/v1/auth/mfa/verify", json=verify_data)
 
@@ -505,7 +532,11 @@ class TestAuthenticationAPI:
         mock_mfa_method.authenticate_factor.return_value = mock_result
         mock_iam.authentication_manager.methods = {"mfa": mock_mfa_method}
 
-        verify_data = {"mfa_session_id": "mfa_session_001", "method": "totp", "credentials": {"code": "wrong"}}
+        verify_data = {
+            "mfa_session_id": "mfa_session_001",
+            "method": "totp",
+            "credentials": {"code": "wrong"}
+        }
 
         response = client.post("/api/v1/auth/mfa/verify", json=verify_data)
 

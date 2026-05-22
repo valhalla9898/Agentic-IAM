@@ -4,15 +4,16 @@ Intelligent Recommendation & Smart Learning System
 """
 
 import sqlite3
-import tempfile
 from datetime import datetime, timedelta
+from typing import List, Dict, Optional, Tuple
 from enum import Enum
-from typing import Dict, List, Optional
+import json
+import math
+import tempfile
 
 
 class DifficultyLevel(str, Enum):
     """ """
-
     BEGINNER = ""
     INTERMEDIATE = ""
     ADVANCED = ""
@@ -20,7 +21,7 @@ class DifficultyLevel(str, Enum):
 
 
 class QARecommendationEngine:
-    """ """
+    """  """
 
     def __init__(self, db_path: str = "qa_recommendations.db"):
         if db_path == ":memory:" or db_path.startswith(":memory"):
@@ -29,7 +30,6 @@ class QARecommendationEngine:
                 pass
             finally:
                 import os
-
                 os.close(fd)
             self.db_path = temp_path
         else:
@@ -86,30 +86,27 @@ class QARecommendationEngine:
         conn.close()
 
     def create_user_profile(
-        self, user_id: str, preferred_category: str = None, preferred_difficulty: str = None
+        self,
+        user_id: str,
+        preferred_category: str = None,
+        preferred_difficulty: str = None
     ) -> bool:
         """Create user profile"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
         try:
-            cursor.execute(
-                """
+            cursor.execute("""
                 INSERT OR REPLACE INTO user_profiles
                 (user_id, preferred_category, preferred_difficulty, profile_updated)
                 VALUES (?, ?, ?, CURRENT_TIMESTAMP)
-            """,
-                (user_id, preferred_category, preferred_difficulty),
-            )
+            """, (user_id, preferred_category, preferred_difficulty))
 
             conn.commit()
             conn.close()
             return True
-        except sqlite3.DatabaseError as e:
+        except Exception:
             conn.close()
-            import logging
-
-            logging.getLogger(__name__).debug("Failed to create user profile: %s", e)
             return False
 
     def update_user_profile(self, user_id: str, **kwargs) -> bool:
@@ -122,23 +119,17 @@ class QARecommendationEngine:
             set_clause += ", profile_updated = CURRENT_TIMESTAMP"
             values = list(kwargs.values()) + [user_id]
 
-            cursor.execute(
-                f"""
+            cursor.execute(f"""
                 UPDATE user_profiles
                 SET {set_clause}
                 WHERE user_id = ?
-            """,
-                values,
-            )
+            """, values)
 
             conn.commit()
             conn.close()
             return True
-        except sqlite3.DatabaseError as e:
+        except Exception:
             conn.close()
-            import logging
-
-            logging.getLogger(__name__).debug("Failed to update user profile: %s", e)
             return False
 
     def get_user_profile(self, user_id: str) -> Optional[Dict]:
@@ -147,14 +138,11 @@ class QARecommendationEngine:
         cursor = conn.cursor()
 
         try:
-            cursor.execute(
-                """
+            cursor.execute("""
                 SELECT user_id, preferred_category, preferred_difficulty,
                        learning_speed, last_session
                 FROM user_profiles WHERE user_id = ?
-            """,
-                (user_id,),
-            )
+            """, (user_id,))
 
             result = cursor.fetchone()
             conn.close()
@@ -165,19 +153,20 @@ class QARecommendationEngine:
                     "preferred_category": result[1],
                     "preferred_difficulty": result[2],
                     "learning_speed": result[3],
-                    "last_session": result[4],
+                    "last_session": result[4]
                 }
 
             return None
-        except sqlite3.DatabaseError as e:
+        except Exception:
             conn.close()
-            import logging
-
-            logging.getLogger(__name__).debug("Failed to get user profile: %s", e)
             return None
 
     def generate_recommendations(
-        self, user_id: str, user_stats: Dict, available_questions: List[Dict], limit: int = 10
+        self,
+        user_id: str,
+        user_stats: Dict,
+        available_questions: List[Dict],
+        limit: int = 10
     ) -> List[Dict]:
         """Generate personalized recommendations"""
         recommendations = []
@@ -186,14 +175,20 @@ class QARecommendationEngine:
 
         for question in available_questions:
             recommendation = self._evaluate_question(
-                user_id=user_id, question=question, user_stats=user_stats, profile=profile
+                user_id=user_id,
+                question=question,
+                user_stats=user_stats,
+                profile=profile
             )
 
             if recommendation:
                 recommendations.append(recommendation)
 
         # Sort by confidence score
-        recommendations.sort(key=lambda x: x["confidence_score"], reverse=True)
+        recommendations.sort(
+            key=lambda x: x["confidence_score"],
+            reverse=True
+        )
 
         # Save recommendations
         for rec in recommendations[:limit]:
@@ -202,7 +197,11 @@ class QARecommendationEngine:
         return recommendations[:limit]
 
     def _evaluate_question(
-        self, user_id: str, question: Dict, user_stats: Dict, profile: Optional[Dict]
+        self,
+        user_id: str,
+        question: Dict,
+        user_stats: Dict,
+        profile: Optional[Dict]
     ) -> Optional[Dict]:
         """Evaluate if question is good recommendation"""
 
@@ -260,7 +259,7 @@ class QARecommendationEngine:
                 "difficulty_level": question_difficulty,
                 "recommendation_type": "personalized",
                 "reason": "; ".join(reasons),
-                "confidence_score": min(score, 100),
+                "confidence_score": min(score, 100)
             }
 
         return None
@@ -271,29 +270,23 @@ class QARecommendationEngine:
         cursor = conn.cursor()
 
         try:
-            cursor.execute(
-                """
+            cursor.execute("""
                 INSERT OR IGNORE INTO recommendations
                 (user_id, question_id, recommendation_type, reason, confidence_score)
                 VALUES (?, ?, ?, ?, ?)
-            """,
-                (
-                    user_id,
-                    recommendation.get("question_id"),
-                    recommendation.get("recommendation_type"),
-                    recommendation.get("reason"),
-                    recommendation.get("confidence_score"),
-                ),
-            )
+            """, (
+                user_id,
+                recommendation.get("question_id"),
+                recommendation.get("recommendation_type"),
+                recommendation.get("reason"),
+                recommendation.get("confidence_score")
+            ))
 
             conn.commit()
             conn.close()
             return True
-        except sqlite3.DatabaseError as e:
+        except Exception:
             conn.close()
-            import logging
-
-            logging.getLogger(__name__).debug("Failed to save recommendation: %s", e)
             return False
 
     def _check_spaced_repetition(self, user_id: str, question_id: int) -> bool:
@@ -302,13 +295,10 @@ class QARecommendationEngine:
         cursor = conn.cursor()
 
         try:
-            cursor.execute(
-                """
+            cursor.execute("""
                 SELECT next_review FROM spaced_repetition
                 WHERE user_id = ? AND question_id = ?
-            """,
-                (user_id, question_id),
-            )
+            """, (user_id, question_id))
 
             result = cursor.fetchone()
             conn.close()
@@ -318,26 +308,25 @@ class QARecommendationEngine:
                 return datetime.now() >= next_review
 
             return False
-        except sqlite3.DatabaseError as e:
+        except Exception:
             conn.close()
-            import logging
-
-            logging.getLogger(__name__).debug("Spaced repetition check failed: %s", e)
             return False
 
-    def update_spaced_repetition(self, user_id: str, question_id: int, is_correct: bool) -> bool:
+    def update_spaced_repetition(
+        self,
+        user_id: str,
+        question_id: int,
+        is_correct: bool
+    ) -> bool:
         """Update spaced repetition interval based on performance"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
         try:
-            cursor.execute(
-                """
+            cursor.execute("""
                 SELECT interval, ease_factor, review_count FROM spaced_repetition
                 WHERE user_id = ? AND question_id = ?
-            """,
-                (user_id, question_id),
-            )
+            """, (user_id, question_id))
 
             result = cursor.fetchone()
 
@@ -363,23 +352,17 @@ class QARecommendationEngine:
 
             next_review = datetime.now() + timedelta(days=interval)
 
-            cursor.execute(
-                """
+            cursor.execute("""
                 INSERT OR REPLACE INTO spaced_repetition
                 (user_id, question_id, interval, ease_factor, next_review, review_count)
                 VALUES (?, ?, ?, ?, ?, ?)
-            """,
-                (user_id, question_id, interval, ease_factor, next_review.isoformat(), review_count + 1),
-            )
+            """, (user_id, question_id, interval, ease_factor, next_review.isoformat(), review_count + 1))
 
             conn.commit()
             conn.close()
             return True
-        except sqlite3.DatabaseError as e:
+        except Exception:
             conn.close()
-            import logging
-
-            logging.getLogger(__name__).debug("Failed to update spaced repetition: %s", e)
             return False
 
     def get_next_review_questions(self, user_id: str, limit: int = 5) -> List[Dict]:
@@ -388,56 +371,53 @@ class QARecommendationEngine:
         cursor = conn.cursor()
 
         try:
-            cursor.execute(
-                """
+            cursor.execute("""
                 SELECT question_id, interval, ease_factor, next_review
                 FROM spaced_repetition
                 WHERE user_id = ? AND next_review <= datetime('now')
                 ORDER BY next_review ASC
                 LIMIT ?
-            """,
-                (user_id, limit),
-            )
+            """, (user_id, limit))
 
             results = cursor.fetchall()
             conn.close()
 
             questions = []
             for question_id, interval, ease_factor, next_review in results:
-                questions.append(
-                    {
-                        "question_id": question_id,
-                        "interval": interval,
-                        "ease_factor": round(ease_factor, 2),
-                        "last_review": next_review,
-                        "review_type": "spaced_repetition",
-                    }
-                )
+                questions.append({
+                    "question_id": question_id,
+                    "interval": interval,
+                    "ease_factor": round(ease_factor, 2),
+                    "last_review": next_review,
+                    "review_type": "spaced_repetition"
+                })
 
             return questions
 
-        except sqlite3.DatabaseError as e:
+        except Exception:
             conn.close()
-            import logging
-
-            logging.getLogger(__name__).debug("Failed to fetch next review questions: %s", e)
             return []
 
-    def get_adaptive_quiz(self, user_id: str, user_stats: Dict, size: int = 10) -> List[Dict]:
+    def get_adaptive_quiz(
+        self,
+        user_id: str,
+        user_stats: Dict,
+        size: int = 10
+    ) -> List[Dict]:
         """Generate adaptive quiz based on user performance"""
-        self.get_user_profile(user_id)
+        profile = self.get_user_profile(user_id)
 
         # Determine optimal difficulty
         accuracy = user_stats.get("overall_accuracy", 50)
 
         if accuracy < 40:
-            DifficultyLevel.BEGINNER.value
+            target_difficulty = DifficultyLevel.BEGINNER.value
         elif accuracy < 60:
-            DifficultyLevel.INTERMEDIATE.value
+            target_difficulty = DifficultyLevel.INTERMEDIATE.value
         elif accuracy < 80:
-            DifficultyLevel.ADVANCED.value
+            target_difficulty = DifficultyLevel.ADVANCED.value
         else:
-            DifficultyLevel.EXPERT.value
+            target_difficulty = DifficultyLevel.EXPERT.value
 
         # Would need to integrate with QADatabase to get questions
         return []
@@ -448,23 +428,17 @@ class QARecommendationEngine:
         cursor = conn.cursor()
 
         try:
-            cursor.execute(
-                """
+            cursor.execute("""
                 UPDATE recommendations
                 SET was_acted_upon = 1
                 WHERE user_id = ? AND question_id = ?
-            """,
-                (user_id, question_id),
-            )
+            """, (user_id, question_id))
 
             conn.commit()
             conn.close()
             return True
-        except sqlite3.DatabaseError as e:
+        except Exception:
             conn.close()
-            import logging
-
-            logging.getLogger(__name__).debug("Failed to track recommendation effectiveness: %s", e)
             return False
 
     def get_recommendation_metrics(self, user_id: str = None) -> Dict:
@@ -475,13 +449,10 @@ class QARecommendationEngine:
         try:
             if user_id:
                 # User-specific metrics
-                cursor.execute(
-                    """
+                cursor.execute("""
                     SELECT COUNT(*), SUM(was_acted_upon), AVG(confidence_score)
                     FROM recommendations WHERE user_id = ?
-                """,
-                    (user_id,),
-                )
+                """, (user_id,))
             else:
                 # System-wide metrics
                 cursor.execute("""
@@ -496,14 +467,17 @@ class QARecommendationEngine:
                 acted_upon = result[1] or 0
                 avg_confidence = result[2] or 0
 
-                effectiveness = (acted_upon / total_recommendations * 100) if total_recommendations > 0 else 0
+                effectiveness = (
+                    acted_upon /
+                    total_recommendations *
+                    100) if total_recommendations > 0 else 0
 
                 metrics = {
                     "total_recommendations": total_recommendations,
                     "recommendations_acted_upon": acted_upon,
                     "effectiveness_percentage": round(effectiveness, 2),
                     "average_confidence_score": round(avg_confidence, 2),
-                    "metrics_generated_at": datetime.now().isoformat(),
+                    "metrics_generated_at": datetime.now().isoformat()
                 }
 
                 if user_id:
@@ -515,11 +489,8 @@ class QARecommendationEngine:
             conn.close()
             return {}
 
-        except sqlite3.DatabaseError as e:
+        except Exception:
             conn.close()
-            import logging
-
-            logging.getLogger(__name__).debug("Failed to compute recommendation metrics: %s", e)
             return {}
 
 

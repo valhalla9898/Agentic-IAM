@@ -4,31 +4,23 @@ Agentic-IAM: Agent Management Dashboard Component
 Streamlit components for comprehensive agent lifecycle management,
 registration, monitoring, and administration.
 """
-
-import sys
-from datetime import datetime
-from pathlib import Path
-from typing import Optional
-
+from dashboard.utils import (
+    safe_async_run, format_datetime, get_status_color, format_trust_score,
+    create_metric_card, show_alert, paginate_data, render_pagination,
+    validate_agent_id, handle_error
+)
+from core.agentic_iam import AgenticIAM
+import asyncio
+import streamlit as st
 import pandas as pd
 import plotly.express as px
-import streamlit as st
-
-from core.agentic_iam import AgenticIAM
-from dashboard.utils import (
-    format_datetime,
-    format_trust_score,
-    get_status_color,
-    handle_error,
-    paginate_data,
-    render_pagination,
-    safe_async_run,
-    show_alert,
-    validate_agent_id,
-)
+import plotly.graph_objects as go
+from datetime import datetime, timedelta
+from typing import Optional, Dict, Any, List
+import sys
+from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-from database import get_database
 
 
 def show_agent_management(iam: Optional[AgenticIAM]):
@@ -77,9 +69,12 @@ def show_agent_management(iam: Optional[AgenticIAM]):
     st.header("👥 Agent Management")
 
     # Tabs for different management functions
-    tab1, tab2, tab3, tab4 = st.tabs(
-        ["🔍 Agent Overview", "➕ Register Agent", "📊 Agent Details", "⚙️ Bulk Operations"]
-    )
+    tab1, tab2, tab3, tab4 = st.tabs([
+        "🔍 Agent Overview",
+        "➕ Register Agent",
+        "📊 Agent Details",
+        "⚙️ Bulk Operations"
+    ])
 
     with tab1:
         show_agent_overview(iam)
@@ -102,7 +97,9 @@ def show_agent_overview(iam: AgenticIAM):
         agents = iam.agent_registry.list_agents()
 
         if not agents:
-            show_alert("No agents registered yet. Use the 'Register Agent' tab to add your first agent.", "info")
+            show_alert(
+                "No agents registered yet. Use the 'Register Agent' tab to add your first agent.",
+                "info")
             return
 
         # Calculate statistics
@@ -135,14 +132,14 @@ def show_agent_overview(iam: AgenticIAM):
             status_data = {
                 "Status": ["Active", "Inactive", "Suspended"],
                 "Count": [active_agents, inactive_agents, suspended_agents],
-                "Color": ["#28a745", "#6c757d", "#ffc107"],
+                "Color": ["#28a745", "#6c757d", "#ffc107"]
             }
 
             if sum(status_data["Count"]) > 0:
                 fig = px.pie(
                     values=status_data["Count"],
                     names=status_data["Status"],
-                    color_discrete_sequence=status_data["Color"],
+                    color_discrete_sequence=status_data["Color"]
                 )
                 fig.update_layout(height=400)
                 st.plotly_chart(fig, use_container_width=True)
@@ -182,9 +179,9 @@ def show_agent_overview(iam: AgenticIAM):
                 fig = px.bar(
                     x=trust_ranges,
                     y=trust_counts,
-                    labels={"x": "Trust Score Range", "y": "Number of Agents"},
+                    labels={'x': 'Trust Score Range', 'y': 'Number of Agents'},
                     color=trust_counts,
-                    color_continuous_scale="RdYlGn",
+                    color_continuous_scale='RdYlGn'
                 )
                 fig.update_layout(height=400)
                 st.plotly_chart(fig, use_container_width=True)
@@ -198,22 +195,26 @@ def show_agent_overview(iam: AgenticIAM):
         col1, col2, col3 = st.columns(3)
 
         with col1:
-            status_filter = st.selectbox("Filter by Status", ["All", "Active", "Inactive", "Suspended"])
+            status_filter = st.selectbox(
+                "Filter by Status", [
+                    "All", "Active", "Inactive", "Suspended"])
 
         with col2:
             search_query = st.text_input("Search Agent ID", placeholder="agent:...")
 
         with col3:
-            st.selectbox("Sort by", ["Last Accessed", "Registration Date", "Trust Score"])
+            sort_by = st.selectbox("Sort by", ["Last Accessed", "Registration Date", "Trust Score"])
 
         # Apply filters
         filtered_agents = agents.copy()
 
         if status_filter != "All":
-            filtered_agents = [a for a in filtered_agents if a.status.value.title() == status_filter]
+            filtered_agents = [
+                a for a in filtered_agents if a.status.value.title() == status_filter]
 
         if search_query:
-            filtered_agents = [a for a in filtered_agents if search_query.lower() in a.agent_id.lower()]
+            filtered_agents = [a for a in filtered_agents if search_query.lower()
+                               in a.agent_id.lower()]
 
         # Prepare table data
         agent_data = []
@@ -221,22 +222,21 @@ def show_agent_overview(iam: AgenticIAM):
             try:
                 # Get trust score
                 trust_score = safe_async_run(iam.calculate_trust_score(agent.agent_id))
-                trust_display = format_trust_score(trust_score.overall_score) if trust_score else "N/A"
+                trust_display = format_trust_score(
+                    trust_score.overall_score) if trust_score else "N/A"
 
                 # Get active sessions
                 sessions = iam.session_manager.session_store.get_agent_sessions(agent.agent_id)
                 active_sessions = len([s for s in sessions if s.is_active()])
 
-                agent_data.append(
-                    {
-                        "Agent ID": agent.agent_id,
-                        "Status": f"{get_status_color(agent.status.value)} {agent.status.value.title()}",
-                        "Trust Score": trust_display,
-                        "Active Sessions": active_sessions,
-                        "Last Accessed": format_datetime(agent.last_accessed),
-                        "Registered": format_datetime(agent.registration_date),
-                    }
-                )
+                agent_data.append({
+                    "Agent ID": agent.agent_id,
+                    "Status": f"{get_status_color(agent.status.value)} {agent.status.value.title()}",
+                    "Trust Score": trust_display,
+                    "Active Sessions": active_sessions,
+                    "Last Accessed": format_datetime(agent.last_accessed),
+                    "Registered": format_datetime(agent.registration_date)
+                })
             except Exception as e:
                 st.error(f"Error processing agent {agent.agent_id}: {str(e)}")
 
@@ -278,7 +278,7 @@ def show_agent_overview(iam: AgenticIAM):
                         label="Download CSV",
                         data=csv_data,
                         file_name=f"agents_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                        mime="text/csv",
+                        mime="text/csv"
                     )
 
         with col4:
@@ -291,12 +291,13 @@ def show_agent_overview(iam: AgenticIAM):
 
                     # Find all inactive agents
                     all_agents = db.list_agents()
-                    inactive_agents = [a for a in all_agents if a["status"] == "inactive"]
+                    inactive_agents = [a for a in all_agents if a['status'] == 'inactive']
 
                     if not inactive_agents:
                         st.info("No inactive agents to cleanup")
                     else:
-                        st.warning(f"⚠️ Found {len(inactive_agents)} inactive agent(s). Delete them?")
+                        st.warning(
+                            f"⚠️ Found {len(inactive_agents)} inactive agent(s). Delete them?")
                         col_yes, col_no = st.columns(2)
 
                         with col_yes:
@@ -306,11 +307,11 @@ def show_agent_overview(iam: AgenticIAM):
 
                                 with st.spinner(f"Deleting {len(inactive_agents)} inactive agent(s)..."):
                                     for agent in inactive_agents:
-                                        ok = db.delete_agent(agent["id"])
+                                        ok = db.delete_agent(agent['id'])
                                         if ok:
                                             deleted_count += 1
                                         else:
-                                            failed_agents.append(agent["id"])
+                                            failed_agents.append(agent['id'])
 
                                 if deleted_count > 0:
                                     st.success(f"✅ Deleted {deleted_count} inactive agent(s)")
@@ -344,28 +345,32 @@ def show_agent_registration(iam: AgenticIAM):
             agent_id = st.text_input(
                 "Agent ID*",
                 placeholder="agent:my-agent-001",
-                help="Unique identifier for the agent (e.g., agent:service-name)",
+                help="Unique identifier for the agent (e.g., agent:service-name)"
             )
 
             agent_type = st.selectbox(
-                "Agent Type*", ["service", "user", "system", "external", "api"], help="Type of agent being registered"
+                "Agent Type*",
+                ["service", "user", "system", "external", "api"],
+                help="Type of agent being registered"
             )
 
             description = st.text_area(
-                "Description", placeholder="Brief description of the agent's purpose", height=100
+                "Description",
+                placeholder="Brief description of the agent's purpose",
+                height=100
             )
 
         with col2:
             capabilities = st.multiselect(
                 "Capabilities",
                 ["read", "write", "execute", "admin", "audit", "monitor"],
-                help="Select the capabilities this agent should have",
+                help="Select the capabilities this agent should have"
             )
 
             initial_permissions = st.multiselect(
                 "Initial Permissions",
                 ["agent:read", "agent:write", "system:status", "data:read"],
-                help="Initial permissions to grant to the agent",
+                help="Initial permissions to grant to the agent"
             )
 
             trust_level = st.slider(
@@ -374,7 +379,7 @@ def show_agent_registration(iam: AgenticIAM):
                 max_value=1.0,
                 value=0.8,
                 step=0.1,
-                help="Initial trust level for the agent",
+                help="Initial trust level for the agent"
             )
 
         # Advanced options
@@ -399,7 +404,8 @@ def show_agent_registration(iam: AgenticIAM):
                     return
 
                 if not validate_agent_id(agent_id):
-                    st.error("Invalid Agent ID format. Should start with 'agent:' and be at least 8 characters long")
+                    st.error(
+                        "Invalid Agent ID format. Should start with 'agent:' and be at least 8 characters long")
                     return
 
                 # Check if agent already exists
@@ -417,19 +423,24 @@ def show_agent_registration(iam: AgenticIAM):
                     "capabilities": capabilities,
                     "trust_level": trust_level,
                     "mfa_enabled": enable_mfa,
-                    "monitoring_enabled": enable_monitoring,
+                    "monitoring_enabled": enable_monitoring
                 }
 
                 if metadata_key and metadata_value:
                     metadata[metadata_key] = metadata_value
 
                 # Generate agent identity
-                agent_identity = AgentIdentity.generate(agent_id=agent_id, metadata=metadata)
+                agent_identity = AgentIdentity.generate(
+                    agent_id=agent_id,
+                    metadata=metadata
+                )
 
                 # Register agent
-                registration_id = safe_async_run(iam.register_agent(agent_identity, initial_permissions))
+                registration_id = safe_async_run(
+                    iam.register_agent(agent_identity, initial_permissions)
+                )
 
-                st.success("✅ Agent registered successfully!")
+                st.success(f"✅ Agent registered successfully!")
                 st.info(f"Registration ID: {registration_id}")
 
                 # Display agent details
@@ -452,7 +463,9 @@ def show_agent_registration(iam: AgenticIAM):
                 public_key = agent_identity.get_public_key()
                 if public_key:
                     st.write("**Public Key (for verification):**")
-                    st.code(public_key.decode() if isinstance(public_key, bytes) else str(public_key))
+                    st.code(
+                        public_key.decode() if isinstance(
+                            public_key, bytes) else str(public_key))
 
             except Exception as e:
                 handle_error(e, "registering agent")
@@ -488,7 +501,8 @@ def show_agent_details(iam: AgenticIAM):
         with col1:
             st.write("### 📋 Basic Information")
             st.write(f"**Agent ID:** {agent_entry.agent_id}")
-            st.write(f"**Status:** {get_status_color(agent_entry.status.value)} {agent_entry.status.value.title()}")
+            st.write(
+                f"**Status:** {get_status_color(agent_entry.status.value)} {agent_entry.status.value.title()}")
             st.write(f"**Registration Date:** {format_datetime(agent_entry.registration_date)}")
             st.write(f"**Last Accessed:** {format_datetime(agent_entry.last_accessed)}")
             st.write(f"**Registration ID:** {agent_entry.registration_id}")
@@ -509,28 +523,39 @@ def show_agent_details(iam: AgenticIAM):
 
                 with col1:
                     st.metric(
-                        "Overall Score", f"{trust_score.overall_score:.3f}", help="Overall trust score (0.0 - 1.0)"
+                        "Overall Score",
+                        f"{trust_score.overall_score:.3f}",
+                        help="Overall trust score (0.0 - 1.0)"
                     )
 
                 with col2:
                     st.metric(
-                        "Risk Level", trust_score.risk_level.value.title(), help="Risk assessment based on trust score"
+                        "Risk Level",
+                        trust_score.risk_level.value.title(),
+                        help="Risk assessment based on trust score"
                     )
 
                 with col3:
                     st.metric(
-                        "Confidence", f"{trust_score.confidence:.2f}", help="Confidence in the trust score calculation"
+                        "Confidence",
+                        f"{trust_score.confidence:.2f}",
+                        help="Confidence in the trust score calculation"
                     )
 
                 # Component scores
                 if trust_score.component_scores:
                     st.write("**Component Scores:**")
-                    components_df = pd.DataFrame(
-                        [{"Component": k, "Score": v} for k, v in trust_score.component_scores.items()]
-                    )
+                    components_df = pd.DataFrame([
+                        {"Component": k, "Score": v}
+                        for k, v in trust_score.component_scores.items()
+                    ])
 
                     fig = px.bar(
-                        components_df, x="Component", y="Score", color="Score", color_continuous_scale="RdYlGn"
+                        components_df,
+                        x="Component",
+                        y="Score",
+                        color="Score",
+                        color_continuous_scale="RdYlGn"
                     )
                     fig.update_layout(height=300)
                     st.plotly_chart(fig, use_container_width=True)
@@ -549,16 +574,14 @@ def show_agent_details(iam: AgenticIAM):
             if active_sessions:
                 session_data = []
                 for session in active_sessions:
-                    session_data.append(
-                        {
-                            "Session ID": session.session_id[:16] + "...",
-                            "Auth Method": session.auth_method,
-                            "Trust Level": f"{session.trust_level:.2f}",
-                            "Created": format_datetime(session.created_at),
-                            "Expires": format_datetime(session.expires_at),
-                            "Source IP": session.metadata.get("source_ip", "N/A"),
-                        }
-                    )
+                    session_data.append({
+                        "Session ID": session.session_id[:16] + "...",
+                        "Auth Method": session.auth_method,
+                        "Trust Level": f"{session.trust_level:.2f}",
+                        "Created": format_datetime(session.created_at),
+                        "Expires": format_datetime(session.expires_at),
+                        "Source IP": session.metadata.get("source_ip", "N/A")
+                    })
 
                 sessions_df = pd.DataFrame(session_data)
                 st.dataframe(sessions_df, use_container_width=True, hide_index=True)
@@ -573,7 +596,9 @@ def show_agent_details(iam: AgenticIAM):
         try:
             if iam.authorization_manager:
                 # Get permissions
-                permissions = safe_async_run(iam.authorization_manager.get_agent_permissions(selected_agent_id))
+                permissions = safe_async_run(
+                    iam.authorization_manager.get_agent_permissions(selected_agent_id)
+                )
 
                 col1, col2 = st.columns(2)
 
@@ -597,15 +622,6 @@ def show_agent_details(iam: AgenticIAM):
 
         # Agent Actions
         st.write("### ⚙️ Agent Actions")
-
-        # Ensure a DB instance is available for UI actions (stored in session_state)
-        db = st.session_state.get("db")
-        if db is None:
-            try:
-                db = get_database()
-            except Exception:
-                db = None
-            st.session_state["db"] = db
 
         col1, col2, col3, col4 = st.columns(4)
         pending_delete_key = f"pending_agent_delete_{selected_agent_id}"
@@ -644,11 +660,14 @@ def show_agent_details(iam: AgenticIAM):
                 st.rerun()
 
         if st.session_state.get(pending_delete_key):
-            st.warning(f"Are you sure you want to delete agent {selected_agent_id}? This cannot be undone.")
+            st.warning(
+                f"Are you sure you want to delete agent {selected_agent_id}? This cannot be undone."
+            )
             confirm_col, cancel_col = st.columns(2)
 
             with confirm_col:
-                if st.button("✅ Confirm Delete Agent", key=f"confirm_agent_delete_{selected_agent_id}"):
+                if st.button("✅ Confirm Delete Agent",
+                             key=f"confirm_agent_delete_{selected_agent_id}"):
                     try:
                         result = iam.delete_agent(selected_agent_id)
                         still_exists = iam.agent_registry.get_agent(selected_agent_id)
@@ -670,11 +689,14 @@ def show_agent_details(iam: AgenticIAM):
                             st.session_state[pending_delete_key] = False
                             st.rerun()
                         elif result.get("registry_deleted") and still_exists is None and db_still_exists is not None:
-                            st.error(f"Agent {selected_agent_id} deleted from registry, but DB cleanup failed")
+                            st.error(
+                                f"Agent {selected_agent_id} deleted from registry, but DB cleanup failed"
+                            )
                             st.session_state[pending_delete_key] = False
                             st.rerun()
                         elif result.get("registry_deleted") and still_exists is not None:
-                            st.error(f"Delete reported success, but agent {selected_agent_id} still exists")
+                            st.error(
+                                f"Delete reported success, but agent {selected_agent_id} still exists")
                             st.session_state[pending_delete_key] = False
                             st.rerun()
                         else:
@@ -715,13 +737,17 @@ def show_bulk_operations(iam: AgenticIAM):
             "Revoke Permissions",
             "Update Trust Levels",
             "Terminate Sessions",
-            "Export Agent Data",
-        ],
+            "Export Agent Data"
+        ]
     )
 
     # Agent selection
     agent_ids = [agent.agent_id for agent in agents]
-    selected_agents = st.multiselect("Select Agents", agent_ids, help="Choose agents for bulk operation")
+    selected_agents = st.multiselect(
+        "Select Agents",
+        agent_ids,
+        help="Choose agents for bulk operation"
+    )
 
     if not selected_agents:
         st.warning("Please select at least one agent")
@@ -760,7 +786,8 @@ def show_bulk_operations(iam: AgenticIAM):
                             st.info(f"📝 Reason: {reason}")
 
                     if failed_agents:
-                        st.error(f"❌ Failed to update {len(failed_agents)} agent(s): {', '.join(failed_agents)}")
+                        st.error(
+                            f"❌ Failed to update {len(failed_agents)} agent(s): {', '.join(failed_agents)}")
 
                     st.rerun()
                 except Exception as e:
@@ -768,24 +795,23 @@ def show_bulk_operations(iam: AgenticIAM):
 
     elif operation == "Assign Permissions":
         permissions = st.multiselect(
-            "Permissions to Assign",
-            ["agent:read", "agent:write", "system:status", "data:read", "data:write", "admin:access"],
-        )
+            "Permissions to Assign", [
+                "agent:read", "agent:write", "system:status", "data:read", "data:write", "admin:access"])
 
         if st.button("Assign Permissions"):
             with st.spinner("Assigning permissions..."):
                 try:
                     # Implementation would assign permissions
                     show_alert(
-                        f"Permission assignment for {len(selected_agents)} agents would be implemented here", "info"
-                    )
+                        f"Permission assignment for {len(selected_agents)} agents would be implemented here",
+                        "info")
                 except Exception as e:
                     handle_error(e, "assigning permissions")
 
     elif operation == "Export Agent Data":
         export_format = st.selectbox("Export Format", ["JSON", "CSV", "Excel"])
-        st.checkbox("Include Session Data")
-        st.checkbox("Include Permission Data")
+        include_sessions = st.checkbox("Include Session Data")
+        include_permissions = st.checkbox("Include Permission Data")
 
         if st.button("Export Data"):
             with st.spinner("Preparing export..."):
@@ -800,20 +826,18 @@ def show_bulk_operations(iam: AgenticIAM):
                                 "status": agent_entry.status.value,
                                 "registration_date": agent_entry.registration_date.isoformat(),
                                 "last_accessed": agent_entry.last_accessed.isoformat(),
-                                "metadata": agent_entry.agent_identity.get_metadata(),
+                                "metadata": agent_entry.agent_identity.get_metadata()
                             }
                             export_data.append(agent_info)
 
                     if export_format == "JSON":
                         import json
-
                         json_data = json.dumps(export_data, indent=2, default=str)
                         st.download_button(
                             label="Download JSON",
                             data=json_data,
                             file_name=f"agents_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
-                            mime="application/json",
-                        )
+                            mime="application/json")
                     elif export_format == "CSV":
                         # Flatten data for CSV
                         flattened_data = []
@@ -827,8 +851,7 @@ def show_bulk_operations(iam: AgenticIAM):
                             label="Download CSV",
                             data=csv_data,
                             file_name=f"agents_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                            mime="text/csv",
-                        )
+                            mime="text/csv")
 
                     show_alert(f"Export prepared for {len(export_data)} agents", "success")
 

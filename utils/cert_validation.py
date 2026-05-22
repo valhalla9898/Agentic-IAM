@@ -1,9 +1,8 @@
-import datetime
-import logging
-
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from cryptography.x509.oid import NameOID
+import datetime
+import logging
 
 logger = logging.getLogger("utils.cert_validation")
 
@@ -29,7 +28,7 @@ def validate_pem_certificate(pem_data: str, require_cn: bool = True) -> bool:
                 # Wrap as PEM
                 pem_data = "-----BEGIN CERTIFICATE-----\n" + pem_candidate + "\n-----END CERTIFICATE-----"
 
-        cert = x509.load_pem_x509_certificate(pem_data.encode("utf-8"), default_backend())
+        cert = x509.load_pem_x509_certificate(pem_data.encode('utf-8'), default_backend())
 
         now = datetime.datetime.utcnow()
         if cert.not_valid_before > now or cert.not_valid_after < now:
@@ -47,13 +46,13 @@ def validate_pem_certificate(pem_data: str, require_cn: bool = True) -> bool:
                 if not cn:
                     logger.warning("Certificate missing CN")
                     return False
-            except Exception as e:
-                logger.exception("Failed to parse certificate subject: %s", e)
+            except Exception:
+                logger.exception("Failed to parse certificate subject")
                 return False
 
         # TODO: Add OCSP/CRL and truststore checks in production
         return True
 
-    except Exception as e:
-        logger.exception("Failed to validate PEM certificate: %s", e)
+    except Exception:
+        logger.exception("Failed to validate PEM certificate")
         return False

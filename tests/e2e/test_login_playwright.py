@@ -20,20 +20,18 @@ def test_login_flow():
             page.goto(base_url)
             login_as_admin(page)
 
-            page.wait_for_selector("text=Navigation", timeout=10000)
-            page.locator('[data-testid="stSidebar"] p').filter(has_text="User Management").first.click()
-            page.wait_for_selector("text=Manage Users", timeout=10000)
+            page.wait_for_selector('text=Navigation', timeout=10000)
+            page.locator(
+                '[data-testid="stSidebar"] p').filter(has_text='User Management').first.click()
+            page.wait_for_selector('text=Manage Users', timeout=10000)
 
             assert "user management" in page.content().lower()
             assert "manage users" in page.content().lower()
 
             save_artifacts(page, "login_success")
 
-        except Exception as e:
+        except Exception:
             save_artifacts(page, "login_failure")
-            import logging
-
-            logging.getLogger(__name__).debug("login_flow failed: %s", e)
             raise
         finally:
             browser.close()

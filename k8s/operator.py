@@ -19,14 +19,13 @@ To run locally for development:
 pip install kopf kubernetes
 kopf run k8s/operator.py
 """
-
-import asyncio
-import json
-import logging
-from typing import Any, Dict
-
 import kopf
+import logging
+import kubernetes
 from kubernetes import client, config
+import json
+import asyncio
+from typing import Dict, Any
 
 logger = logging.getLogger(__name__)
 
@@ -34,128 +33,141 @@ logger = logging.getLogger(__name__)
 AGENT_CRD = {
     "apiVersion": "apiextensions.k8s.io/v1",
     "kind": "CustomResourceDefinition",
-    "metadata": {"name": "agents.agentic-iam.io"},
+    "metadata": {
+        "name": "agents.agentic-iam.io"
+    },
     "spec": {
         "group": "agentic-iam.io",
-        "versions": [
-            {
-                "name": "v1",
-                "served": True,
-                "storage": True,
-                "schema": {
-                    "openAPIV3Schema": {
-                        "type": "object",
-                        "properties": {
-                            "spec": {
-                                "type": "object",
-                                "properties": {
-                                    "name": {"type": "string"},
-                                    "type": {"type": "string"},
-                                    "version": {"type": "string"},
-                                    "organization": {"type": "string"},
-                                    "capabilities": {"type": "array", "items": {"type": "string"}},
-                                    "endpoints": {"type": "array", "items": {"type": "string"}},
-                                    "trustScore": {"type": "number"},
-                                    "complianceFrameworks": {"type": "array", "items": {"type": "string"}},
-                                    "encryption": {"type": "string", "enum": ["standard", "quantum", "homomorphic"]},
-                                    "federation": {
-                                        "type": "object",
-                                        "properties": {
-                                            "enabled": {"type": "boolean"},
-                                            "clouds": {"type": "array", "items": {"type": "string"}},
-                                        },
-                                    },
-                                },
-                                "required": ["name", "type"],
+        "versions": [{
+            "name": "v1",
+            "served": True,
+            "storage": True,
+            "schema": {
+                "openAPIV3Schema": {
+                    "type": "object",
+                    "properties": {
+                        "spec": {
+                            "type": "object",
+                            "properties": {
+                                "name": {"type": "string"},
+                                "type": {"type": "string"},
+                                "version": {"type": "string"},
+                                "organization": {"type": "string"},
+                                "capabilities": {"type": "array", "items": {"type": "string"}},
+                                "endpoints": {"type": "array", "items": {"type": "string"}},
+                                "trustScore": {"type": "number"},
+                                "complianceFrameworks": {"type": "array", "items": {"type": "string"}},
+                                "encryption": {"type": "string", "enum": ["standard", "quantum", "homomorphic"]},
+                                "federation": {
+                                    "type": "object",
+                                    "properties": {
+                                        "enabled": {"type": "boolean"},
+                                        "clouds": {"type": "array", "items": {"type": "string"}}
+                                    }
+                                }
                             },
-                            "status": {
-                                "type": "object",
-                                "properties": {
-                                    "phase": {"type": "string"},
-                                    "trustScore": {"type": "number"},
-                                    "lastUpdated": {"type": "string"},
-                                    "conditions": {"type": "array", "items": {"type": "object"}},
-                                },
-                            },
+                            "required": ["name", "type"]
                         },
+                        "status": {
+                            "type": "object",
+                            "properties": {
+                                "phase": {"type": "string"},
+                                "trustScore": {"type": "number"},
+                                "lastUpdated": {"type": "string"},
+                                "conditions": {"type": "array", "items": {"type": "object"}}
+                            }
+                        }
                     }
-                },
+                }
             }
-        ],
+        }],
         "scope": "Namespaced",
-        "names": {"plural": "agents", "singular": "agent", "kind": "Agent", "shortNames": ["ag"]},
-    },
+        "names": {
+            "plural": "agents",
+            "singular": "agent",
+            "kind": "Agent",
+            "shortNames": ["ag"]
+        }
+    }
 }
 
 IDENTITY_CRD = {
     "apiVersion": "apiextensions.k8s.io/v1",
     "kind": "CustomResourceDefinition",
-    "metadata": {"name": "identities.agentic-iam.io"},
+    "metadata": {
+        "name": "identities.agentic-iam.io"
+    },
     "spec": {
         "group": "agentic-iam.io",
-        "versions": [
-            {
-                "name": "v1",
-                "served": True,
-                "storage": True,
-                "schema": {
-                    "openAPIV3Schema": {
-                        "type": "object",
-                        "properties": {
-                            "spec": {
-                                "type": "object",
-                                "properties": {
-                                    "agentId": {"type": "string"},
-                                    "did": {"type": "string"},
-                                    "publicKey": {"type": "string"},
-                                    "credentials": {"type": "object"},
-                                    "claims": {"type": "object"},
-                                },
-                                "required": ["agentId"],
-                            }
-                        },
+        "versions": [{
+            "name": "v1",
+            "served": True,
+            "storage": True,
+            "schema": {
+                "openAPIV3Schema": {
+                    "type": "object",
+                    "properties": {
+                        "spec": {
+                            "type": "object",
+                            "properties": {
+                                "agentId": {"type": "string"},
+                                "did": {"type": "string"},
+                                "publicKey": {"type": "string"},
+                                "credentials": {"type": "object"},
+                                "claims": {"type": "object"}
+                            },
+                            "required": ["agentId"]
+                        }
                     }
-                },
+                }
             }
-        ],
+        }],
         "scope": "Namespaced",
-        "names": {"plural": "identities", "singular": "identity", "kind": "Identity"},
-    },
+        "names": {
+            "plural": "identities",
+            "singular": "identity",
+            "kind": "Identity"
+        }
+    }
 }
 
 TRUSTSCORE_CRD = {
     "apiVersion": "apiextensions.k8s.io/v1",
     "kind": "CustomResourceDefinition",
-    "metadata": {"name": "trustscores.agentic-iam.io"},
+    "metadata": {
+        "name": "trustscores.agentic-iam.io"
+    },
     "spec": {
         "group": "agentic-iam.io",
-        "versions": [
-            {
-                "name": "v1",
-                "served": True,
-                "storage": True,
-                "schema": {
-                    "openAPIV3Schema": {
-                        "type": "object",
-                        "properties": {
-                            "spec": {
-                                "type": "object",
-                                "properties": {
-                                    "agentId": {"type": "string"},
-                                    "score": {"type": "number"},
-                                    "riskLevel": {"type": "string"},
-                                    "factors": {"type": "array", "items": {"type": "string"}},
-                                },
-                                "required": ["agentId", "score"],
-                            }
-                        },
+        "versions": [{
+            "name": "v1",
+            "served": True,
+            "storage": True,
+            "schema": {
+                "openAPIV3Schema": {
+                    "type": "object",
+                    "properties": {
+                        "spec": {
+                            "type": "object",
+                            "properties": {
+                                "agentId": {"type": "string"},
+                                "score": {"type": "number"},
+                                "riskLevel": {"type": "string"},
+                                "factors": {"type": "array", "items": {"type": "string"}}
+                            },
+                            "required": ["agentId", "score"]
+                        }
                     }
-                },
+                }
             }
-        ],
+        }],
         "scope": "Namespaced",
-        "names": {"plural": "trustscores", "singular": "trustscore", "kind": "TrustScore"},
-    },
+        "names": {
+            "plural": "trustscores",
+            "singular": "trustscore",
+            "kind": "TrustScore"
+        }
+    }
 }
 
 
@@ -196,7 +208,7 @@ class KubernetesOperator:
             "agent-id": spec.get("name", name),
             "agent-type": spec.get("type", "unknown"),
             "capabilities": json.dumps(spec.get("capabilities", [])),
-            "endpoints": json.dumps(spec.get("endpoints", [])),
+            "endpoints": json.dumps(spec.get("endpoints", []))
         }
 
         secret = client.V1Secret(
@@ -204,7 +216,7 @@ class KubernetesOperator:
             kind="Secret",
             metadata=client.V1ObjectMeta(name=f"{name}-credentials", namespace=namespace),
             type="Opaque",
-            data={k: v.encode("utf-8").hex() for k, v in secret_data.items()},
+            data={k: v.encode('utf-8').hex() for k, v in secret_data.items()}
         )
 
         try:
@@ -224,7 +236,7 @@ class KubernetesOperator:
                 namespace=namespace,
                 plural="agents",
                 name=name,
-                body={"status": status},
+                body={"status": status}
             )
             logger.info(f"Updated status for agent {name}")
         except client.rest.ApiException as e:
@@ -241,7 +253,7 @@ def startup(logger, **kwargs):
     operator.create_crds()
 
 
-@kopf.on.create("agentic-iam.io", "v1", "agents")
+@kopf.on.create('agentic-iam.io', 'v1', 'agents')
 def on_agent_create(spec, name, namespace, **kwargs):
     logger.info(f"Agent CR created: {name} in {namespace} — spec={spec}")
 
@@ -253,9 +265,12 @@ def on_agent_create(spec, name, namespace, **kwargs):
         "phase": "Initializing",
         "trustScore": spec.get("trustScore", 0.5),
         "lastUpdated": str(asyncio.get_event_loop().time()),
-        "conditions": [
-            {"type": "Ready", "status": "False", "reason": "Initializing", "message": "Agent is being initialized"}
-        ],
+        "conditions": [{
+            "type": "Ready",
+            "status": "False",
+            "reason": "Initializing",
+            "message": "Agent is being initialized"
+        }]
     }
 
     # Advanced features based on spec
@@ -277,10 +292,10 @@ def on_agent_create(spec, name, namespace, **kwargs):
     status["conditions"][0]["reason"] = "AgentReady"
     status["conditions"][0]["message"] = "Agent successfully created and configured"
 
-    return {"message": "Agent processed with CRD support and advanced features"}
+    return {'message': 'Agent processed with CRD support and advanced features'}
 
 
-@kopf.on.update("agentic-iam.io", "v1", "agents")
+@kopf.on.update('agentic-iam.io', 'v1', 'agents')
 def on_agent_update(spec, old, new, name, namespace, **kwargs):
     logger.info(f"Agent CR updated: {name} in {namespace}")
 
@@ -296,7 +311,7 @@ def on_agent_update(spec, old, new, name, namespace, **kwargs):
     # TODO: Integrate with threat intelligence system
 
 
-@kopf.on.delete("agentic-iam.io", "v1", "agents")
+@kopf.on.delete('agentic-iam.io', 'v1', 'agents')
 def on_agent_delete(spec, name, namespace, **kwargs):
     logger.info(f"Agent CR deleted: {name} in {namespace}")
 
@@ -311,13 +326,13 @@ def on_agent_delete(spec, name, namespace, **kwargs):
     # TODO: Cleanup audit trails, remove from federation, etc.
 
 
-@kopf.on.create("agentic-iam.io", "v1", "identities")
+@kopf.on.create('agentic-iam.io', 'v1', 'identities')
 def on_identity_create(spec, name, namespace, **kwargs):
     logger.info(f"Identity CR created: {name} in {namespace}")
     # TODO: Handle DID creation, key management, verifiable credentials
 
 
-@kopf.on.create("agentic-iam.io", "v1", "trustscores")
+@kopf.on.create('agentic-iam.io', 'v1', 'trustscores')
 def on_trustscore_create(spec, name, namespace, **kwargs):
     logger.info(f"TrustScore CR created: {name} in {namespace}")
     # TODO: Integrate with ML trust scoring engine

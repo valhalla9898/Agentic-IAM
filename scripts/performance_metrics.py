@@ -4,25 +4,24 @@ Production Performance Metrics and Monitoring
 Comprehensive performance monitoring, metrics collection, and alerting
 for the Agentic-IAM platform.
 """
-
-import logging
-import threading
+import asyncio
 import time
-from collections import defaultdict, deque
-from dataclasses import dataclass
-from datetime import datetime, timedelta
-from typing import Any, Dict, Optional
-
 import psutil
+import threading
+from datetime import datetime, timedelta
+from typing import Dict, List, Optional, Any
+from dataclasses import dataclass
+from collections import defaultdict, deque
+import logging
+
+from prometheus_client import Counter, Histogram, Gauge, Info, start_http_server
 import redis
-from prometheus_client import Counter, Gauge, Histogram, Info, start_http_server
 from sqlalchemy import create_engine, text
 
 
 @dataclass
 class PerformanceMetrics:
     """Performance metrics data structure"""
-
     timestamp: datetime
     cpu_usage: float
     memory_usage: float
@@ -68,81 +67,148 @@ class MetricsCollector:
 
         # Request metrics
         self.request_counter = Counter(
-            "agentic_iam_requests_total", "Total number of requests", ["method", "endpoint", "status"]
+            'agentic_iam_requests_total',
+            'Total number of requests',
+            ['method', 'endpoint', 'status']
         )
 
         self.request_duration = Histogram(
-            "agentic_iam_request_duration_seconds", "Request duration in seconds", ["method", "endpoint"]
+            'agentic_iam_request_duration_seconds',
+            'Request duration in seconds',
+            ['method', 'endpoint']
         )
 
         # Authentication metrics
         self.auth_attempts = Counter(
-            "agentic_iam_auth_attempts_total", "Total authentication attempts", ["method", "result"]
+            'agentic_iam_auth_attempts_total',
+            'Total authentication attempts',
+            ['method', 'result']
         )
 
         self.auth_duration = Histogram(
-            "agentic_iam_auth_duration_seconds", "Authentication duration in seconds", ["method"]
+            'agentic_iam_auth_duration_seconds',
+            'Authentication duration in seconds',
+            ['method']
         )
 
         # Session metrics
-        self.active_sessions = Gauge("agentic_iam_active_sessions", "Number of active sessions")
+        self.active_sessions = Gauge(
+            'agentic_iam_active_sessions',
+            'Number of active sessions'
+        )
 
-        self.session_duration = Histogram("agentic_iam_session_duration_seconds", "Session duration in seconds")
+        self.session_duration = Histogram(
+            'agentic_iam_session_duration_seconds',
+            'Session duration in seconds'
+        )
 
         # Agent metrics
-        self.total_agents = Gauge("agentic_iam_agents_total", "Total number of registered agents")
+        self.total_agents = Gauge(
+            'agentic_iam_agents_total',
+            'Total number of registered agents'
+        )
 
-        self.active_agents = Gauge("agentic_iam_agents_active", "Number of active agents")
+        self.active_agents = Gauge(
+            'agentic_iam_agents_active',
+            'Number of active agents'
+        )
 
         # Trust scoring metrics
         self.trust_score_calculations = Counter(
-            "agentic_iam_trust_calculations_total", "Total trust score calculations"
+            'agentic_iam_trust_calculations_total',
+            'Total trust score calculations'
         )
 
-        self.avg_trust_score = Gauge("agentic_iam_avg_trust_score", "Average trust score across all agents")
+        self.avg_trust_score = Gauge(
+            'agentic_iam_avg_trust_score',
+            'Average trust score across all agents'
+        )
 
         # Database metrics
-        self.db_connections = Gauge("agentic_iam_db_connections", "Number of database connections")
+        self.db_connections = Gauge(
+            'agentic_iam_db_connections',
+            'Number of database connections'
+        )
 
         self.db_query_duration = Histogram(
-            "agentic_iam_db_query_duration_seconds", "Database query duration in seconds", ["query_type"]
+            'agentic_iam_db_query_duration_seconds',
+            'Database query duration in seconds',
+            ['query_type']
         )
 
         # Redis metrics
-        self.redis_connections = Gauge("agentic_iam_redis_connections", "Number of Redis connections")
+        self.redis_connections = Gauge(
+            'agentic_iam_redis_connections',
+            'Number of Redis connections'
+        )
 
-        self.redis_operations = Counter("agentic_iam_redis_operations_total", "Total Redis operations", ["operation"])
+        self.redis_operations = Counter(
+            'agentic_iam_redis_operations_total',
+            'Total Redis operations',
+            ['operation']
+        )
 
         # System metrics
-        self.cpu_usage = Gauge("agentic_iam_cpu_usage_percent", "CPU usage percentage")
+        self.cpu_usage = Gauge(
+            'agentic_iam_cpu_usage_percent',
+            'CPU usage percentage'
+        )
 
-        self.memory_usage = Gauge("agentic_iam_memory_usage_bytes", "Memory usage in bytes")
+        self.memory_usage = Gauge(
+            'agentic_iam_memory_usage_bytes',
+            'Memory usage in bytes'
+        )
 
-        self.disk_usage = Gauge("agentic_iam_disk_usage_percent", "Disk usage percentage")
+        self.disk_usage = Gauge(
+            'agentic_iam_disk_usage_percent',
+            'Disk usage percentage'
+        )
 
         # Error metrics
-        self.error_counter = Counter("agentic_iam_errors_total", "Total number of errors", ["error_type", "component"])
+        self.error_counter = Counter(
+            'agentic_iam_errors_total',
+            'Total number of errors',
+            ['error_type', 'component']
+        )
 
         # Audit metrics
-        self.audit_events = Counter("agentic_iam_audit_events_total", "Total audit events", ["event_type", "severity"])
+        self.audit_events = Counter(
+            'agentic_iam_audit_events_total',
+            'Total audit events',
+            ['event_type', 'severity']
+        )
 
         # Application info
-        self.app_info = Info("agentic_iam_app_info", "Application information")
+        self.app_info = Info(
+            'agentic_iam_app_info',
+            'Application information'
+        )
 
         # Set application info
-        self.app_info.info({"version": "1.0.0", "environment": self.settings.environment, "python_version": "3.11"})
+        self.app_info.info({
+            'version': '1.0.0',
+            'environment': self.settings.environment,
+            'python_version': '3.11'
+        })
 
     def initialize_connections(self):
         """Initialize database and Redis connections for monitoring"""
         try:
             # Database connection
             if self.settings.database_url:
-                self.db_engine = create_engine(self.settings.database_url, pool_pre_ping=True, pool_recycle=3600)
+                self.db_engine = create_engine(
+                    self.settings.database_url,
+                    pool_pre_ping=True,
+                    pool_recycle=3600
+                )
 
             # Redis connection
             if self.settings.redis_url:
                 self.redis_client = redis.from_url(
-                    self.settings.redis_url, decode_responses=True, socket_connect_timeout=5, socket_timeout=5
+                    self.settings.redis_url,
+                    decode_responses=True,
+                    socket_connect_timeout=5,
+                    socket_timeout=5
                 )
 
         except Exception as e:
@@ -188,7 +254,7 @@ class MetricsCollector:
                 self.memory_usage.set(memory.used)
 
                 # Disk usage
-                disk = psutil.disk_usage("/")
+                disk = psutil.disk_usage('/')
                 disk_percent = (disk.used / disk.total) * 100
                 self.disk_usage.set(disk_percent)
 
@@ -204,7 +270,7 @@ class MetricsCollector:
                     active_sessions=0,  # Would be updated by session manager
                     request_rate=self._calculate_request_rate(),
                     response_time_avg=self._calculate_avg_response_time(),
-                    error_rate=self._calculate_error_rate(),
+                    error_rate=self._calculate_error_rate()
                 )
 
                 self.system_metrics.append(metrics)
@@ -227,7 +293,9 @@ class MetricsCollector:
                     # Database connections
                     with self.db_engine.connect() as conn:
                         # Get connection count
-                        result = conn.execute(text("SELECT count(*) FROM pg_stat_activity WHERE state = 'active'"))
+                        result = conn.execute(text(
+                            "SELECT count(*) FROM pg_stat_activity WHERE state = 'active'"
+                        ))
                         active_connections = result.scalar()
                         self.db_connections.set(active_connections)
 
@@ -235,7 +303,7 @@ class MetricsCollector:
                         start_time = time.time()
                         conn.execute(text("SELECT 1"))
                         query_time = time.time() - start_time
-                        self.db_query_duration.labels(query_type="health_check").observe(query_time)
+                        self.db_query_duration.labels(query_type='health_check').observe(query_time)
 
                 time.sleep(60)  # Monitor every minute
 
@@ -250,15 +318,15 @@ class MetricsCollector:
                 if self.redis_client:
                     # Redis info
                     info = self.redis_client.info()
-                    self.redis_connections.set(info.get("connected_clients", 0))
+                    self.redis_connections.set(info.get('connected_clients', 0))
 
                     # Redis performance test
                     start_time = time.time()
                     self.redis_client.ping()
-                    time.time() - start_time
+                    ping_time = time.time() - start_time
 
                     # Track as operation
-                    self.redis_operations.labels(operation="ping").inc()
+                    self.redis_operations.labels(operation='ping').inc()
 
                 time.sleep(30)  # Monitor every 30 seconds
 
@@ -280,7 +348,7 @@ class MetricsCollector:
         try:
             if self.redis_client:
                 info = self.redis_client.info()
-                return info.get("connected_clients", 0)
+                return info.get('connected_clients', 0)
             return 0
         except BaseException:
             return 0
@@ -292,7 +360,8 @@ class MetricsCollector:
             time_window = 60  # 1 minute window
 
             recent_requests = sum(
-                count for timestamp, count in self.request_counts.items() if current_time - timestamp < time_window
+                count for timestamp, count in self.request_counts.items()
+                if current_time - timestamp < time_window
             )
 
             return recent_requests / time_window
@@ -315,11 +384,13 @@ class MetricsCollector:
             time_window = 300  # 5 minute window
 
             total_requests = sum(
-                count for timestamp, count in self.request_counts.items() if current_time - timestamp < time_window
+                count for timestamp, count in self.request_counts.items()
+                if current_time - timestamp < time_window
             )
 
             total_errors = sum(
-                count for timestamp, count in self.error_counts.items() if current_time - timestamp < time_window
+                count for timestamp, count in self.error_counts.items()
+                if current_time - timestamp < time_window
             )
 
             if total_requests > 0:
@@ -352,6 +423,7 @@ class MetricsCollector:
     def record_session_created(self):
         """Record session creation"""
         # This would be called by the session manager
+        pass
 
     def record_session_terminated(self, duration: float):
         """Record session termination"""
@@ -408,41 +480,50 @@ class MetricsCollector:
                     "memory_usage": current_metrics.memory_usage if current_metrics else 0,
                     "disk_usage": current_metrics.disk_usage if current_metrics else 0,
                 },
-                "database": {"connected": self.db_engine is not None, "connections": self._get_db_connections()},
-                "redis": {"connected": self.redis_client is not None, "connections": self._get_redis_connections()},
+                "database": {
+                    "connected": self.db_engine is not None,
+                    "connections": self._get_db_connections()
+                },
+                "redis": {
+                    "connected": self.redis_client is not None,
+                    "connections": self._get_redis_connections()
+                },
                 "metrics": {
                     "requests_per_second": self._calculate_request_rate(),
                     "avg_response_time": self._calculate_avg_response_time(),
-                    "error_rate": self._calculate_error_rate(),
-                },
+                    "error_rate": self._calculate_error_rate()
+                }
             }
 
             # Determine overall health
             if current_metrics:
-                if (
-                    current_metrics.cpu_usage > 90
-                    or current_metrics.disk_usage > 95
-                    or self._calculate_error_rate() > 10
-                ):
+                if (current_metrics.cpu_usage > 90 or
+                    current_metrics.disk_usage > 95 or
+                        self._calculate_error_rate() > 10):
                     health_status["status"] = "unhealthy"
-                elif (
-                    current_metrics.cpu_usage > 70
-                    or current_metrics.disk_usage > 80
-                    or self._calculate_error_rate() > 5
-                ):
+                elif (current_metrics.cpu_usage > 70 or
+                      current_metrics.disk_usage > 80 or
+                      self._calculate_error_rate() > 5):
                     health_status["status"] = "degraded"
 
             return health_status
 
         except Exception as e:
             self.logger.error(f"Health check error: {e}")
-            return {"status": "unhealthy", "error": str(e), "timestamp": datetime.utcnow().isoformat()}
+            return {
+                "status": "unhealthy",
+                "error": str(e),
+                "timestamp": datetime.utcnow().isoformat()
+            }
 
     def get_performance_summary(self) -> Dict[str, Any]:
         """Get performance summary for the last hour"""
         try:
             cutoff_time = datetime.utcnow() - timedelta(hours=1)
-            recent_metrics = [m for m in self.system_metrics if m.timestamp > cutoff_time]
+            recent_metrics = [
+                m for m in self.system_metrics
+                if m.timestamp > cutoff_time
+            ]
 
             if not recent_metrics:
                 return {"message": "No recent metrics available"}
@@ -450,7 +531,8 @@ class MetricsCollector:
             # Calculate averages
             avg_cpu = sum(m.cpu_usage for m in recent_metrics) / len(recent_metrics)
             avg_memory = sum(m.memory_usage for m in recent_metrics) / len(recent_metrics)
-            avg_response_time = sum(m.response_time_avg for m in recent_metrics) / len(recent_metrics)
+            avg_response_time = sum(
+                m.response_time_avg for m in recent_metrics) / len(recent_metrics)
 
             # Find peaks
             max_cpu = max(m.cpu_usage for m in recent_metrics)
@@ -462,14 +544,14 @@ class MetricsCollector:
                 "averages": {
                     "cpu_usage": round(avg_cpu, 2),
                     "memory_usage": avg_memory,
-                    "response_time": round(avg_response_time, 3),
+                    "response_time": round(avg_response_time, 3)
                 },
                 "peaks": {
                     "cpu_usage": round(max_cpu, 2),
                     "memory_usage": max_memory,
-                    "response_time": round(max_response_time, 3),
+                    "response_time": round(max_response_time, 3)
                 },
-                "data_points": len(recent_metrics),
+                "data_points": len(recent_metrics)
             }
 
         except Exception as e:
@@ -485,7 +567,8 @@ class PerformanceTester:
         self.metrics = metrics_collector
         self.logger = logging.getLogger("performance_test")
 
-    async def benchmark_authentication(self, iam_instance, iterations: int = 100) -> Dict[str, float]:
+    async def benchmark_authentication(
+            self, iam_instance, iterations: int = 100) -> Dict[str, float]:
         """Benchmark authentication performance"""
         self.logger.info(f"Starting authentication benchmark with {iterations} iterations")
 
@@ -497,7 +580,9 @@ class PerformanceTester:
             try:
                 # Mock authentication test
                 result = await iam_instance.authenticate(
-                    agent_id=f"agent:benchmark-{i}", credentials={"method": "test"}, method="jwt"
+                    agent_id=f"agent:benchmark-{i}",
+                    credentials={"method": "test"},
+                    method="jwt"
                 )
                 if result and result.success:
                     successful += 1
@@ -514,7 +599,7 @@ class PerformanceTester:
             "avg_duration": sum(durations) / len(durations),
             "min_duration": min(durations),
             "max_duration": max(durations),
-            "total_time": sum(durations),
+            "total_time": sum(durations)
         }
 
     async def benchmark_trust_scoring(self, iam_instance, iterations: int = 50) -> Dict[str, float]:
@@ -544,7 +629,7 @@ class PerformanceTester:
             "avg_duration": sum(durations) / len(durations),
             "min_duration": min(durations),
             "max_duration": max(durations),
-            "total_time": sum(durations),
+            "total_time": sum(durations)
         }
 
 

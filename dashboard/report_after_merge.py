@@ -1,6 +1,5 @@
-from pathlib import Path
-
 import streamlit as st
+from pathlib import Path
 
 st.set_page_config(page_title="Report After Merge", layout="wide")
 
@@ -16,7 +15,7 @@ if README.exists():
         # take from marker to next top-level header (## ) or end
         rest = text[idx:]
         # find next '## ' after the first line
-        parts = rest.split("\n## ", 1)
+        parts = rest.split('\n## ', 1)
         if len(parts) > 1:
             section = parts[0]
         else:

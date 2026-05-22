@@ -1,8 +1,7 @@
 """Unit tests for agent management API endpoints."""
 
-from unittest.mock import MagicMock
-
 import pytest
+from unittest.mock import MagicMock
 
 
 class TestAgentAPI:

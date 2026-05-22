@@ -1,9 +1,8 @@
-import hashlib
-import hmac
-import importlib
 import os
+import importlib
+import hmac
+import hashlib
 import time
-
 from fastapi.testclient import TestClient
 
 
@@ -14,10 +13,8 @@ def reload_app_with_env(env):
         else:
             os.environ[k] = v
     import config.settings as settingsmod
-
     importlib.reload(settingsmod)
     import api.app as appmod
-
     importlib.reload(appmod)
     return appmod.app
 

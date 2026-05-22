@@ -2,7 +2,6 @@
 """
 Quick test to verify Agentic-IAM is ready to run
 """
-
 import sys
 from pathlib import Path
 
@@ -14,7 +13,6 @@ def test_database():
     """Test database connectivity"""
     try:
         from database import get_database
-
         db = get_database()
         with db.get_connection() as conn:
             cursor = conn.cursor()
@@ -31,7 +29,6 @@ def test_authentication():
     """Test that at least one active admin account exists."""
     try:
         from database import get_database
-
         db = get_database()
         users = db.list_users()
         has_admin = any(u.get("role") == "admin" and u.get("status") == "active" for u in users)
@@ -48,14 +45,19 @@ def test_authentication():
 def test_imports():
     """Test critical imports"""
     try:
+        import streamlit as st
         print("✓ Streamlit OK")
 
+        from fastapi import FastAPI
         print("✓ FastAPI OK")
 
+        from sqlalchemy import create_engine
         print("✓ SQLAlchemy OK")
 
+        import pandas as pd
         print("✓ Pandas OK")
 
+        from openai import OpenAI
         print("✓ OpenAI SDK OK")
 
         return True

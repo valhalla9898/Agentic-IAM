@@ -5,8 +5,10 @@ Includes ALL sections, subsections, tables, figures, and detailed explanations
 """
 
 from docx import Document
+from docx.shared import Inches, Pt, RGBColor
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
-from docx.shared import Inches, Pt
+from docx.oxml.ns import qn
+from docx.oxml import OxmlElement
 
 
 def add_heading_with_formatting(doc, text, level, bold=True, size=None):
@@ -16,7 +18,7 @@ def add_heading_with_formatting(doc, text, level, bold=True, size=None):
         run.font.bold = bold
         if size:
             run.font.size = Pt(size)
-        run.font.name = "Calibri"
+        run.font.name = 'Calibri'
 
 
 def create_comprehensive_report():
@@ -27,8 +29,9 @@ def create_comprehensive_report():
     # ==================== TITLE AND METADATA ====================
 
     title = doc.add_paragraph()
-    title_run = title.add_run("AGENTIC-IAM: ENTERPRISE-GRADE IDENTITY AND ACCESS MANAGEMENT\nFOR AI AGENT ECOSYSTEMS")
-    title_run.font.name = "Calibri"
+    title_run = title.add_run(
+        "AGENTIC-IAM: ENTERPRISE-GRADE IDENTITY AND ACCESS MANAGEMENT\nFOR AI AGENT ECOSYSTEMS")
+    title_run.font.name = 'Calibri'
     title_run.font.size = Pt(18)
     title_run.font.bold = True
     title.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
@@ -46,7 +49,7 @@ def create_comprehensive_report():
         p = doc.add_paragraph()
         r1 = p.add_run(f"{label}: ")
         r1.bold = True
-        p.add_run(value)
+        r2 = p.add_run(value)
         p_format = p.paragraph_format
         p_format.space_after = Pt(6)
 
@@ -105,7 +108,7 @@ The platform demonstrates enterprise-grade quality through 100% passing test sui
 
     for entry, page in toc_entries:
         p = doc.add_paragraph(entry)
-        if entry.startswith("   "):
+        if entry.startswith('   '):
             p.paragraph_format.left_indent = Inches(0.5)
         p_format = p.paragraph_format
         p_format.space_after = Pt(3)
@@ -128,7 +131,7 @@ The platform demonstrates enterprise-grade quality through 100% passing test sui
     ]
 
     for fig in figures_list:
-        doc.add_paragraph(fig, style="List Bullet")
+        doc.add_paragraph(fig, style='List Bullet')
 
     doc.add_page_break()
 
@@ -148,7 +151,7 @@ The platform demonstrates enterprise-grade quality through 100% passing test sui
     ]
 
     for tbl in tables_list:
-        doc.add_paragraph(tbl, style="List Bullet")
+        doc.add_paragraph(tbl, style='List Bullet')
 
     doc.add_page_break()
 
@@ -159,7 +162,9 @@ The platform demonstrates enterprise-grade quality through 100% passing test sui
     sections_content = {
         "intro": [
             "Agentic-IAM is an enterprise-grade Identity and Access Management (IAM) platform specifically designed for AI agent ecosystems. Developed with enterprise security standards in mind, the platform provides comprehensive identity lifecycle management, multi-protocol authentication, fine-grained authorization controls, and sophisticated audit logging capabilities.",
+
             "This technical report provides a comprehensive analysis of the Agentic-IAM platform's architecture, implementation approach, security framework, testing procedures, and production readiness status. The analysis covers the complete system design including authentication mechanisms, authorization policies, credential management, session management, and federated identity support.",
+
             "The platform represents a significant advancement in IAM technology specifically tailored to address the unique requirements of autonomous AI agents operating in distributed, multi-cloud environments. Unlike traditional IAM systems designed for human user management, Agentic-IAM provides:",
         ],
         "features": [
@@ -172,8 +177,9 @@ The platform demonstrates enterprise-grade quality through 100% passing test sui
         ],
         "closing": [
             "This report documents the verified production readiness status achieved through comprehensive testing (88 tests, 88% code coverage), security validation, and compliance verification against leading standards. Each section provides detailed analysis of specific platform components, implementation approaches, security controls, testing procedures, and deployment recommendations.",
+
             "The platform has demonstrated production readiness through rigorous testing, security hardening, compliance validation, and architectural excellence. All components are fully implemented, tested, documented, and verified for enterprise deployment.",
-        ],
+        ]
     }
 
     for text in sections_content["intro"]:
@@ -184,7 +190,7 @@ The platform demonstrates enterprise-grade quality through 100% passing test sui
     doc.add_paragraph()
 
     for feature in sections_content["features"]:
-        doc.add_paragraph(feature, style="List Bullet")
+        doc.add_paragraph(feature, style='List Bullet')
 
     doc.add_paragraph()
 
@@ -252,7 +258,7 @@ These challenges demonstrate the critical need for a purpose-built IAM platform 
     ]
 
     for obj in primary_objectives:
-        p = doc.add_paragraph(obj, style="List Number")
+        p = doc.add_paragraph(obj, style='List Number')
         p.paragraph_format.space_after = Pt(4)
 
     doc.add_paragraph()
@@ -270,7 +276,7 @@ These challenges demonstrate the critical need for a purpose-built IAM platform 
     ]
 
     for obj in secondary_objectives:
-        p = doc.add_paragraph(obj, style="List Number")
+        p = doc.add_paragraph(obj, style='List Number')
         p.paragraph_format.space_after = Pt(4)
 
     # 2.3 Scope and Constraints
@@ -294,7 +300,7 @@ These challenges demonstrate the critical need for a purpose-built IAM platform 
     ]
 
     for item in in_scope:
-        doc.add_paragraph(item, style="List Bullet")
+        doc.add_paragraph(item, style='List Bullet')
 
     doc.add_paragraph()
     p = doc.add_paragraph()
@@ -313,7 +319,7 @@ These challenges demonstrate the critical need for a purpose-built IAM platform 
     ]
 
     for item in out_scope:
-        doc.add_paragraph(item, style="List Bullet")
+        doc.add_paragraph(item, style='List Bullet')
 
     doc.add_paragraph()
     p = doc.add_paragraph()
@@ -330,7 +336,7 @@ These challenges demonstrate the critical need for a purpose-built IAM platform 
     ]
 
     for item in constraints:
-        doc.add_paragraph(item, style="List Bullet")
+        doc.add_paragraph(item, style='List Bullet')
 
     doc.add_page_break()
 
@@ -385,7 +391,7 @@ These challenges demonstrate the critical need for a purpose-built IAM platform 
 └─────────────────────────────────────────────────────────────┘
 """
 
-    doc.add_paragraph(ascii_arch, style="Intense Quote")
+    doc.add_paragraph(ascii_arch, style='Intense Quote')
 
     layer_descriptions = """Layer Descriptions:
 
@@ -410,8 +416,9 @@ Data Persistence Layer: Manages persistent storage with SQLite for development a
                 "Multi-factor authentication support",
                 "Session creation and token management",
             ],
-            "pattern": "Pluggable authentication providers enable extension",
+            "pattern": "Pluggable authentication providers enable extension"
         },
+
         "Authorization Manager (authorization.py)": {
             "responsibility": "Access control policy evaluation and enforcement",
             "capabilities": [
@@ -421,8 +428,9 @@ Data Persistence Layer: Manages persistent storage with SQLite for development a
                 "Delegation support for temporary elevation",
                 "Time-limited access grants with expiration",
             ],
-            "pattern": "Policy-as-code enables version control and audit trails",
+            "pattern": "Policy-as-code enables version control and audit trails"
         },
+
         "Session Manager (session_manager.py)": {
             "responsibility": "Session lifecycle and surveillance",
             "capabilities": [
@@ -432,8 +440,9 @@ Data Persistence Layer: Manages persistent storage with SQLite for development a
                 "Concurrent session limits",
                 "Session audit trail generation",
             ],
-            "pattern": "In-memory cache with database persistence for durability",
+            "pattern": "In-memory cache with database persistence for durability"
         },
+
         "Credential Manager (credential_manager.py)": {
             "responsibility": "Credential storage and lifecycle management",
             "capabilities": [
@@ -443,7 +452,7 @@ Data Persistence Layer: Manages persistent storage with SQLite for development a
                 "Expiration tracking and alerts",
                 "Revocation support with immediate effect",
             ],
-            "pattern": "Encryption-at-rest with separate key management",
+            "pattern": "Encryption-at-rest with separate key management"
         },
     }
 
@@ -458,7 +467,7 @@ Data Persistence Layer: Manages persistent storage with SQLite for development a
         p = doc.add_paragraph()
         p.add_run("Capabilities:").bold = True
         for cap in details["capabilities"]:
-            doc.add_paragraph(cap, style="List Bullet")
+            doc.add_paragraph(cap, style='List Bullet')
 
         p = doc.add_paragraph()
         p.add_run("Design Pattern: ").bold = True
@@ -471,32 +480,26 @@ Data Persistence Layer: Manages persistent storage with SQLite for development a
     doc.add_paragraph("Table 1: Technology Stack Components")
 
     tech_table = doc.add_table(rows=12, cols=5)
-    tech_table.style = "Light Grid Accent 1"
+    tech_table.style = 'Light Grid Accent 1'
 
     # Header
     hdr_cells = tech_table.rows[0].cells
-    headers = ["Layer", "Technology", "Purpose", "Version", "Rationale"]
+    headers = ['Layer', 'Technology', 'Purpose', 'Version', 'Rationale']
     for i, header in enumerate(headers):
         hdr_cells[i].text = header
 
     tech_data = [
-        ("Runtime", "Python", "Core application", "3.8+", "Type-safe, async-capable, enterprise adoption"),
-        ("Web Framework", "FastAPI", "REST API server", "0.95.0+", "High performance, OpenAPI documentation"),
-        ("UI Framework", "Streamlit", "Dashboard UI", "1.28.0+", "Rapid development, professional appearance"),
-        ("API Schema", "Strawberry GraphQL", "GraphQL endpoint", "Latest", "Type-safe, excellent Python integration"),
-        ("Database (Dev)", "SQLite", "Local development", "Built-in", "Zero configuration, file-based"),
-        ("Database (Prod)", "PostgreSQL", "Production deployment", "12+", "Scalability, replication, ACID compliance"),
-        (
-            "Async Runtime",
-            "asyncio",
-            "Concurrent operations",
-            "Python built-in",
-            "Non-blocking I/O, improved throughput",
-        ),
-        ("Validation", "Pydantic V2", "Data validation", "2.x", "Type safety, comprehensive validation"),
-        ("Cryptography", "cryptography", "Encryption/TLS", "40.0.0+", "FIPS compliance, quantum algorithms"),
-        ("Testing", "pytest", "Test framework", "7.4.0+", "Comprehensive fixtures, plugins"),
-        ("Linting", "flake8", "Code style", "6.0.0+", "PEP 8 enforcement, code quality"),
+        ('Runtime', 'Python', 'Core application', '3.8+', 'Type-safe, async-capable, enterprise adoption'),
+        ('Web Framework', 'FastAPI', 'REST API server', '0.95.0+', 'High performance, OpenAPI documentation'),
+        ('UI Framework', 'Streamlit', 'Dashboard UI', '1.28.0+', 'Rapid development, professional appearance'),
+        ('API Schema', 'Strawberry GraphQL', 'GraphQL endpoint', 'Latest', 'Type-safe, excellent Python integration'),
+        ('Database (Dev)', 'SQLite', 'Local development', 'Built-in', 'Zero configuration, file-based'),
+        ('Database (Prod)', 'PostgreSQL', 'Production deployment', '12+', 'Scalability, replication, ACID compliance'),
+        ('Async Runtime', 'asyncio', 'Concurrent operations', 'Python built-in', 'Non-blocking I/O, improved throughput'),
+        ('Validation', 'Pydantic V2', 'Data validation', '2.x', 'Type safety, comprehensive validation'),
+        ('Cryptography', 'cryptography', 'Encryption/TLS', '40.0.0+', 'FIPS compliance, quantum algorithms'),
+        ('Testing', 'pytest', 'Test framework', '7.4.0+', 'Comprehensive fixtures, plugins'),
+        ('Linting', 'flake8', 'Code style', '6.0.0+', 'PEP 8 enforcement, code quality'),
     ]
 
     for i, row_data in enumerate(tech_data, 1):
@@ -513,44 +516,32 @@ Data Persistence Layer: Manages persistent storage with SQLite for development a
     doc.add_paragraph("\nTable 2: Core Entities and Attributes")
 
     entity_table = doc.add_table(rows=7, cols=3)
-    entity_table.style = "Light Grid"
+    entity_table.style = 'Light Grid'
 
     hdr_cells = entity_table.rows[0].cells
-    hdr_cells[0].text = "Entity"
-    hdr_cells[1].text = "Key Attributes"
-    hdr_cells[2].text = "Relationships"
+    hdr_cells[0].text = 'Entity'
+    hdr_cells[1].text = 'Key Attributes'
+    hdr_cells[2].text = 'Relationships'
 
     entity_data = [
-        (
-            "Agent",
-            "agent_id, name, identity_certificate, private_key, status, role, metadata, created_at, expires_at, created_by",
-            "Owns Credentials; Assigned Role; Generated AuditEvents",
-        ),
-        (
-            "User",
-            "user_id, username, password_hash, email, role, created_at, last_login, is_active",
-            "Created Agents; Generated AuditEvents",
-        ),
-        (
-            "Role",
-            "role_id, name, permissions (set), description, is_custom, created_at",
-            "Assigned to Agent/User; Contains Permission set",
-        ),
-        (
-            "Credential",
-            "credential_id, agent_id, credential_type, credential_value (encrypted), created_at, expires_at, is_revoked, rotation_due",
-            "Belongs to Agent; Has expiration schedule",
-        ),
-        (
-            "Session",
-            "session_id, agent_id, creation_time, expiration_time, last_activity, ip_address, user_agent",
-            "Represents active connection; Generates audit events",
-        ),
-        (
-            "AuditEvent",
-            "event_id, event_type, actor_id, resource_id, action, result, timestamp, ip_address, context",
-            "Logs all operations; Immutable record",
-        ),
+        ('Agent',
+         'agent_id, name, identity_certificate, private_key, status, role, metadata, created_at, expires_at, created_by',
+         'Owns Credentials; Assigned Role; Generated AuditEvents'),
+        ('User',
+         'user_id, username, password_hash, email, role, created_at, last_login, is_active',
+         'Created Agents; Generated AuditEvents'),
+        ('Role',
+         'role_id, name, permissions (set), description, is_custom, created_at',
+         'Assigned to Agent/User; Contains Permission set'),
+        ('Credential',
+         'credential_id, agent_id, credential_type, credential_value (encrypted), created_at, expires_at, is_revoked, rotation_due',
+         'Belongs to Agent; Has expiration schedule'),
+        ('Session',
+         'session_id, agent_id, creation_time, expiration_time, last_activity, ip_address, user_agent',
+         'Represents active connection; Generates audit events'),
+        ('AuditEvent',
+         'event_id, event_type, actor_id, resource_id, action, result, timestamp, ip_address, context',
+         'Logs all operations; Immutable record'),
     ]
 
     for i, (entity, attrs, rels) in enumerate(entity_data, 1):
@@ -949,26 +940,25 @@ FedRAMP Compliance:
     doc.add_paragraph("Comprehensive Performance Testing Environment:")
     doc.add_paragraph(
         "CPU: 8 cores (Intel Xeon), RAM: 16 GB, Database: PostgreSQL 14, Network: 100 Mbps, Connection Pool: 20 concurrent",
-        style="List Bullet",
-    )
+        style='List Bullet')
 
     doc.add_paragraph("\nDetailed Performance Results:")
 
     perf_table = doc.add_table(rows=7, cols=3)
-    perf_table.style = "Light Grid Accent 1"
+    perf_table.style = 'Light Grid Accent 1'
 
     hdr_cells = perf_table.rows[0].cells
-    hdr_cells[0].text = "Test Case"
-    hdr_cells[1].text = "Throughput / Response Time"
-    hdr_cells[2].text = "Status"
+    hdr_cells[0].text = 'Test Case'
+    hdr_cells[1].text = 'Throughput / Response Time'
+    hdr_cells[2].text = 'Status'
 
     perf_data = [
-        ("Authentication Validation", "450 req/sec", "✅ PASS"),
-        ("Authorization Evaluation", "850 req/sec", "✅ PASS"),
-        ("Session Operations", "2500 req/sec", "✅ PASS"),
-        ("Credential Management", "200 req/sec", "✅ PASS"),
-        ("Audit Logging", "300 req/sec", "✅ PASS"),
-        ("API Response Time", "35-50ms avg", "✅ PASS"),
+        ('Authentication Validation', '450 req/sec', '✅ PASS'),
+        ('Authorization Evaluation', '850 req/sec', '✅ PASS'),
+        ('Session Operations', '2500 req/sec', '✅ PASS'),
+        ('Credential Management', '200 req/sec', '✅ PASS'),
+        ('Audit Logging', '300 req/sec', '✅ PASS'),
+        ('API Response Time', '35-50ms avg', '✅ PASS'),
     ]
 
     for i, (test, metric, status) in enumerate(perf_data, 1):
@@ -1012,7 +1002,7 @@ FedRAMP Compliance:
             "☐ Monthly performance analysis",
             "☐ Quarterly disaster recovery drill",
             "☐ Annual security audit",
-        ],
+        ]
     }
 
     for section, items in checklist_sections.items():
@@ -1035,21 +1025,19 @@ FedRAMP Compliance:
         "Next Review Date: July 7, 2026 (Quarterly)\n\n"
         "This technical report documents the production-ready status of Agentic-IAM as verified "
         "and approved for enterprise deployment following Sadat Academy for Management Sciences "
-        "technical standards. All content has been reviewed and verified by the technical review committee."
-    )
+        "technical standards. All content has been reviewed and verified by the technical review committee.")
     metadata.font.size = Pt(10)
     metadata.font.italic = True
 
     # Save
-    doc.save("TECHNICAL_REPORT_FULL.docx")
-    return "TECHNICAL_REPORT_FULL.docx"
+    doc.save('TECHNICAL_REPORT_FULL.docx')
+    return 'TECHNICAL_REPORT_FULL.docx'
 
 
 if __name__ == "__main__":
     try:
         path = create_comprehensive_report()
         import os
-
         size = os.path.getsize(path) / 1024
         print(f"✅ COMPREHENSIVE Word document created: {path}")
         print(f"📊 File size: {size:.1f} KB")
@@ -1069,5 +1057,4 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"❌ Error: {e}")
         import traceback
-
         traceback.print_exc()

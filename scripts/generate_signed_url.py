@@ -6,12 +6,12 @@ Usage:
 
 The script looks for STATIC_URL_SIGNING_KEY or ADMIN_API_KEY in the environment.
 """
-
-import hashlib
-import hmac
 import os
 import sys
 import time
+import hmac
+import hashlib
+from urllib.parse import quote
 
 
 def sign(path: str, expires_in: int, key: str) -> str:
@@ -28,7 +28,12 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument("--path", required=True, help="Path under /reports/static to sign")
     p.add_argument("--expires", type=int, default=3600, help="Seconds until expiry")
-    p.add_argument("--host", default=os.getenv("API_HOST", "http://127.0.0.1:8000"), help="Base host (with scheme)")
+    p.add_argument(
+        "--host",
+        default=os.getenv(
+            "API_HOST",
+            "http://127.0.0.1:8000"),
+        help="Base host (with scheme)")
     args = p.parse_args()
 
     key = os.getenv("STATIC_URL_SIGNING_KEY") or os.getenv("ADMIN_API_KEY")

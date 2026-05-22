@@ -1,7 +1,6 @@
-from typing import Optional
-
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
+from typing import Optional
 
 router = APIRouter()
 
@@ -20,9 +19,8 @@ class MobileHeartbeat(BaseModel):
 async def mobile_register(req: MobileRegisterRequest):
     # Create a lightweight agent entry for mobile client
     from agent_identity import AgentIdentity
-
     agent_id = f"agent_mobile_{req.agent_name}_{hash(req.agent_name) & 0xffffffff:x}"
-    _identity = AgentIdentity.generate(agent_id=agent_id, metadata={"platform": req.platform})
+    identity = AgentIdentity.generate(agent_id=agent_id, metadata={"platform": req.platform})
     return {"agent_id": agent_id, "registration_id": f"reg_{agent_id}"}
 
 

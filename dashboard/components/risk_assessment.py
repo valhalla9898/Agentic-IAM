@@ -1,13 +1,12 @@
-from typing import Any, Dict
-
 import streamlit as st
+from typing import Dict, Any
 
 
 def compute_risk_score(agent: Dict[str, Any]) -> float:
     # Simple heuristic risk score for demo: combine failed actions and age
-    failures = agent.get("failed_actions", 0)
-    alerts = agent.get("alerts", 0)
-    uptime_days = agent.get("uptime_days", 1)
+    failures = agent.get('failed_actions', 0)
+    alerts = agent.get('alerts', 0)
+    uptime_days = agent.get('uptime_days', 1)
     score = min(100.0, (failures * 2.5) + (alerts * 5.0) + max(0, 10 - uptime_days))
     return round(score, 2)
 
@@ -28,25 +27,23 @@ def show_risk_assessment(db):
     with cols[1]:
         if st.button("Assess all"):
             for a in agents:
-                a["risk_score"] = compute_risk_score(a)
+                a['risk_score'] = compute_risk_score(a)
             st.success("Assessed risk for all agents")
             st.rerun()
 
     # show details for selected
     if sel:
-        aid = sel.split(" - ")[0]
+        aid = sel.split(' - ')[0]
         agent = db.get_agent(aid)
         score = compute_risk_score(agent)
         st.metric("Risk Score", f"{score}/100")
 
         st.subheader("Risk Factors")
-        st.write(
-            {
-                "failed_actions": agent.get("failed_actions", 0),
-                "alerts": agent.get("alerts", 0),
-                "uptime_days": agent.get("uptime_days", 1),
-            }
-        )
+        st.write({
+            'failed_actions': agent.get('failed_actions', 0),
+            'alerts': agent.get('alerts', 0),
+            'uptime_days': agent.get('uptime_days', 1)
+        })
 
         st.subheader("Recommended Actions")
         if score > 70:

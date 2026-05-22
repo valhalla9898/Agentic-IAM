@@ -1,13 +1,11 @@
 """
 Unit tests for new features: GraphQL, Mobile API, Trust Scoring, Compliance
 """
-
 import pytest
-
 from agent_intelligence import IntelligenceEngine, TrustScore
-from api.graphql import schema
-from api.routers.mobile import MobileHeartbeat, MobileRegisterRequest
 from audit_compliance import ComplianceFramework
+from api.graphql import schema
+from api.routers.mobile import MobileRegisterRequest, MobileHeartbeat
 
 
 class TestTrustScoring:
@@ -34,19 +32,19 @@ class TestTrustScoring:
 class TestComplianceFramework:
     def test_compliance_framework_enum(self):
         """Test that compliance frameworks are defined"""
-        assert hasattr(ComplianceFramework, "GDPR")
-        assert hasattr(ComplianceFramework, "HIPAA")
-        assert hasattr(ComplianceFramework, "SOX")
-        assert hasattr(ComplianceFramework, "PCI_DSS")
-        assert hasattr(ComplianceFramework, "ISO_27001")
+        assert hasattr(ComplianceFramework, 'GDPR')
+        assert hasattr(ComplianceFramework, 'HIPAA')
+        assert hasattr(ComplianceFramework, 'SOX')
+        assert hasattr(ComplianceFramework, 'PCI_DSS')
+        assert hasattr(ComplianceFramework, 'ISO_27001')
 
     def test_compliance_values(self):
         """Test compliance framework values"""
-        assert ComplianceFramework.GDPR.value == "gdpr"
-        assert ComplianceFramework.HIPAA.value == "hipaa"
-        assert ComplianceFramework.SOX.value == "sox"
-        assert ComplianceFramework.PCI_DSS.value == "pci-dss"
-        assert ComplianceFramework.ISO_27001.value == "iso-27001"
+        assert ComplianceFramework.GDPR.value == 'gdpr'
+        assert ComplianceFramework.HIPAA.value == 'hipaa'
+        assert ComplianceFramework.SOX.value == 'sox'
+        assert ComplianceFramework.PCI_DSS.value == 'pci-dss'
+        assert ComplianceFramework.ISO_27001.value == 'iso-27001'
 
 
 class TestMobileAPI:
@@ -67,14 +65,14 @@ class TestGraphQL:
     def test_graphql_schema_exists(self):
         """Test that GraphQL schema is defined"""
         assert schema is not None
-        assert hasattr(schema, "query_type")
+        assert hasattr(schema, 'query_type')
 
     def test_graphql_types(self):
         """Test GraphQL types are defined"""
         type_map = schema.type_map
-        assert "Agent" in type_map
-        assert "TrustScore" in type_map
-        assert "Query" in type_map
+        assert 'Agent' in type_map
+        assert 'TrustScore' in type_map
+        assert 'Query' in type_map
 
 
 if __name__ == "__main__":

@@ -1,12 +1,10 @@
 """Setup script to bootstrap users securely."""
-
+from database import get_database
 import os
 import secrets
 import string
 import sys
 from pathlib import Path
-
-from database import get_database
 
 # Add project to path
 sys.path.insert(0, str(Path(__file__).parent))

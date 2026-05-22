@@ -3,12 +3,12 @@ Agentic-IAM: Logging Utilities
 
 Centralized logging configuration for the platform.
 """
-
 import logging
 import logging.config
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Dict, Any
+from datetime import datetime
 
 
 def setup_logging(
@@ -16,7 +16,7 @@ def setup_logging(
     log_file: Optional[str] = None,
     log_format: Optional[str] = None,
     enable_console: bool = True,
-    enable_json: bool = False,
+    enable_json: bool = False
 ) -> logging.Logger:
     """
     Setup centralized logging configuration
@@ -49,20 +49,29 @@ def setup_logging(
         "version": 1,
         "disable_existing_loggers": False,
         "formatters": {
-            "standard": {"format": log_format, "datefmt": "%Y-%m-%d %H:%M:%S"},
+            "standard": {
+                "format": log_format,
+                "datefmt": "%Y-%m-%d %H:%M:%S"},
             "detailed": {
                 "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s [%(pathname)s:%(lineno)d]",
-                "datefmt": "%Y-%m-%d %H:%M:%S",
-            },
-        },
+                "datefmt": "%Y-%m-%d %H:%M:%S"}},
         "handlers": {},
         "loggers": {
-            "agentic_iam": {"level": log_level, "handlers": [], "propagate": False},
-            "uvicorn": {"level": "INFO", "handlers": [], "propagate": False},
-            "uvicorn.access": {"level": "INFO", "handlers": [], "propagate": False},
-        },
-        "root": {"level": log_level, "handlers": []},
-    }
+            "agentic_iam": {
+                "level": log_level,
+                "handlers": [],
+                "propagate": False},
+            "uvicorn": {
+                "level": "INFO",
+                "handlers": [],
+                "propagate": False},
+            "uvicorn.access": {
+                "level": "INFO",
+                "handlers": [],
+                "propagate": False}},
+        "root": {
+            "level": log_level,
+            "handlers": []}}
 
     # Console handler
     if enable_console:
@@ -70,7 +79,7 @@ def setup_logging(
             "class": "logging.StreamHandler",
             "level": log_level,
             "formatter": "standard",
-            "stream": sys.stdout,
+            "stream": sys.stdout
         }
         config["loggers"]["agentic_iam"]["handlers"].append("console")
         config["loggers"]["uvicorn"]["handlers"].append("console")
@@ -86,7 +95,7 @@ def setup_logging(
             "filename": log_file,
             "maxBytes": 10485760,  # 10MB
             "backupCount": 5,
-            "encoding": "utf8",
+            "encoding": "utf8"
         }
         config["loggers"]["agentic_iam"]["handlers"].append("file")
         config["root"]["handlers"].append("file")
@@ -98,7 +107,8 @@ def setup_logging(
     logger = logging.getLogger("agentic_iam")
 
     # Log startup message
-    logger.info(f"Logging initialized - Level: {log_level}, Console: {enable_console}, File: {bool(log_file)}")
+    logger.info(
+        f"Logging initialized - Level: {log_level}, Console: {enable_console}, File: {bool(log_file)}")
 
     return logger
 
@@ -112,16 +122,8 @@ class SecurityLogFilter(logging.Filter):
     """Filter to prevent logging of sensitive information"""
 
     SENSITIVE_PATTERNS = [
-        "password",
-        "secret",
-        "key",
-        "token",
-        "credential",
-        "auth",
-        "jwt",
-        "signature",
-        "private",
-        "confidential",
+        "password", "secret", "key", "token", "credential",
+        "auth", "jwt", "signature", "private", "confidential"
     ]
 
     def filter(self, record):
@@ -159,7 +161,7 @@ class AuditLogHandler(logging.Handler):
                     logging.INFO: EventSeverity.LOW,
                     logging.WARNING: EventSeverity.MEDIUM,
                     logging.ERROR: EventSeverity.HIGH,
-                    logging.CRITICAL: EventSeverity.CRITICAL,
+                    logging.CRITICAL: EventSeverity.CRITICAL
                 }
 
                 # Log as audit event
@@ -172,14 +174,12 @@ class AuditLogHandler(logging.Handler):
                         "module": record.module,
                         "function": record.funcName,
                         "line": record.lineno,
-                        "level": record.levelname,
-                    },
+                        "level": record.levelname
+                    }
                 )
-            except Exception as e:
+            except Exception:
                 # Don't let audit logging failures crash the application
-                import logging as _logging
-
-                _logging.getLogger(__name__).debug("Audit logging failed: %s", e)
+                pass
 
 
 class StructuredLogger:
@@ -237,7 +237,7 @@ class LoggerMixin:
     @property
     def logger(self) -> logging.Logger:
         """Get logger for the class"""
-        if not hasattr(self, "_logger"):
+        if not hasattr(self, '_logger'):
             self._logger = get_logger(self.__class__.__name__)
         return self._logger
 
@@ -260,7 +260,6 @@ class LoggerMixin:
 
 def log_function_call(func):
     """Decorator to log function calls"""
-
     def wrapper(*args, **kwargs):
         logger = get_logger(func.__module__)
         logger.debug(f"Calling {func.__name__} with args={args}, kwargs={kwargs}")
@@ -278,7 +277,6 @@ def log_function_call(func):
 
 def log_performance(func):
     """Decorator to log function performance"""
-
     def wrapper(*args, **kwargs):
         import time
 
@@ -292,7 +290,8 @@ def log_performance(func):
             return result
         except Exception as e:
             duration = time.time() - start_time
-            logger.error(f"Function {func.__name__} failed after {duration:.3f}s with error: {str(e)}")
+            logger.error(
+                f"Function {func.__name__} failed after {duration:.3f}s with error: {str(e)}")
             raise
 
     return wrapper
@@ -301,7 +300,11 @@ def log_performance(func):
 # Example usage
 if __name__ == "__main__":
     # Setup logging
-    logger = setup_logging(log_level="DEBUG", log_file="./logs/agentic_iam.log", enable_console=True)
+    logger = setup_logging(
+        log_level="DEBUG",
+        log_file="./logs/agentic_iam.log",
+        enable_console=True
+    )
 
     # Test logging
     logger.info("This is an info message")
@@ -318,7 +321,6 @@ if __name__ == "__main__":
     @log_performance
     def sample_function(x, y):
         import time
-
         time.sleep(0.1)  # Simulate work
         return x + y
 
