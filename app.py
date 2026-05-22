@@ -362,7 +362,9 @@ def _direct_sql_record_security_demo(state: dict) -> None:
 
         attack_ids = []
         for attack in state.get("attacks", []):
-            attack_metadata = dict(attack.get("metadata", {})) if isinstance(attack.get("metadata"), dict) else {}
+            attack_metadata = (
+                dict(attack.get("metadata", {})) if isinstance(attack.get("metadata"), dict) else {}
+            )
             attack_metadata.update(
                 {
                     "correlation_id": attack.get("correlation_id"),
@@ -507,11 +509,15 @@ def _direct_sql_record_security_demo(state: dict) -> None:
                             playbook.get("playbook_name", "unknown"),
                             "executed" if playbook.get("auto_execute") else "recorded",
                             int(bool(playbook.get("auto_execute"))),
-                            json.dumps({"steps": playbook.get("steps", []), "case": case.get("case_key")}),
+                            json.dumps(
+                                {"steps": playbook.get("steps", []), "case": case.get("case_key")}
+                            ),
                         ),
                     )
         except Exception as e:
-            logging.getLogger(__name__).debug("Suppressed exception while persisting case/playbook: %s", e)
+            logging.getLogger(__name__).debug(
+                "Suppressed exception while persisting case/playbook: %s", e
+            )
 
         conn.commit()
 
@@ -530,7 +536,11 @@ def _persist_security_demo_state(state: dict) -> dict:
         else:
             attack_ids = []
             for attack in state.get("attacks", []):
-                attack_metadata = dict(attack.get("metadata", {})) if isinstance(attack.get("metadata"), dict) else {}
+                attack_metadata = (
+                    dict(attack.get("metadata", {}))
+                    if isinstance(attack.get("metadata"), dict)
+                    else {}
+                )
                 attack_metadata.update(
                     {
                         "correlation_id": attack.get("correlation_id"),
@@ -587,11 +597,15 @@ def _persist_security_demo_state(state: dict) -> dict:
             )
 
             try:
-                db.set_system_setting("security_telemetry_last_generated", state.get("generated_at"))
+                db.set_system_setting(
+                    "security_telemetry_last_generated", state.get("generated_at")
+                )
                 db.set_system_setting("security_rules", DEFAULT_SECURITY_RULES)
                 db.set_system_setting("security_last_fingerprint", state.get("integrity_hash"))
             except Exception as e:
-                logging.getLogger(__name__).debug("Suppressed exception while setting system setting: %s", e)
+                logging.getLogger(__name__).debug(
+                    "Suppressed exception while setting system setting: %s", e
+                )
 
             cases = correlate_security_cases(
                 state.get("attacks", []), state.get("active", []), state.get("blocked_ips", [])
@@ -637,7 +651,9 @@ def _persist_security_demo_state(state: dict) -> dict:
                         if hasattr(db, "list_security_chain_entries")
                         else []
                     )
-                    previous_hash = previous_entries[0]["current_hash"] if previous_entries else None
+                    previous_hash = (
+                        previous_entries[0]["current_hash"] if previous_entries else None
+                    )
                     db.record_security_chain_entry(
                         chain_name="incident-flow",
                         current_hash=state.get("integrity_hash"),
@@ -649,15 +665,23 @@ def _persist_security_demo_state(state: dict) -> dict:
                         previous_hash=previous_hash,
                     )
                 except Exception as e:
-                    logging.getLogger(__name__).debug("Suppressed exception in playbook-run insertion: %s", e)
+                    logging.getLogger(__name__).debug(
+                        "Suppressed exception in playbook-run insertion: %s", e
+                    )
 
             if hasattr(db, "record_incident_export"):
                 try:
                     kpis = calculate_security_kpis(
-                        state.get("attacks", []), state.get("active", []), state.get("blocked_ips", [])
+                        state.get("attacks", []),
+                        state.get("active", []),
+                        state.get("blocked_ips", []),
                     )
                     export_payload = build_incident_export_payload(
-                        state, state.get("attacks", []), state.get("active", []), state.get("blocked_ips", []), kpis
+                        state,
+                        state.get("attacks", []),
+                        state.get("active", []),
+                        state.get("blocked_ips", []),
+                        kpis,
                     )
                     db.record_incident_export(
                         export_type="security_demo",
@@ -668,7 +692,9 @@ def _persist_security_demo_state(state: dict) -> dict:
                 except Exception as e:
                     import logging
 
-                    logging.getLogger(__name__).debug("Suppressed exception while recording incident export: %s", e)
+                    logging.getLogger(__name__).debug(
+                        "Suppressed exception while recording incident export: %s", e
+                    )
 
     _write_demo_security_state(state)
     _dispatch_security_notifications(
@@ -702,12 +728,16 @@ def _load_security_rules(db) -> list[dict]:
 def _process_security_notification_queue(db) -> list[dict]:
     """Retry queued notifications using the current dashboard settings."""
     results = []
-    if not db or not hasattr(db, "list_security_notifications") or not hasattr(db, "update_security_notification"):
+    if (
+        not db
+        or not hasattr(db, "list_security_notifications")
+        or not hasattr(db, "update_security_notification")
+    ):
         return results
 
-    queued = db.list_security_notifications(limit=20, status="queued") + db.list_security_notifications(
-        limit=20, status="retry"
-    )
+    queued = db.list_security_notifications(
+        limit=20, status="queued"
+    ) + db.list_security_notifications(limit=20, status="retry")
     for item in queued:
         payload = item.get("payload", {})
         try:
@@ -719,23 +749,42 @@ def _process_security_notification_queue(db) -> list[dict]:
                     attempts=int(item.get("attempts", 0)) + 1,
                     last_error=None,
                 )
-                results.append({"id": item["id"], "target": item.get("target_name"), "status": "delivered"})
+                results.append(
+                    {"id": item["id"], "target": item.get("target_name"), "status": "delivered"}
+                )
             else:
                 db.update_security_notification(
                     item["id"],
-                    status="retry" if int(item.get("attempts", 0)) + 1 < int(item.get("max_attempts", 3)) else "failed",
+                    status=(
+                        "retry"
+                        if int(item.get("attempts", 0)) + 1 < int(item.get("max_attempts", 3))
+                        else "failed"
+                    ),
                     attempts=int(item.get("attempts", 0)) + 1,
                     last_error=f"HTTP {response.status_code}",
                 )
-                results.append({"id": item["id"], "target": item.get("target_name"), "status": "retry"})
+                results.append(
+                    {"id": item["id"], "target": item.get("target_name"), "status": "retry"}
+                )
         except Exception as exc:
             db.update_security_notification(
                 item["id"],
-                status="retry" if int(item.get("attempts", 0)) + 1 < int(item.get("max_attempts", 3)) else "failed",
+                status=(
+                    "retry"
+                    if int(item.get("attempts", 0)) + 1 < int(item.get("max_attempts", 3))
+                    else "failed"
+                ),
                 attempts=int(item.get("attempts", 0)) + 1,
                 last_error=str(exc),
             )
-            results.append({"id": item["id"], "target": item.get("target_name"), "status": "error", "error": str(exc)})
+            results.append(
+                {
+                    "id": item["id"],
+                    "target": item.get("target_name"),
+                    "status": "error",
+                    "error": str(exc),
+                }
+            )
     return results
 
 
@@ -803,7 +852,9 @@ def _initialize_onboarding_fields(settings: dict) -> None:
     """Seed onboarding widgets so the form can be prefilled for demos."""
     defaults = {
         "onboarding_company_name": settings.get("company_name", ""),
-        "onboarding_environment_name": str(settings.get("deployment_environment", "development")).lower(),
+        "onboarding_environment_name": str(
+            settings.get("deployment_environment", "development")
+        ).lower(),
         "onboarding_identity_provider": settings.get("identity_provider", "Local Accounts"),
         "onboarding_app_url": settings.get("app_url", ""),
         "onboarding_api_url": settings.get("api_url", ""),
@@ -841,8 +892,12 @@ def _load_demo_onboarding_values() -> None:
         }
 
     st.session_state.onboarding_company_name = demo_values.get("company_name", "Valhalla")
-    st.session_state.onboarding_environment_name = demo_values.get("deployment_environment", "development")
-    st.session_state.onboarding_identity_provider = demo_values.get("identity_provider", "Local Accounts")
+    st.session_state.onboarding_environment_name = demo_values.get(
+        "deployment_environment", "development"
+    )
+    st.session_state.onboarding_identity_provider = demo_values.get(
+        "identity_provider", "Local Accounts"
+    )
     st.session_state.onboarding_app_url = demo_values.get("app_url", "")
     st.session_state.onboarding_api_url = demo_values.get("api_url", "")
     st.session_state.onboarding_database_type = demo_values.get("database_type", "SQLite")
@@ -879,7 +934,9 @@ def show_onboarding(inline: bool = False):
             _load_demo_onboarding_values()
             st.rerun()
     with demo_col2:
-        st.caption("Use the demo preset for a fast live presentation, or fill the form manually for a real setup.")
+        st.caption(
+            "Use the demo preset for a fast live presentation, or fill the form manually for a real setup."
+        )
 
     with st.form("onboarding_form"):
         col1, col2 = st.columns(2)
@@ -897,7 +954,12 @@ def show_onboarding(inline: bool = False):
                 ),
                 key="onboarding_environment_name",
             )
-            identity_options = ["Local Accounts", "Microsoft Entra ID", "LDAP / Active Directory", "Other SSO"]
+            identity_options = [
+                "Local Accounts",
+                "Microsoft Entra ID",
+                "LDAP / Active Directory",
+                "Other SSO",
+            ]
             identity_provider = st.selectbox(
                 "Identity Provider",
                 identity_options,
@@ -923,7 +985,9 @@ def show_onboarding(inline: bool = False):
                 ),
                 key="onboarding_database_type",
             )
-            database_url = st.text_input("Database Connection String", key="onboarding_database_url")
+            database_url = st.text_input(
+                "Database Connection String", key="onboarding_database_url"
+            )
             enable_sso = st.checkbox("Enable Single Sign-On later", key="onboarding_enable_sso")
 
         st.markdown("---")
@@ -936,8 +1000,12 @@ def show_onboarding(inline: bool = False):
             admin_email = st.text_input("Admin Email", key="onboarding_admin_email")
 
         with admin_col2:
-            admin_password = st.text_input("Admin Password", type="password", key="onboarding_admin_password")
-            confirm_password = st.text_input("Confirm Password", type="password", key="onboarding_confirm_password")
+            admin_password = st.text_input(
+                "Admin Password", type="password", key="onboarding_admin_password"
+            )
+            confirm_password = st.text_input(
+                "Confirm Password", type="password", key="onboarding_confirm_password"
+            )
 
         submitted = st.form_submit_button("✅ Save Setup and Continue")
 
@@ -987,7 +1055,9 @@ def show_onboarding(inline: bool = False):
 
             admin_exists = False
             try:
-                admin_exists = any(user["username"] == admin_username.strip() for user in db.list_users())
+                admin_exists = any(
+                    user["username"] == admin_username.strip() for user in db.list_users()
+                )
             except Exception as e:
                 import logging
 
@@ -1034,7 +1104,9 @@ def get_requested_page() -> str | None:
             values = params.get("page", [])
             page = values[0] if values else None
         except Exception as e2:
-            logging.getLogger(__name__).debug("Failed to read query params from experimental_get_query_params: %s", e2)
+            logging.getLogger(__name__).debug(
+                "Failed to read query params from experimental_get_query_params: %s", e2
+            )
             page = None
 
     # Save to session state so it persists after login
@@ -1251,7 +1323,9 @@ def main():
         # Navigation - use stored value or first available page
         current_page = st.session_state.get("main_navigation", available_pages[0])
         try:
-            page_index = available_pages.index(current_page) if current_page in available_pages else 0
+            page_index = (
+                available_pages.index(current_page) if current_page in available_pages else 0
+            )
         except ValueError:
             page_index = 0
 
@@ -1407,7 +1481,10 @@ def show_home():
         snapshot_rows = [
             {"Area": "Tenant", "Value": settings.get("company_name", "Not configured")},
             {"Area": "Environment", "Value": settings.get("deployment_environment", "development")},
-            {"Area": "Identity Provider", "Value": settings.get("identity_provider", "Local Accounts")},
+            {
+                "Area": "Identity Provider",
+                "Value": settings.get("identity_provider", "Local Accounts"),
+            },
             {"Area": "App URL", "Value": settings.get("app_url", "Not configured")},
             {"Area": "API URL", "Value": settings.get("api_url", "Not configured")},
         ]
@@ -1641,9 +1718,9 @@ def show_page_audit_log():
     if events:
         df = pd.DataFrame(events)
         df["created_at"] = pd.to_datetime(df["created_at"]).dt.strftime("%Y-%m-%d %H:%M:%S")
-        df = df[["event_type", "agent_id", "action", "details", "created_at", "status"]].sort_values(
-            "created_at", ascending=False
-        )
+        df = df[
+            ["event_type", "agent_id", "action", "details", "created_at", "status"]
+        ].sort_values("created_at", ascending=False)
 
         # Color code by status
         st.dataframe(df, width="stretch", hide_index=True)
@@ -1673,7 +1750,9 @@ def show_page_incident_response():
         )
     ]
 
-    incident_candidates = failed_events + [event for event in suspicious_events if event not in failed_events]
+    incident_candidates = failed_events + [
+        event for event in suspicious_events if event not in failed_events
+    ]
 
     col1, col2, col3, col4 = st.columns(4)
     with col1:
@@ -1755,7 +1834,10 @@ def show_page_integrations():
     with overview_col2:
         st.metric("Configured Owner", settings.get("integration_owner", "security-team"))
     with overview_col3:
-        st.metric("Identity Sources", sum(1 for key in ["entra_enabled", "ldap_enabled"] if settings.get(key, False)))
+        st.metric(
+            "Identity Sources",
+            sum(1 for key in ["entra_enabled", "ldap_enabled"] if settings.get(key, False)),
+        )
 
     st.subheader("Connection Targets")
     target_rows = []
@@ -1777,9 +1859,15 @@ def show_page_integrations():
         col1, col2 = st.columns(2)
 
         with col1:
-            entra_enabled = st.checkbox("Enable Microsoft Entra ID", value=bool(settings.get("entra_enabled", False)))
-            entra_tenant_id = st.text_input("Entra Tenant ID", value=settings.get("entra_tenant_id", ""))
-            entra_client_id = st.text_input("Entra Client ID", value=settings.get("entra_client_id", ""))
+            entra_enabled = st.checkbox(
+                "Enable Microsoft Entra ID", value=bool(settings.get("entra_enabled", False))
+            )
+            entra_tenant_id = st.text_input(
+                "Entra Tenant ID", value=settings.get("entra_tenant_id", "")
+            )
+            entra_client_id = st.text_input(
+                "Entra Client ID", value=settings.get("entra_client_id", "")
+            )
             ldap_enabled = st.checkbox(
                 "Enable LDAP / Active Directory", value=bool(settings.get("ldap_enabled", False))
             )
@@ -1790,7 +1878,9 @@ def show_page_integrations():
                 "Enable Webhook Notifications", value=bool(settings.get("webhooks_enabled", False))
             )
             webhook_url = st.text_input("Webhook URL", value=settings.get("webhook_url", ""))
-            siem_enabled = st.checkbox("Enable SIEM / SOC Feed", value=bool(settings.get("siem_enabled", False)))
+            siem_enabled = st.checkbox(
+                "Enable SIEM / SOC Feed", value=bool(settings.get("siem_enabled", False))
+            )
             siem_endpoint = st.text_input("SIEM Endpoint", value=settings.get("siem_endpoint", ""))
             integration_owner = st.text_input(
                 "Integration Owner", value=settings.get("integration_owner", "security-team")
@@ -1832,7 +1922,9 @@ def show_page_reports():
     health_monitor = AgentHealthMonitor(db)
     analytics = AgentAnalytics(db)
 
-    tab1, tab2, tab3, tab4 = st.tabs(["System Report", "Agent Report", "Security Report", "Analytics"])
+    tab1, tab2, tab3, tab4 = st.tabs(
+        ["System Report", "Agent Report", "Security Report", "Analytics"]
+    )
 
     with tab1:
         st.subheader("System Health Report")
@@ -1867,7 +1959,9 @@ def show_page_reports():
         agents = db.list_agents()
 
         if agents:
-            selected_agent = st.selectbox("Select Agent", [a["name"] for a in agents], key="agent_report")
+            selected_agent = st.selectbox(
+                "Select Agent", [a["name"] for a in agents], key="agent_report"
+            )
             selected_agent_obj = next((a for a in agents if a["name"] == selected_agent), None)
 
             if selected_agent_obj:
@@ -1903,7 +1997,9 @@ def show_page_reports():
             with col1:
                 st.metric("Total Events", report.get("audit_trail", {}).get("total_events", 0))
             with col2:
-                st.metric("Audit Events", report.get("audit_trail", {}).get("significant_events", 0))
+                st.metric(
+                    "Audit Events", report.get("audit_trail", {}).get("significant_events", 0)
+                )
             with col3:
                 st.metric("Active Users", report.get("users_summary", {}).get("active_users", 0))
 
@@ -1924,17 +2020,27 @@ def show_page_reports():
         else:
             demo_state = _load_demo_security_state() or {}
             exec_report = build_executive_report(
-                demo_state if isinstance(demo_state, dict) else {}, cases, attacks, alerts, blocked_ips
+                demo_state if isinstance(demo_state, dict) else {},
+                cases,
+                attacks,
+                alerts,
+                blocked_ips,
             )
             exec_cols = st.columns(4)
             with exec_cols[0]:
                 st.metric("Cases", exec_report.get("case_metrics", {}).get("total_cases", 0))
             with exec_cols[1]:
-                st.metric("Block Rate", f"{exec_report.get('summary', {}).get('block_rate', 0.0):.1f}%")
+                st.metric(
+                    "Block Rate", f"{exec_report.get('summary', {}).get('block_rate', 0.0):.1f}%"
+                )
             with exec_cols[2]:
-                st.metric("MTTD (min)", f"{exec_report.get('kpis', {}).get('mttd_minutes', 0.0):.2f}")
+                st.metric(
+                    "MTTD (min)", f"{exec_report.get('kpis', {}).get('mttd_minutes', 0.0):.2f}"
+                )
             with exec_cols[3]:
-                st.metric("MTTR (min)", f"{exec_report.get('kpis', {}).get('mttr_minutes', 0.0):.2f}")
+                st.metric(
+                    "MTTR (min)", f"{exec_report.get('kpis', {}).get('mttr_minutes', 0.0):.2f}"
+                )
 
             st.json(exec_report)
             st.download_button(
@@ -2104,7 +2210,9 @@ def show_page_user_management():
                 cols = st.columns([3, 1, 1])
                 pending_delete_key = f"pending_user_delete_{u['id']}"
                 with cols[0]:
-                    st.write(f"**{u['username']}** — {u['email']} — role: {u['role']} — status: {u['status']}")
+                    st.write(
+                        f"**{u['username']}** — {u['email']} — role: {u['role']} — status: {u['status']}"
+                    )
                 with cols[1]:
                     if st.button(f"Deactivate {u['username']}", key=f"deact_{u['id']}"):
                         ok = db.update_user_status(u["id"], "suspended")
@@ -2119,10 +2227,14 @@ def show_page_user_management():
                         st.rerun()
 
                 if st.session_state.get(pending_delete_key):
-                    st.warning(f"Are you sure you want to delete user {u['username']}? This cannot be undone.")
+                    st.warning(
+                        f"Are you sure you want to delete user {u['username']}? This cannot be undone."
+                    )
                     confirm_col, cancel_col = st.columns(2)
                     with confirm_col:
-                        if st.button(f"✅ Confirm Delete {u['username']}", key=f"confirm_deluser_{u['id']}"):
+                        if st.button(
+                            f"✅ Confirm Delete {u['username']}", key=f"confirm_deluser_{u['id']}"
+                        ):
                             ok = db.delete_user(u["id"])
                             still_exists = db.get_user_by_id(u["id"])
                             if ok and not still_exists:
@@ -2130,7 +2242,9 @@ def show_page_user_management():
                                 st.session_state[pending_delete_key] = False
                                 st.rerun()
                             elif ok and still_exists:
-                                st.error(f"Delete reported success, but user {u['username']} still exists")
+                                st.error(
+                                    f"Delete reported success, but user {u['username']} still exists"
+                                )
                             else:
                                 st.error(f"Failed to delete user {u['username']}")
                     with cancel_col:
@@ -2180,11 +2294,17 @@ def show_page_user_management():
                     status_ok = db.update_user_status(selected_user["id"], edited_status)
 
                 updated_user = db.get_user_by_id(selected_user["id"])
-                if updated_user and updated_user["role"] == edited_role and updated_user["status"] == edited_status:
+                if (
+                    updated_user
+                    and updated_user["role"] == edited_role
+                    and updated_user["status"] == edited_status
+                ):
                     st.success(f"User {selected_user['username']} updated successfully")
                     st.rerun()
                 elif role_ok and status_ok:
-                    st.error(f"Update reported success, but user {selected_user['username']} did not persist")
+                    st.error(
+                        f"Update reported success, but user {selected_user['username']} did not persist"
+                    )
                 else:
                     st.error(f"Failed to update user {selected_user['username']}")
 
@@ -2251,7 +2371,9 @@ def show_page_system_config():
 
         db_type = st.selectbox("Database Type", ["SQLite", "PostgreSQL", "MySQL"])
         db_host = st.text_input("Database Host", "localhost" if db_type != "SQLite" else "N/A")
-        db_port = st.number_input("Database Port", 3306 if db_type == "MySQL" else 5432, disabled=(db_type == "SQLite"))
+        db_port = st.number_input(
+            "Database Port", 3306 if db_type == "MySQL" else 5432, disabled=(db_type == "SQLite")
+        )
 
         st.caption(f"Database target: {db_type} @ {db_host}:{int(db_port)}")
 
@@ -2435,7 +2557,9 @@ def show_page_analytics():
 
                 event_types = activity.get("event_types", {})
                 if event_types:
-                    event_type_df = pd.DataFrame(list(event_types.items()), columns=["Event Type", "Count"])
+                    event_type_df = pd.DataFrame(
+                        list(event_types.items()), columns=["Event Type", "Count"]
+                    )
                     st.bar_chart(event_type_df.set_index("Event Type"))
                 else:
                     st.info("No events for this agent in the selected period")
@@ -2599,7 +2723,9 @@ def _fetch_security_alerts(endpoint: str, fallback: list | None = None):
                     if isinstance(value, list) and value:
                         return value
     except Exception as e:
-        logging.getLogger(__name__).debug("Failed to fetch local alerts endpoint %s: %s", endpoint, e)
+        logging.getLogger(__name__).debug(
+            "Failed to fetch local alerts endpoint %s: %s", endpoint, e
+        )
 
     db = _get_dashboard_db()
     if db:
@@ -2617,7 +2743,9 @@ def _fetch_security_alerts(endpoint: str, fallback: list | None = None):
                 if "limit=" in endpoint:
                     limit = int(endpoint.split("limit=")[-1].split("&")[0])
             except (ValueError, IndexError) as e:
-                logging.getLogger(__name__).debug("Failed to parse limit from endpoint '%s': %s", endpoint, e)
+                logging.getLogger(__name__).debug(
+                    "Failed to parse limit from endpoint '%s': %s", endpoint, e
+                )
                 limit = 20
             records = db.list_security_alerts(limit=limit, active_only=False)
             if records:
@@ -2809,7 +2937,9 @@ def show_page_attack_forensics():
         with demo_col1:
             if st.button("Generate Demo Incident", width="stretch"):
                 _persist_security_demo_state(_build_demo_security_state())
-                st.success("Demo incident generated. Open this page again or rerun to refresh the telemetry.")
+                st.success(
+                    "Demo incident generated. Open this page again or rerun to refresh the telemetry."
+                )
                 st.rerun()
         with demo_col2:
             if st.button("Reset Demo Incident", width="stretch"):
@@ -2828,7 +2958,9 @@ def show_page_attack_forensics():
         )
         return
 
-    critical_count = sum(1 for attack in attacks if str(attack.get("severity", "")).lower() == "critical")
+    critical_count = sum(
+        1 for attack in attacks if str(attack.get("severity", "")).lower() == "critical"
+    )
     blocked_count = sum(1 for attack in attacks if attack.get("status") == "blocked")
     suspicious_count = len(active_alerts)
 
@@ -2850,7 +2982,9 @@ def show_page_attack_forensics():
         insight_col1, insight_col2, insight_col3 = st.columns(3)
         with insight_col1:
             st.markdown("**Latest Case**")
-            st.write(f"{top_attack.get('attack_type', 'unknown')} from {top_attack.get('source_ip', 'unknown')}")
+            st.write(
+                f"{top_attack.get('attack_type', 'unknown')} from {top_attack.get('source_ip', 'unknown')}"
+            )
         with insight_col2:
             st.markdown("**Likely Actor**")
             st.write(top_metadata.get("username") or top_metadata.get("user") or "unknown")
@@ -2861,7 +2995,11 @@ def show_page_attack_forensics():
         with st.expander("Recent incident highlights", expanded=False):
             for attack in attacks[:5]:
                 metadata = _parse_attack_metadata(attack.get("metadata"))
-                actor = metadata.get("username") or metadata.get("user") or attack.get("source_ip", "unknown")
+                actor = (
+                    metadata.get("username")
+                    or metadata.get("user")
+                    or attack.get("source_ip", "unknown")
+                )
                 status_text = _summarize_attack_status(attack, blocked_ips)
                 impact_text = _estimate_loss_impact(
                     attack.get("attack_type", "unknown"),
@@ -2876,7 +3014,11 @@ def show_page_attack_forensics():
         forensic_rows = []
         for attack in attacks[:100]:
             metadata = _parse_attack_metadata(attack.get("metadata"))
-            actor = metadata.get("username") or metadata.get("user") or attack.get("source_ip", "unknown")
+            actor = (
+                metadata.get("username")
+                or metadata.get("user")
+                or attack.get("source_ip", "unknown")
+            )
             stop_reason = _summarize_attack_status(attack, blocked_ips)
             blocked = attack.get("status") == "blocked"
             forensic_rows.append(
@@ -2913,7 +3055,9 @@ def show_page_attack_forensics():
             st.write(f"**Severity:** {selected_attack.get('severity', 'medium')}")
             st.write(f"**Status:** {selected_attack.get('status', 'detected')}")
         with detail_cols[1]:
-            st.write(f"**Actor:** {selected_metadata.get('username') or selected_metadata.get('user') or 'unknown'}")
+            st.write(
+                f"**Actor:** {selected_metadata.get('username') or selected_metadata.get('user') or 'unknown'}"
+            )
             st.write(f"**Source IP:** {selected_attack.get('source_ip', 'unknown')}")
             st.write(f"**Target:** {selected_attack.get('target_endpoint', 'unknown')}")
         with detail_cols[2]:
@@ -2921,7 +3065,9 @@ def show_page_attack_forensics():
                 f"**Estimated Impact:** {_estimate_loss_impact(selected_attack.get('attack_type', 'unknown'), selected_attack.get('severity', 'medium'), selected_attack.get('status') == 'blocked')}"
             )
             st.write(f"**Response:** {_summarize_attack_status(selected_attack, blocked_ips)}")
-            st.write(f"**Loss Avoided:** {'Yes' if selected_attack.get('status') == 'blocked' else 'Partial'}")
+            st.write(
+                f"**Loss Avoided:** {'Yes' if selected_attack.get('status') == 'blocked' else 'Partial'}"
+            )
 
         if selected_attack.get("description"):
             st.info(selected_attack.get("description"))
@@ -3025,7 +3171,9 @@ def show_page_attack_flow():
     attacks = _fetch_security_alerts("attacks") or (
         demo_state.get("attacks", []) if isinstance(demo_state, dict) else []
     )
-    alerts = _fetch_security_alerts("active") or (demo_state.get("active", []) if isinstance(demo_state, dict) else [])
+    alerts = _fetch_security_alerts("active") or (
+        demo_state.get("active", []) if isinstance(demo_state, dict) else []
+    )
     blocks = _fetch_security_alerts("blocked-ips") or (
         demo_state.get("blocked_ips", []) if isinstance(demo_state, dict) else []
     )
@@ -3052,7 +3200,9 @@ def show_page_attack_flow():
     with col3:
         st.metric("Blocked IPs", len(blocks))
     with col4:
-        st.metric("Critical Events", sum(1 for item in attacks if item.get("severity") == "critical"))
+        st.metric(
+            "Critical Events", sum(1 for item in attacks if item.get("severity") == "critical")
+        )
     with col5:
         st.metric("MTTD (min)", f"{kpis.get('mttd_minutes', 0.0):.2f}")
     with col6:
@@ -3062,7 +3212,9 @@ def show_page_attack_flow():
 
     st.markdown("---")
 
-    summary = (demo_state or {}).get("executive_summary", {}) if isinstance(demo_state, dict) else {}
+    summary = (
+        (demo_state or {}).get("executive_summary", {}) if isinstance(demo_state, dict) else {}
+    )
     summary_cols = st.columns(4)
     with summary_cols[0]:
         st.metric("Threat Level", str(summary.get("threat_level", "medium")).title())
@@ -3114,9 +3266,13 @@ def show_page_attack_flow():
 
         st.markdown("---")
         st.write("**Key facts**")
-        st.write(f"- Attack type: {attacks[0].get('attack_type', 'unknown') if attacks else 'unknown'}")
+        st.write(
+            f"- Attack type: {attacks[0].get('attack_type', 'unknown') if attacks else 'unknown'}"
+        )
         st.write(f"- Source IP: {attacks[0].get('source_ip', 'unknown') if attacks else 'unknown'}")
-        st.write(f"- Final status: {_summarize_attack_status(attacks[0], blocks) if attacks else 'contained'}")
+        st.write(
+            f"- Final status: {_summarize_attack_status(attacks[0], blocks) if attacks else 'contained'}"
+        )
         st.write(
             f"- Estimated impact: {_estimate_loss_impact(attacks[0].get('attack_type', 'unknown') if attacks else 'unknown', attacks[0].get('severity', 'medium') if attacks else 'medium', True)}"
         )
@@ -3280,9 +3436,17 @@ def show_page_security_operations():
     active_alerts = _fetch_security_alerts("active")
     blocked_ips = _fetch_security_alerts("blocked-ips")
     cases = db.list_security_cases(limit=50) if hasattr(db, "list_security_cases") else []
-    playbook_runs = db.list_security_playbook_runs(limit=25) if hasattr(db, "list_security_playbook_runs") else []
+    playbook_runs = (
+        db.list_security_playbook_runs(limit=25)
+        if hasattr(db, "list_security_playbook_runs")
+        else []
+    )
     security_rules = _load_security_rules(db)
-    notification_queue = db.list_security_notifications(limit=25) if hasattr(db, "list_security_notifications") else []
+    notification_queue = (
+        db.list_security_notifications(limit=25)
+        if hasattr(db, "list_security_notifications")
+        else []
+    )
     chain_entries = (
         db.list_security_chain_entries(limit=10, chain_name="incident-flow")
         if hasattr(db, "list_security_chain_entries")
@@ -3293,7 +3457,10 @@ def show_page_security_operations():
 
     failed_events = [e for e in events if e.get("status") != "success"]
     auth_events = [
-        e for e in events if e.get("event_type", "").startswith("user_") or e.get("event_type", "").startswith("agent_")
+        e
+        for e in events
+        if e.get("event_type", "").startswith("user_")
+        or e.get("event_type", "").startswith("agent_")
     ]
 
     col1, col2, col3 = st.columns(3)

@@ -33,7 +33,9 @@ async def login(payload: LoginRequest, iam: AgenticIAM = Depends(get_iam)):
 
         # Generate token if available
         token = None
-        method_impl = getattr(iam.authentication_manager, "methods", {}).get(auth_result.auth_method or payload.method)
+        method_impl = getattr(iam.authentication_manager, "methods", {}).get(
+            auth_result.auth_method or payload.method
+        )
         agent_entry = iam.agent_registry.get_agent(auth_result.agent_id)
         if method_impl and agent_entry:
             try:
@@ -84,16 +86,22 @@ async def login(payload: LoginRequest, iam: AgenticIAM = Depends(get_iam)):
 
 @router.post("/logout")
 async def logout(
-    session_id: Optional[str] = Query(None), agent_id: Optional[str] = Query(None), iam: AgenticIAM = Depends(get_iam)
+    session_id: Optional[str] = Query(None),
+    agent_id: Optional[str] = Query(None),
+    iam: AgenticIAM = Depends(get_iam),
 ):
     try:
         if session_id:
             success = iam.session_manager.terminate_session(session_id, reason="user_logout")
             terminated = 1 if success else 0
         elif agent_id:
-            terminated = iam.session_manager.terminate_agent_sessions(agent_id, reason="user_logout")
+            terminated = iam.session_manager.terminate_agent_sessions(
+                agent_id, reason="user_logout"
+            )
         else:
-            raise HTTPException(status_code=400, detail="Either session_id or agent_id must be provided")
+            raise HTTPException(
+                status_code=400, detail="Either session_id or agent_id must be provided"
+            )
 
         return {
             "message": f"Successfully terminated {terminated} session(s)",
@@ -112,7 +120,9 @@ async def refresh(request: Dict[str, Any], iam: AgenticIAM = Depends(get_iam)):
         session_id = request.get("session_id")
         refresh_token = request.get("refresh_token")
         # Attempt refresh via session manager
-        success = iam.session_manager.refresh_session(session_id=session_id, refresh_token=refresh_token)
+        success = iam.session_manager.refresh_session(
+            session_id=session_id, refresh_token=refresh_token
+        )
         if not success:
             return {"success": False, "error_message": "Invalid refresh token or session expired"}
 
@@ -144,7 +154,9 @@ async def get_challenge(agent_id: str, iam: AgenticIAM = Depends(get_iam)):
         methods = getattr(iam.authentication_manager, "methods", {})
         crypto = methods.get("crypto")
         if not crypto:
-            raise HTTPException(status_code=501, detail="Cryptographic authentication not available")
+            raise HTTPException(
+                status_code=501, detail="Cryptographic authentication not available"
+            )
 
         challenge = crypto.generate_challenge(agent_id)
         return {
@@ -162,7 +174,9 @@ async def get_challenge(agent_id: str, iam: AgenticIAM = Depends(get_iam)):
 
 
 @router.post("/verify-signature")
-async def verify_signature(agent_id: str, challenge: str, signature: str, iam: AgenticIAM = Depends(get_iam)):
+async def verify_signature(
+    agent_id: str, challenge: str, signature: str, iam: AgenticIAM = Depends(get_iam)
+):
     try:
         agent_entry = iam.agent_registry.get_agent(agent_id)
         if not agent_entry:
@@ -172,7 +186,11 @@ async def verify_signature(agent_id: str, challenge: str, signature: str, iam: A
         valid = agent_entry.agent_identity.verify_message(challenge, signature, public_key)
 
         if valid:
-            return {"valid": True, "agent_id": agent_id, "message": "Signature verification successful"}
+            return {
+                "valid": True,
+                "agent_id": agent_id,
+                "message": "Signature verification successful",
+            }
         else:
             return {"valid": False, "agent_id": agent_id, "message": "Invalid signature"}
 
@@ -220,7 +238,9 @@ async def mfa_start(
     try:
         # Ensure MFA feature is enabled in settings
         if not getattr(settings, "enable_mfa", False):
-            raise HTTPException(status_code=501, detail="Multi-factor authentication is not enabled")
+            raise HTTPException(
+                status_code=501, detail="Multi-factor authentication is not enabled"
+            )
 
         mgr = getattr(iam, "authentication_manager", None)
         if not mgr:
@@ -242,7 +262,9 @@ async def mfa_start(
         # Normalize response to match tests and API expectations
         return {
             "mfa_session_id": (
-                result.get("session_id") if isinstance(result, dict) else getattr(result, "session_id", None)
+                result.get("session_id")
+                if isinstance(result, dict)
+                else getattr(result, "session_id", None)
             ),
             "required_factors": (
                 result.get("required_factors")
@@ -280,7 +302,9 @@ async def mfa_verify(payload: MFAVerifyRequest, iam: AgenticIAM = Depends(get_ia
             raise HTTPException(status_code=501, detail="MFA not configured")
 
         # Call the per-method authenticate_factor(session_id, method, credentials)
-        result = mfa_impl.authenticate_factor(payload.mfa_session_id, payload.method, payload.credentials)
+        result = mfa_impl.authenticate_factor(
+            payload.mfa_session_id, payload.method, payload.credentials
+        )
         if callable(getattr(result, "__await__", None)):
             result = await result
 
@@ -302,7 +326,10 @@ async def mfa_verify(payload: MFAVerifyRequest, iam: AgenticIAM = Depends(get_ia
                     "message": getattr(result, "error_message", None),
                 }
         else:
-            return {"success": False, "error": getattr(result, "error_message", "MFA verification failed")}
+            return {
+                "success": False,
+                "error": getattr(result, "error_message", "MFA verification failed"),
+            }
 
     except HTTPException:
         raise
@@ -324,12 +351,18 @@ async def get_status(agent_id: str, iam: AgenticIAM = Depends(get_iam)):
         if hasattr(iam, "calculate_trust_score"):
             trust = await iam.calculate_trust_score(agent_id)
 
-        audit_events = iam.audit_manager.query_events(agent_id=agent_id) if getattr(iam, "audit_manager", None) else []
+        audit_events = (
+            iam.audit_manager.query_events(agent_id=agent_id)
+            if getattr(iam, "audit_manager", None)
+            else []
+        )
 
         return {
             "agent_id": agent_id,
             "agent_status": (
-                getattr(agent_entry, "status", {}).value if getattr(agent_entry, "status", None) else "unknown"
+                getattr(agent_entry, "status", {}).value
+                if getattr(agent_entry, "status", None)
+                else "unknown"
             ),
             "is_active": active_count > 0,
             "active_sessions": active_count,

@@ -108,7 +108,9 @@ def show_agent_selector():
     # Create selectbox with agent names and IDs
     agent_options = {f"{agent['name']} (ID: {agent['id']})": agent["id"] for agent in agents}
 
-    selected = st.selectbox("👥 Select Agent", options=list(agent_options.keys()), key="agent_selector")
+    selected = st.selectbox(
+        "👥 Select Agent", options=list(agent_options.keys()), key="agent_selector"
+    )
 
     if selected:
         agent_id = agent_options[selected]
@@ -127,7 +129,10 @@ def show_agent_list():
 
     if not agents:
         st.info("📭 No visible agents available yet")
-        if st.session_state.get("user", {}).get("role", "user").lower() not in {"admin", "operator"}:
+        if st.session_state.get("user", {}).get("role", "user").lower() not in {
+            "admin",
+            "operator",
+        }:
             st.caption("Ask an admin to share an agent with your account or mark it as public.")
         return
 
@@ -186,7 +191,9 @@ def show_agent_list():
                             registry_still_exists = None
                             iam = st.session_state.get("iam")
                             if iam and getattr(iam, "agent_registry", None):
-                                registry_exists_before = iam.agent_registry.get_agent(aid) is not None
+                                registry_exists_before = (
+                                    iam.agent_registry.get_agent(aid) is not None
+                                )
                                 if registry_exists_before:
                                     registry_deleted = iam.agent_registry.delete_agent(aid)
                                     registry_still_exists = iam.agent_registry.get_agent(aid)
@@ -194,7 +201,10 @@ def show_agent_list():
                             if (
                                 deleted
                                 and still_exists is None
-                                and (not registry_exists_before or (registry_deleted and registry_still_exists is None))
+                                and (
+                                    not registry_exists_before
+                                    or (registry_deleted and registry_still_exists is None)
+                                )
                             ):
                                 st.success(f"✅ Agent {aid} deleted successfully")
                                 if st.session_state.get("selected_agent") == aid:
@@ -202,7 +212,9 @@ def show_agent_list():
                                 st.session_state[pending_delete_key] = False
                                 st.rerun()
                             elif deleted and still_exists is None and registry_exists_before:
-                                st.error(f"Agent {aid} deleted from DB, but registry cleanup failed")
+                                st.error(
+                                    f"Agent {aid} deleted from DB, but registry cleanup failed"
+                                )
                                 st.session_state[pending_delete_key] = False
                                 st.rerun()
                             elif deleted and still_exists is not None:
@@ -220,16 +232,27 @@ def show_agent_list():
 
                 with col_btn1:
                     st.button(
-                        "📊 Details", key=f"detail_{agent['id']}", on_click=_select_agent, use_container_width=True
+                        "📊 Details",
+                        key=f"detail_{agent['id']}",
+                        on_click=_select_agent,
+                        use_container_width=True,
                     )
 
                 if can_manage_agents:
                     with col_btn2:
-                        st.button("📝 Edit", key=f"edit_{agent['id']}", on_click=_edit_agent, use_container_width=True)
+                        st.button(
+                            "📝 Edit",
+                            key=f"edit_{agent['id']}",
+                            on_click=_edit_agent,
+                            use_container_width=True,
+                        )
 
                     with col_btn3:
                         st.button(
-                            "🗑️ Delete", key=f"del_{agent['id']}", on_click=_begin_delete, use_container_width=True
+                            "🗑️ Delete",
+                            key=f"del_{agent['id']}",
+                            on_click=_begin_delete,
+                            use_container_width=True,
                         )
 
                     if st.session_state.get(pending_delete_key):
@@ -239,12 +262,18 @@ def show_agent_list():
                         confirm_col, cancel_col = st.columns(2)
                         with confirm_col:
                             if st.button(
-                                "✅ Confirm Delete", key=f"confirm_del_{agent['id']}", use_container_width=True
+                                "✅ Confirm Delete",
+                                key=f"confirm_del_{agent['id']}",
+                                use_container_width=True,
                             ):
                                 # Call _confirm_delete with the agent ID
                                 _confirm_delete(agent["id"])
                         with cancel_col:
-                            if st.button("✖ Cancel", key=f"cancel_del_{agent['id']}", use_container_width=True):
+                            if st.button(
+                                "✖ Cancel",
+                                key=f"cancel_del_{agent['id']}",
+                                use_container_width=True,
+                            ):
                                 _cancel_delete(agent["id"])
                                 st.rerun()
 
@@ -290,7 +319,10 @@ def show_agent_details(agent_id: str):
 
         df = pd.DataFrame(events)
         df["created_at"] = pd.to_datetime(df["created_at"]).dt.strftime("%Y-%m-%d %H:%M:%S")
-        st.dataframe(df[["event_type", "action", "details", "created_at", "status"]], use_container_width=True)
+        st.dataframe(
+            df[["event_type", "action", "details", "created_at", "status"]],
+            use_container_width=True,
+        )
     else:
         st.info("No events yet")
 

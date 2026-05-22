@@ -28,7 +28,9 @@ class AuthenticationManager(BaseAuthManager):
         return await base.authenticate(agent_id, credentials, method, **kwargs)
 
 
-def verify_token(token: str, issuer: Optional[str] = None, audience: Optional[str] = None) -> Optional[dict]:
+def verify_token(
+    token: str, issuer: Optional[str] = None, audience: Optional[str] = None
+) -> Optional[dict]:
     """Convenience function to verify OIDC/JWT tokens."""
     return verify_oidc_token(token, issuer=issuer, audience=audience)
 

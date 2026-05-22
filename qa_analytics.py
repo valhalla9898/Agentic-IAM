@@ -83,7 +83,9 @@ class QAAnalytics:
         conn.commit()
         conn.close()
 
-    def track_question_attempt(self, user_id: str, question_id: int, is_correct: bool, time_spent: int) -> bool:
+    def track_question_attempt(
+        self, user_id: str, question_id: int, is_correct: bool, time_spent: int
+    ) -> bool:
         """Track user's question attempt"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
@@ -127,7 +129,9 @@ class QAAnalytics:
         cursor = conn.cursor()
 
         try:
-            score_percentage = (correct_answers / questions_count * 100) if questions_count > 0 else 0
+            score_percentage = (
+                (correct_answers / questions_count * 100) if questions_count > 0 else 0
+            )
 
             cursor.execute(
                 """
@@ -149,7 +153,9 @@ class QAAnalytics:
             )
 
             # Update learning path
-            self._update_learning_path(user_id, category, difficulty_level, questions_count, correct_answers)
+            self._update_learning_path(
+                user_id, category, difficulty_level, questions_count, correct_answers
+            )
 
             conn.commit()
             conn.close()
@@ -159,7 +165,12 @@ class QAAnalytics:
             return False
 
     def _update_learning_path(
-        self, user_id: str, category: str, current_level: str, questions_seen: int, correct_answers: int
+        self,
+        user_id: str,
+        category: str,
+        current_level: str,
+        questions_seen: int,
+        correct_answers: int,
     ):
         """Update user's learning path"""
         conn = sqlite3.connect(self.db_path)
@@ -450,7 +461,11 @@ class QAAnalytics:
             for category, correct, seen in cursor.fetchall():
                 if seen > 0:
                     weak_areas.append(
-                        {"category": category, "accuracy": round(correct * 100.0 / seen, 2), "questions_seen": seen}
+                        {
+                            "category": category,
+                            "accuracy": round(correct * 100.0 / seen, 2),
+                            "questions_seen": seen,
+                        }
                     )
 
             # Strong areas
@@ -468,7 +483,11 @@ class QAAnalytics:
             for category, correct, seen in cursor.fetchall():
                 if seen > 0:
                     strong_areas.append(
-                        {"category": category, "accuracy": round(correct * 100.0 / seen, 2), "questions_seen": seen}
+                        {
+                            "category": category,
+                            "accuracy": round(correct * 100.0 / seen, 2),
+                            "questions_seen": seen,
+                        }
                     )
 
             conn.close()

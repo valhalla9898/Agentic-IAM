@@ -14,7 +14,9 @@ class AttackEvent(Base):
     __tablename__ = "attack_events"
 
     id = Column(Integer, primary_key=True)
-    attack_type = Column(String, nullable=False)  # sql_injection, brute_force, xss, rate_limit, etc.
+    attack_type = Column(
+        String, nullable=False
+    )  # sql_injection, brute_force, xss, rate_limit, etc.
     source_ip = Column(String, nullable=False)
     target_endpoint = Column(String)
     payload = Column(Text)

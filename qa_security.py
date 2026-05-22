@@ -151,7 +151,12 @@ class QASecurityManager:
             return False, {"message": "Error checking rate limit"}
 
     def log_suspicious_activity(
-        self, user_id: str, activity_type: str, description: str = "", ip_address: str = None, severity: int = 1
+        self,
+        user_id: str,
+        activity_type: str,
+        description: str = "",
+        ip_address: str = None,
+        severity: int = 1,
     ) -> bool:
         """Log suspicious activity"""
         conn = sqlite3.connect(self.db_path)
@@ -276,7 +281,9 @@ class QASecurityManager:
             conn.close()
             import logging
 
-            logging.getLogger(__name__).debug("Failed to check blacklist for user %s: %s", user_id, e)
+            logging.getLogger(__name__).debug(
+                "Failed to check blacklist for user %s: %s", user_id, e
+            )
             return False
 
     def blacklist_user(self, user_id: str, reason: str = "", duration: int = None):
@@ -313,7 +320,9 @@ class QASecurityManager:
         if salt is None:
             salt = secrets.token_hex(16)
 
-        hash_obj = hashlib.pbkdf2_hmac("sha256", answer.encode("utf-8"), salt.encode("utf-8"), 100000)
+        hash_obj = hashlib.pbkdf2_hmac(
+            "sha256", answer.encode("utf-8"), salt.encode("utf-8"), 100000
+        )
 
         hashed = hash_obj.hex()
 

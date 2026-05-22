@@ -9,7 +9,10 @@ from secrets_manager import get_secret
 
 # Resolve database URL from secrets manager or environment
 DATABASE_URL = (
-    get_secret("DATABASE_URL") or os.getenv("DATABASE_URL") or os.getenv("DB_PATH") or "sqlite:///agentic_iam.db"
+    get_secret("DATABASE_URL")
+    or os.getenv("DATABASE_URL")
+    or os.getenv("DB_PATH")
+    or "sqlite:///agentic_iam.db"
 )
 
 engine = create_engine(DATABASE_URL, future=True)

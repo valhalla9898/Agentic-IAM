@@ -15,7 +15,9 @@ if os.getenv("USE_AZURE_KEYVAULT", "false").lower() == "true":
         class AzureKeyVaultManager:
             def __init__(self):
                 vault_url = os.getenv("AZURE_KEYVAULT_URL")
-                self._client = SecretClient(vault_url=vault_url, credential=DefaultAzureCredential())
+                self._client = SecretClient(
+                    vault_url=vault_url, credential=DefaultAzureCredential()
+                )
 
             def get_secret(self, name: str) -> Optional[str]:
                 try:

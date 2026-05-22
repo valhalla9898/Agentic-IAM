@@ -11,7 +11,9 @@ import json
 from moviepy import ColorClip, CompositeVideoClip, TextClip
 
 
-def generate_demo_video(events_json: str, out_path: str, fps: int = 24, duration_per_event: float = 3.0):
+def generate_demo_video(
+    events_json: str, out_path: str, fps: int = 24, duration_per_event: float = 3.0
+):
     """Generate a demo video showing attack events with timestamps.
 
     Args:
@@ -55,9 +57,18 @@ def generate_demo_video(events_json: str, out_path: str, fps: int = 24, duration
         event_txt = f"[{i+1}] {event_type}\n{event_time}\n" + "\n".join(details)
 
         txt_clip = TextClip(
-            event_txt, fontsize=24, color="#00FF00", font="Courier", method="caption", size=(1000, None)
+            event_txt,
+            fontsize=24,
+            color="#00FF00",
+            font="Courier",
+            method="caption",
+            size=(1000, None),
         )
-        txt_clip = txt_clip.with_position(("center", "center")).set_start(start_time).with_duration(duration_per_event)
+        txt_clip = (
+            txt_clip.with_position(("center", "center"))
+            .set_start(start_time)
+            .with_duration(duration_per_event)
+        )
         clips.append(txt_clip)
 
         start_time += duration_per_event
@@ -65,7 +76,9 @@ def generate_demo_video(events_json: str, out_path: str, fps: int = 24, duration
     # Compose and write
     final_video = CompositeVideoClip(clips)
     print(f"Writing demo video to {out_path}...")
-    final_video.write_videofile(out_path, fps=fps, codec="libx264", audio=False, verbose=False, logger=None)
+    final_video.write_videofile(
+        out_path, fps=fps, codec="libx264", audio=False, verbose=False, logger=None
+    )
     print(f"Demo video created: {out_path}")
 
 

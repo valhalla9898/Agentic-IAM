@@ -37,7 +37,9 @@ def verify_oidc_token(token: str, issuer: str = None, audience: str = None) -> d
         if not jwks:
             return None
         # Let jose handle key selection with jwks
-        claims = jwt.decode(token, jwks, audience=audience, issuer=issuer, options={"verify_at_hash": False})
+        claims = jwt.decode(
+            token, jwks, audience=audience, issuer=issuer, options={"verify_at_hash": False}
+        )
         return claims
     except JWTError:
         return None

@@ -66,7 +66,9 @@ class PerformanceTester:
 
         # Create test agent
         agent = iam.agent_registry.register_agent(
-            agent_id="agent:perf_test_auth", agent_type="test_agent", description="Performance test agent"
+            agent_id="agent:perf_test_auth",
+            agent_type="test_agent",
+            description="Performance test agent",
         )
 
         start_time = time.time()
@@ -74,7 +76,9 @@ class PerformanceTester:
         for i in range(num_requests):
             start = time.time()
 
-            session_id = iam.session_manager.create_session(agent_id=agent.agent_id, trust_level=0.9, auth_method="jwt")
+            session_id = iam.session_manager.create_session(
+                agent_id=agent.agent_id, trust_level=0.9, auth_method="jwt"
+            )
 
             elapsed = time.time() - start
             timings.append(elapsed)
@@ -97,7 +101,9 @@ class PerformanceTester:
 
         # Create test agent
         agent = iam.agent_registry.register_agent(
-            agent_id="agent:perf_test_sessions", agent_type="test_agent", description="Performance test agent"
+            agent_id="agent:perf_test_sessions",
+            agent_type="test_agent",
+            description="Performance test agent",
         )
 
         start_time = time.time()
@@ -106,7 +112,9 @@ class PerformanceTester:
         for i in range(num_sessions):
             start = time.time()
 
-            session_id = iam.session_manager.create_session(agent_id=agent.agent_id, trust_level=0.8, auth_method="jwt")
+            session_id = iam.session_manager.create_session(
+                agent_id=agent.agent_id, trust_level=0.8, auth_method="jwt"
+            )
             session_ids.append(session_id)
 
             elapsed = time.time() - start
@@ -147,7 +155,9 @@ class PerformanceTester:
         agent_ids = []
         for i in range(num_agents):
             agent = iam.agent_registry.register_agent(
-                agent_id=f"agent:perf_trust_{i}", agent_type="test_agent", description=f"Trust scoring test agent {i}"
+                agent_id=f"agent:perf_trust_{i}",
+                agent_type="test_agent",
+                description=f"Trust scoring test agent {i}",
             )
             agent_ids.append(agent.agent_id)
 
@@ -167,7 +177,9 @@ class PerformanceTester:
 
         self._print_stats("Trust Scoring", timings, total_time, num_agents)
 
-    def _print_stats(self, operation: str, timings: List[float], total_time: float, count: int) -> None:
+    def _print_stats(
+        self, operation: str, timings: List[float], total_time: float, count: int
+    ) -> None:
         """Print performance statistics"""
         if not timings:
             print("  ⚠️  No data collected")

@@ -153,7 +153,11 @@ class WebSocketDashboard:
         asyncio.create_task(self.broadcast_update("agent_status_update", asdict(agent_status)))
 
     def add_security_alert(
-        self, severity: str, message: str, agent_id: Optional[str] = None, details: Optional[Dict[str, Any]] = None
+        self,
+        severity: str,
+        message: str,
+        agent_id: Optional[str] = None,
+        details: Optional[Dict[str, Any]] = None,
     ):
         """Add security alert and broadcast"""
         alert = SecurityAlert(
@@ -174,7 +178,9 @@ class WebSocketDashboard:
         # Broadcast alert
         asyncio.create_task(self.broadcast_update("security_alert", asdict(alert)))
 
-    def add_audit_event(self, event_type: str, agent_id: str, action: str, details: Optional[Dict[str, Any]] = None):
+    def add_audit_event(
+        self, event_type: str, agent_id: str, action: str, details: Optional[Dict[str, Any]] = None
+    ):
         """Add audit event and broadcast"""
         event = AuditEvent(
             event_id=f"event_{int(time.time() * 1000)}",
@@ -332,7 +338,9 @@ def create_sample_dashboard():
         {"anomaly_score": 0.87, "pattern": "unusual_api_calls"},
     )
 
-    dashboard.add_audit_event("authentication", "agent-001", "login_success", {"ip": "192.168.1.100", "method": "jwt"})
+    dashboard.add_audit_event(
+        "authentication", "agent-001", "login_success", {"ip": "192.168.1.100", "method": "jwt"}
+    )
 
     return dashboard
 

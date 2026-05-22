@@ -103,7 +103,9 @@ class TestAPIIntegration:
         # Mock session operations
         from unittest.mock import AsyncMock, MagicMock
 
-        iam_instance.session_manager.create_session = AsyncMock(return_value="integration_session_001")
+        iam_instance.session_manager.create_session = AsyncMock(
+            return_value="integration_session_001"
+        )
         iam_instance.session_manager.get_session = MagicMock(return_value=mock_session)
         iam_instance.session_manager.refresh_session = MagicMock(return_value=True)
         iam_instance.session_manager.terminate_session = MagicMock(return_value=True)
@@ -163,7 +165,11 @@ class TestAPIIntegration:
         iam_instance.audit_manager.query_events = MagicMock(return_value=audit_events)
 
         # Perform operations that should generate audit events
-        auth_request = {"agent_id": "agent:test-001", "method": "jwt", "credentials": {"token": "test"}}
+        auth_request = {
+            "agent_id": "agent:test-001",
+            "method": "jwt",
+            "credentials": {"token": "test"},
+        }
 
         # Mock authentication result
         from authentication import AuthenticationResult
@@ -202,7 +208,9 @@ class TestAPIIntegration:
             factors=[],
         )
 
-        iam_instance.intelligence_engine.calculate_trust_score = AsyncMock(return_value=mock_trust_score)
+        iam_instance.intelligence_engine.calculate_trust_score = AsyncMock(
+            return_value=mock_trust_score
+        )
 
         # Get trust score
         response = client.get("/api/v1/intelligence/trust-score/agent:test-001")
@@ -228,7 +236,10 @@ class TestAPIIntegration:
         assert error_data["error"]["code"] == 404
 
         # Test with invalid data
-        invalid_agent_data = {"agent_id": "invalid_id", "agent_type": "service"}  # Should start with "agent:"
+        invalid_agent_data = {
+            "agent_id": "invalid_id",
+            "agent_type": "service",
+        }  # Should start with "agent:"
 
         response = client.post("/api/v1/agents", json=invalid_agent_data)
         assert response.status_code == 422  # Validation error
@@ -290,7 +301,9 @@ class TestAPIIntegration:
         # Mock operations for performance test
         from unittest.mock import AsyncMock
 
-        iam_instance.get_platform_status = AsyncMock(return_value={"platform": {"version": "1.0.0", "uptime": 3600}})
+        iam_instance.get_platform_status = AsyncMock(
+            return_value={"platform": {"version": "1.0.0", "uptime": 3600}}
+        )
 
         # Measure response times
         import time
@@ -326,7 +339,9 @@ class TestDatabaseIntegration:
         """Test agent data persistence"""
 
         # Create and register agent
-        agent_identity = AgentIdentity.generate(agent_id="agent:persistence-test", metadata={"test": "persistence"})
+        agent_identity = AgentIdentity.generate(
+            agent_id="agent:persistence-test", metadata={"test": "persistence"}
+        )
 
         # Mock the registration process
         from unittest.mock import AsyncMock
@@ -414,7 +429,10 @@ class TestSecurityIntegration:
         """Test input validation security"""
 
         # Test with malicious input
-        malicious_data = {"agent_id": "agent:<script>alert('xss')</script>", "agent_type": "service"}
+        malicious_data = {
+            "agent_id": "agent:<script>alert('xss')</script>",
+            "agent_type": "service",
+        }
 
         response = client.post("/api/v1/agents", json=malicious_data)
 
@@ -444,7 +462,8 @@ class TestSecurityIntegration:
 
         # Make preflight request
         response = client.options(
-            "/api/v1/auth/methods", headers={"Origin": "http://localhost:3000", "Access-Control-Request-Method": "GET"}
+            "/api/v1/auth/methods",
+            headers={"Origin": "http://localhost:3000", "Access-Control-Request-Method": "GET"},
         )
 
         # Check CORS headers if CORS is enabled

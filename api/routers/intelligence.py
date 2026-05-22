@@ -88,19 +88,26 @@ async def get_trust_score(agent_id: str, iam: AgenticIAM = Depends(get_iam)):
     try:
         if not iam.intelligence_engine:
             raise HTTPException(
-                status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Intelligence engine not initialized"
+                status_code=status.HTTP_501_NOT_IMPLEMENTED,
+                detail="Intelligence engine not initialized",
             )
 
         # Verify agent exists in non-testing environments.
         agent_entry = iam.agent_registry.get_agent(agent_id)
-        if agent_entry is None and getattr(getattr(iam, "settings", None), "environment", "") != "testing":
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Agent {agent_id} not found")
+        if (
+            agent_entry is None
+            and getattr(getattr(iam, "settings", None), "environment", "") != "testing"
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail=f"Agent {agent_id} not found"
+            )
 
         # Calculate trust score
         trust_score = await iam.intelligence_engine.calculate_trust_score(agent_id)
         if not trust_score:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail=f"Trust score not available for agent {agent_id}"
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Trust score not available for agent {agent_id}",
             )
 
         # Get trust factors and recommendations
@@ -110,13 +117,17 @@ async def get_trust_score(agent_id: str, iam: AgenticIAM = Depends(get_iam)):
         factors = []
         if callable(get_factors):
             factors_result = get_factors(agent_id)
-            factors = await factors_result if inspect.isawaitable(factors_result) else factors_result
+            factors = (
+                await factors_result if inspect.isawaitable(factors_result) else factors_result
+            )
 
         recommendations = []
         if callable(get_recommendations):
             recommendations_result = get_recommendations(agent_id)
             recommendations = (
-                await recommendations_result if inspect.isawaitable(recommendations_result) else recommendations_result
+                await recommendations_result
+                if inspect.isawaitable(recommendations_result)
+                else recommendations_result
             )
 
         return TrustScoreResponse(
@@ -134,7 +145,8 @@ async def get_trust_score(agent_id: str, iam: AgenticIAM = Depends(get_iam)):
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to get trust score: {str(e)}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get trust score: {str(e)}",
         )
 
 
@@ -149,7 +161,8 @@ async def update_trust_score(request: TrustUpdateRequest, iam: AgenticIAM = Depe
     try:
         if not iam.intelligence_engine:
             raise HTTPException(
-                status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Intelligence engine not initialized"
+                status_code=status.HTTP_501_NOT_IMPLEMENTED,
+                detail="Intelligence engine not initialized",
             )
 
         # Update trust score
@@ -196,7 +209,8 @@ async def update_trust_score(request: TrustUpdateRequest, iam: AgenticIAM = Depe
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to update trust score: {str(e)}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update trust score: {str(e)}",
         )
 
 
@@ -217,7 +231,8 @@ async def list_anomalies(
     try:
         if not iam.intelligence_engine:
             raise HTTPException(
-                status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Intelligence engine not initialized"
+                status_code=status.HTTP_501_NOT_IMPLEMENTED,
+                detail="Intelligence engine not initialized",
             )
 
         # Get anomalies from intelligence engine
@@ -242,13 +257,18 @@ async def list_anomalies(
                 )
             )
 
-        return {"anomalies": anomaly_responses, "total": len(anomaly_responses), "time_window_hours": time_window}
+        return {
+            "anomalies": anomaly_responses,
+            "total": len(anomaly_responses),
+            "time_window_hours": time_window,
+        }
 
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to list anomalies: {str(e)}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to list anomalies: {str(e)}",
         )
 
 
@@ -262,12 +282,15 @@ async def get_anomaly(anomaly_id: str, iam: AgenticIAM = Depends(get_iam)):
     try:
         if not iam.intelligence_engine:
             raise HTTPException(
-                status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Intelligence engine not initialized"
+                status_code=status.HTTP_501_NOT_IMPLEMENTED,
+                detail="Intelligence engine not initialized",
             )
 
         anomaly = await iam.intelligence_engine.get_anomaly(anomaly_id)
         if not anomaly:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Anomaly {anomaly_id} not found")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail=f"Anomaly {anomaly_id} not found"
+            )
 
         return AnomalyResponse(
             anomaly_id=anomaly.anomaly_id,
@@ -285,7 +308,8 @@ async def get_anomaly(anomaly_id: str, iam: AgenticIAM = Depends(get_iam)):
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to get anomaly: {str(e)}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get anomaly: {str(e)}",
         )
 
 
@@ -300,13 +324,16 @@ async def analyze_behavior(request: AnalysisRequest, iam: AgenticIAM = Depends(g
     try:
         if not iam.intelligence_engine:
             raise HTTPException(
-                status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Intelligence engine not initialized"
+                status_code=status.HTTP_501_NOT_IMPLEMENTED,
+                detail="Intelligence engine not initialized",
             )
 
         # Verify agent exists
         agent_entry = iam.agent_registry.get_agent(request.agent_id)
         if not agent_entry:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Agent {request.agent_id} not found")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail=f"Agent {request.agent_id} not found"
+            )
 
         # Perform analysis
         analysis = await iam.intelligence_engine.analyze_behavior(
@@ -344,7 +371,8 @@ async def analyze_behavior(request: AnalysisRequest, iam: AgenticIAM = Depends(g
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to analyze behavior: {str(e)}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to analyze behavior: {str(e)}",
         )
 
 
@@ -358,7 +386,8 @@ async def get_risk_summary(time_window: int = 24, iam: AgenticIAM = Depends(get_
     try:
         if not iam.intelligence_engine:
             raise HTTPException(
-                status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Intelligence engine not initialized"
+                status_code=status.HTTP_501_NOT_IMPLEMENTED,
+                detail="Intelligence engine not initialized",
             )
 
         # Get risk summary from intelligence engine
@@ -374,13 +403,16 @@ async def get_risk_summary(time_window: int = 24, iam: AgenticIAM = Depends(get_
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to get risk summary: {str(e)}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get risk summary: {str(e)}",
         )
 
 
 @router.get("/insights/trust-trends")
 async def get_trust_trends(
-    agent_id: Optional[str] = None, time_window: int = 168, iam: AgenticIAM = Depends(get_iam)  # 7 days
+    agent_id: Optional[str] = None,
+    time_window: int = 168,
+    iam: AgenticIAM = Depends(get_iam),  # 7 days
 ):
     """
     Get trust score trends
@@ -390,11 +422,14 @@ async def get_trust_trends(
     try:
         if not iam.intelligence_engine:
             raise HTTPException(
-                status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Intelligence engine not initialized"
+                status_code=status.HTTP_501_NOT_IMPLEMENTED,
+                detail="Intelligence engine not initialized",
             )
 
         # Get trust trends
-        trends = await iam.intelligence_engine.get_trust_trends(agent_id=agent_id, time_window_hours=time_window)
+        trends = await iam.intelligence_engine.get_trust_trends(
+            agent_id=agent_id, time_window_hours=time_window
+        )
 
         return {
             "trends": trends,
@@ -407,13 +442,16 @@ async def get_trust_trends(
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to get trust trends: {str(e)}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get trust trends: {str(e)}",
         )
 
 
 @router.get("/insights/recommendations/{agent_id}")
 async def get_agent_recommendations(
-    agent_id: str, category: Optional[str] = None, iam: AgenticIAM = Depends(get_iam)  # security, performance, trust
+    agent_id: str,
+    category: Optional[str] = None,
+    iam: AgenticIAM = Depends(get_iam),  # security, performance, trust
 ):
     """
     Get recommendations for an agent
@@ -424,16 +462,21 @@ async def get_agent_recommendations(
     try:
         if not iam.intelligence_engine:
             raise HTTPException(
-                status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Intelligence engine not initialized"
+                status_code=status.HTTP_501_NOT_IMPLEMENTED,
+                detail="Intelligence engine not initialized",
             )
 
         # Verify agent exists
         agent_entry = iam.agent_registry.get_agent(agent_id)
         if not agent_entry:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Agent {agent_id} not found")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail=f"Agent {agent_id} not found"
+            )
 
         # Get recommendations
-        recommendations = await iam.intelligence_engine.get_recommendations(agent_id=agent_id, category=category)
+        recommendations = await iam.intelligence_engine.get_recommendations(
+            agent_id=agent_id, category=category
+        )
 
         return {
             "agent_id": agent_id,
@@ -446,7 +489,8 @@ async def get_agent_recommendations(
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to get recommendations: {str(e)}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get recommendations: {str(e)}",
         )
 
 
@@ -464,7 +508,8 @@ async def retrain_ml_models(
     try:
         if not iam.intelligence_engine:
             raise HTTPException(
-                status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Intelligence engine not initialized"
+                status_code=status.HTTP_501_NOT_IMPLEMENTED,
+                detail="Intelligence engine not initialized",
             )
 
         if not settings.enable_experimental_features:
@@ -482,16 +527,23 @@ async def retrain_ml_models(
 
             await iam.audit_manager.log_event(
                 event_type=AuditEventType.SYSTEM_MAINTENANCE,
-                details={"operation": "model_retraining", "model_type": model_type or "all", "status": "initiated"},
+                details={
+                    "operation": "model_retraining",
+                    "model_type": model_type or "all",
+                    "status": "initiated",
+                },
             )
 
-        return SuccessResponse(message=f"Model retraining initiated for {model_type or 'all'} models", data=result)
+        return SuccessResponse(
+            message=f"Model retraining initiated for {model_type or 'all'} models", data=result
+        )
 
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to retrain models: {str(e)}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrain models: {str(e)}",
         )
 
 
@@ -505,7 +557,8 @@ async def get_model_status(iam: AgenticIAM = Depends(get_iam)):
     try:
         if not iam.intelligence_engine:
             raise HTTPException(
-                status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Intelligence engine not initialized"
+                status_code=status.HTTP_501_NOT_IMPLEMENTED,
+                detail="Intelligence engine not initialized",
             )
 
         # Get model status
@@ -517,7 +570,8 @@ async def get_model_status(iam: AgenticIAM = Depends(get_iam)):
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to get model status: {str(e)}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get model status: {str(e)}",
         )
 
 
@@ -532,7 +586,8 @@ async def get_intelligence_statistics(iam: AgenticIAM = Depends(get_iam)):
     try:
         if not iam.intelligence_engine:
             raise HTTPException(
-                status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Intelligence engine not initialized"
+                status_code=status.HTTP_501_NOT_IMPLEMENTED,
+                detail="Intelligence engine not initialized",
             )
 
         # Get statistics
@@ -544,5 +599,6 @@ async def get_intelligence_statistics(iam: AgenticIAM = Depends(get_iam)):
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to get intelligence statistics: {str(e)}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get intelligence statistics: {str(e)}",
         )

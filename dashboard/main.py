@@ -9,7 +9,12 @@ import streamlit as st
 sys.path.append(str(Path(__file__).parent.parent))
 
 # Configure page
-st.set_page_config(page_title="Agentic-IAM Dashboard", page_icon="🛡️", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(
+    page_title="Agentic-IAM Dashboard",
+    page_icon="🛡️",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
 
 # Custom CSS
 st.markdown(
@@ -89,7 +94,9 @@ elif page == "Attack Simulation":
 elif page == "Audit Log":
     st.title("📋 Audit Log")
 
-    st.info("Comprehensive audit trail of all system activities, security events, and policy changes.")
+    st.info(
+        "Comprehensive audit trail of all system activities, security events, and policy changes."
+    )
 
     # Sample audit entries
     from datetime import datetime, timedelta
@@ -98,7 +105,13 @@ elif page == "Audit Log":
 
     audit_data = {
         "Timestamp": [datetime.now() - timedelta(hours=i) for i in range(5)],
-        "Event Type": ["Attack Detected", "IP Blocked", "Alert Resolved", "Policy Updated", "Agent Created"],
+        "Event Type": [
+            "Attack Detected",
+            "IP Blocked",
+            "Alert Resolved",
+            "Policy Updated",
+            "Agent Created",
+        ],
         "Severity": ["CRITICAL", "HIGH", "HIGH", "LOW", "LOW"],
         "Details": [
             "SQL Injection detected from 127.0.0.1",

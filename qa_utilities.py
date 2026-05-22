@@ -143,7 +143,9 @@ class QAUtilities:
             return " "
 
     @staticmethod
-    def calculate_experience_points(correct: bool, difficulty: int, time_spent: int, streak: int = 1) -> int:
+    def calculate_experience_points(
+        correct: bool, difficulty: int, time_spent: int, streak: int = 1
+    ) -> int:
         """
         Calculate experience points for answering a question
         """
@@ -342,7 +344,9 @@ class PerformanceMetrics:
         return (accuracy * attempted) / (days * 10)
 
     @staticmethod
-    def estimate_time_to_mastery(current_accuracy: float, questions_per_day: float = 5, category: str = None) -> Dict:
+    def estimate_time_to_mastery(
+        current_accuracy: float, questions_per_day: float = 5, category: str = None
+    ) -> Dict:
         """
         Estimate time needed to reach mastery
         """

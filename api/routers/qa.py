@@ -22,7 +22,9 @@ security_mgr = get_security_manager()
 analytics = get_analytics()
 recommendation_engine = get_recommendation_engine()
 
-router = APIRouter(prefix="/api/v1/qa", tags=["Questions & Answers"], responses={404: {"description": "Not found"}})
+router = APIRouter(
+    prefix="/api/v1/qa", tags=["Questions & Answers"], responses={404: {"description": "Not found"}}
+)
 
 # ============= Security Dependencies =============
 
@@ -39,7 +41,9 @@ async def verify_user(header_user_id: str = Header(None, alias="X-User-ID")) -> 
     return header_user_id
 
 
-async def check_rate_limit(user_id: str = Depends(verify_user), request: Request = None, endpoint: str = None) -> str:
+async def check_rate_limit(
+    user_id: str = Depends(verify_user), request: Request = None, endpoint: str = None
+) -> str:
     """Check rate limiting for user"""
     endpoint = endpoint or request.url.path
 
@@ -57,7 +61,8 @@ async def check_rate_limit(user_id: str = Depends(verify_user), request: Request
         )
 
         raise HTTPException(
-            status_code=429, detail=f"Rate limit exceeded. Retry after {info.get('retry_after')} seconds"
+            status_code=429,
+            detail=f"Rate limit exceeded. Retry after {info.get('retry_after')} seconds",
         )
 
     return user_id
@@ -135,10 +140,14 @@ async def get_categories() -> List[CategoryInfo]:
 
 
 @router.get("/random")
-async def get_random_question(category: Optional[str] = Query(None, description="  category   ")) -> QuestionResponse:
+async def get_random_question(
+    category: Optional[str] = Query(None, description="  category   ")
+) -> QuestionResponse:
     """- category : security, ai, tech, management, general"""
     if category and category not in CATEGORIES:
-        raise HTTPException(status_code=400, detail=f" category .  : {', '.join(CATEGORIES.keys())}")
+        raise HTTPException(
+            status_code=400, detail=f" category .  : {', '.join(CATEGORIES.keys())}"
+        )
 
     question = qa_db.get_random_question(category=category)
 
@@ -225,7 +234,9 @@ async def get_user_stats(user_id: str) -> UserStatsResponse:
 
     if not stats:
         # Return default stats if user is new
-        return UserStatsResponse(user_id=user_id, total_questions=0, correct_answers=0, accuracy=0.0, level=1, points=0)
+        return UserStatsResponse(
+            user_id=user_id, total_questions=0, correct_answers=0, accuracy=0.0, level=1, points=0
+        )
 
     return UserStatsResponse(user_id=user_id, **stats)
 
@@ -243,12 +254,16 @@ async def search_questions(
 ) -> List[QuestionResponse]:
     """Search for questions by keyword"""
     if category and category not in CATEGORIES:
-        raise HTTPException(status_code=400, detail=f" category .  : {', '.join(CATEGORIES.keys())}")
+        raise HTTPException(
+            status_code=400, detail=f" category .  : {', '.join(CATEGORIES.keys())}"
+        )
 
     results = qa_db.search_questions(keyword, category=category)
 
     return [
-        QuestionResponse(id=r["id"], question=r["question"], category=r["category"], difficulty=r["difficulty"])
+        QuestionResponse(
+            id=r["id"], question=r["question"], category=r["category"], difficulty=r["difficulty"]
+        )
         for r in results
     ]
 
@@ -257,7 +272,9 @@ async def search_questions(
 async def get_category_stats(category: str) -> dict:
     """Get statistics for a specific category"""
     if category not in CATEGORIES:
-        raise HTTPException(status_code=400, detail=f" category .  : {', '.join(CATEGORIES.keys())}")
+        raise HTTPException(
+            status_code=400, detail=f" category .  : {', '.join(CATEGORIES.keys())}"
+        )
 
     categories = qa_db.get_categories()
     cat_info = next((c for c in categories if c["category"] == category), None)
@@ -283,7 +300,11 @@ async def get_recommendations(
     """Get personalized recommendations based on user performance"""
     # Get user profile and stats
     recommendation_engine.get_user_profile(user_id)
-    user_stats = qa_db.get_user_stats(user_id) or {"accuracy": 50, "weak_areas": [], "already_correct": {}}
+    user_stats = qa_db.get_user_stats(user_id) or {
+        "accuracy": 50,
+        "weak_areas": [],
+        "already_correct": {},
+    }
 
     # Get available questions
     all_questions = qa_db.get_all_questions()
@@ -328,7 +349,11 @@ async def get_system_health() -> dict:
     health = analytics.get_system_health()
     trending = analytics.get_trending_questions(limit=20)
 
-    return {"health_metrics": health, "trending_questions": trending, "timestamp": datetime.now().isoformat()}
+    return {
+        "health_metrics": health,
+        "trending_questions": trending,
+        "timestamp": datetime.now().isoformat(),
+    }
 
 
 @router.get("/security/{user_id}")
@@ -343,7 +368,9 @@ async def get_user_security_report(user_id: str = Depends(verify_user)) -> dict:
 async def create_session(user_id: str = Depends(verify_user), request: Request = None) -> dict:
     """Create a secure session for user"""
     session_token = security_mgr.create_session(
-        user_id=user_id, ip_address=request.client.host if request else None, expires_in=86400  # 24 hours
+        user_id=user_id,
+        ip_address=request.client.host if request else None,
+        expires_in=86400,  # 24 hours
     )
 
     if not session_token:
@@ -384,12 +411,17 @@ async def log_suspicious_activity(
         severity=2,
     )
 
-    return {"logged": success, "activity_type": activity_type, "timestamp": datetime.now().isoformat()}
+    return {
+        "logged": success,
+        "activity_type": activity_type,
+        "timestamp": datetime.now().isoformat(),
+    }
 
 
 @router.get("/leaderboard/advanced")
 async def get_advanced_leaderboard(
-    time_period: str = Query("all", regex="^(day|week|month|all)$"), limit: int = Query(100, ge=1, le=1000)
+    time_period: str = Query("all", regex="^(day|week|month|all)$"),
+    limit: int = Query(100, ge=1, le=1000),
 ) -> List[dict]:
     """Get advanced leaderboard with filters"""
     leaderboard = analytics.get_leaderboard(limit=limit)
@@ -431,7 +463,9 @@ async def start_adaptive_quiz(
     )
 
     # Get questions
-    questions = qa_db.get_random_questions(limit=size, category=category, difficulty_level=difficulty)
+    questions = qa_db.get_random_questions(
+        limit=size, category=category, difficulty_level=difficulty
+    )
 
     return {
         "session_id": session_id,
@@ -440,7 +474,12 @@ async def start_adaptive_quiz(
         "category": category,
         "difficulty": difficulty,
         "questions": [
-            {"id": q["id"], "question": q["question"], "category": q["category"], "difficulty": q["difficulty"]}
+            {
+                "id": q["id"],
+                "question": q["question"],
+                "category": q["category"],
+                "difficulty": q["difficulty"],
+            }
             for q in questions
         ],
         "created_at": datetime.now().isoformat(),
