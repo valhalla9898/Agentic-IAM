@@ -7,7 +7,13 @@ import secrets
 from typing import Dict, List, Optional
 
 # QA Database Content - 3000+
-CATEGORIES = {"security": " ", "ai": " ", "tech": " ", "management": " ", "general": " "}
+CATEGORIES = {
+    "security": "Security",
+    "ai": "AI",
+    "tech": "Technology",
+    "management": "Management",
+    "general": "General",
+}
 
 QA_DATABASE = {
     "security": [

@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-05-20 21:57:29 UTC",
-  "incident_id": "incident-1023c929cc2b",
+  "generated_at": "2026-05-30 00:40:05 UTC",
+  "incident_id": "incident-504049143026",
   "attacks": [
     {
       "attack_type": "sql_injection",
       "severity": "critical",
       "status": "blocked",
-      "detected_at": "2026-05-20 21:57:29 UTC",
+      "detected_at": "2026-05-30 00:40:05 UTC",
       "source_ip": "203.0.113.77",
       "target_endpoint": "/api/v1/auth/login",
       "metadata": {
@@ -14,7 +14,7 @@
         "user": "unknown",
         "vector": "login_form"
       },
-      "correlation_id": "incident-1023c929cc2b-attack-1",
+      "correlation_id": "incident-504049143026-attack-1",
       "threat_intel": {
         "source_ip": "203.0.113.77",
         "actor": "demo_operator",
@@ -54,13 +54,13 @@
         "rotate exposed credentials",
         "review WAF policy"
       ],
-      "event_hash": "fea4495fe10f0c29c24368deadd52cce8cdfc21c80a80c6288e03f8c6517002f"
+      "event_hash": "8d76030b446832a2c68d83b13624b416f4d8baa407095b09bf3597860d294476"
     },
     {
       "attack_type": "brute_force",
       "severity": "high",
       "status": "mitigated",
-      "detected_at": "2026-05-20 21:57:29 UTC",
+      "detected_at": "2026-05-30 00:40:05 UTC",
       "source_ip": "198.51.100.24",
       "target_endpoint": "/api/v1/auth/login",
       "metadata": {
@@ -68,7 +68,7 @@
         "attempts": 14,
         "vector": "credential_stuffing"
       },
-      "correlation_id": "incident-1023c929cc2b-attack-2",
+      "correlation_id": "incident-504049143026-attack-2",
       "threat_intel": {
         "source_ip": "198.51.100.24",
         "actor": "unknown",
@@ -107,7 +107,7 @@
         "require_mfa",
         "watch for credential stuffing"
       ],
-      "event_hash": "cd8bde59b5b578d6f29f20da42d79541a8872cf8d7f06631722c28724d1f714b"
+      "event_hash": "7b6a35906b72113f3100d7ad839d89045bdddf5dc77866e45dbad5502b44bffa"
     }
   ],
   "active": [
@@ -116,37 +116,37 @@
       "alert_type": "web_attack",
       "title": "SQL injection attempt blocked",
       "message": "WAF and application controls blocked a malicious login payload before session creation.",
-      "created_at": "2026-05-20 21:57:29 UTC",
-      "correlation_id": "incident-1023c929cc2b-alert-1",
-      "event_hash": "21d2e5fd5afa36d5d7375a9b316ca387102321e454c4e8c5db22d6c9bfcefca3"
+      "created_at": "2026-05-30 00:40:05 UTC",
+      "correlation_id": "incident-504049143026-alert-1",
+      "event_hash": "d754d7ceea7c3cf39448ce6f14b204dcf8c683d0d7e390f611c027a6baf96a53"
     },
     {
       "severity": "high",
       "alert_type": "auth_attack",
       "title": "Repeated login failures detected",
       "message": "Rate limiter locked the source after repeated failures.",
-      "created_at": "2026-05-20 21:57:29 UTC",
-      "correlation_id": "incident-1023c929cc2b-alert-2",
-      "event_hash": "a27ffba87fd0e5ac7607c53a7e196cac186ab476f22db9f64b65c5fd29854406"
+      "created_at": "2026-05-30 00:40:05 UTC",
+      "correlation_id": "incident-504049143026-alert-2",
+      "event_hash": "fe669361dc437bfb38cf008f0c338390d328bb88601dd9aa8f558fe716ad9399"
     }
   ],
   "blocked_ips": [
     {
       "ip": "203.0.113.77",
       "reason": "Auto-blocked after SQL injection pattern detection",
-      "blocked_at": "2026-05-20 21:57:29 UTC",
-      "correlation_id": "incident-1023c929cc2b-block-1",
-      "event_hash": "7d354e1927dfdb86e579456dccd89ecfcbbb3c1dcc78d678410c9b9d350539b9"
+      "blocked_at": "2026-05-30 00:40:05 UTC",
+      "correlation_id": "incident-504049143026-block-1",
+      "event_hash": "40c37a92a0a0e45789e182d7e2e555f5e09cf6f5e3487796572adc088e946536"
     },
     {
       "ip": "198.51.100.24",
       "reason": "Auto-blocked after credential stuffing threshold exceeded",
-      "blocked_at": "2026-05-20 21:57:29 UTC",
-      "correlation_id": "incident-1023c929cc2b-block-2",
-      "event_hash": "afb3203448a01716397793cbbe6461896930dd52e1326d476af48ba7c9b4f043"
+      "blocked_at": "2026-05-30 00:40:05 UTC",
+      "correlation_id": "incident-504049143026-block-2",
+      "event_hash": "ea0fe5af7b44c03fbc270361581b19f58039ae977575729aaafdc388c7a1cf3f"
     }
   ],
-  "correlation_id": "corr-de069f894dc8",
+  "correlation_id": "corr-a86675bfd434",
   "executive_summary": {
     "threat_level": "critical",
     "attack_count": 2,
@@ -163,10 +163,10 @@
       "rate_limit"
     ]
   },
-  "integrity_hash": "6e8bb91abd544299a0ccd12349b0f003c90da8846e254ee292d89272f7844c87",
+  "integrity_hash": "d35350aa0fd93935784d6bb4efdcabea58c24fcc1d9d56052068d1c7bec62f44",
   "cases": [
     {
-      "case_id": "case-09b6a89f4621",
+      "case_id": "case-61afbd65b4c1",
       "case_key": "203.0.113.77:sql_injection",
       "title": "Sql Injection from 203.0.113.77",
       "status": "contained",
@@ -184,13 +184,13 @@
         "203.0.113.77"
       ],
       "correlation_ids": [
-        "incident-1023c929cc2b-attack-1"
+        "incident-504049143026-attack-1"
       ],
       "attack_count": 0,
       "alert_count": 0,
       "blocked_count": 1,
-      "first_seen": "2026-05-20 21:57:29 UTC",
-      "last_seen": "2026-05-20 21:57:29 UTC",
+      "first_seen": "2026-05-30 00:40:05 UTC",
+      "last_seen": "2026-05-30 00:40:05 UTC",
       "playbook_name": "sqli-containment",
       "recommended_actions": [
         "block_ip",
@@ -201,7 +201,7 @@
       "integrity_hash": "7635bde006aec9769a58e5ddcb20d60b8d4e7b8cd76b636de7b4bb803eb57a86"
     },
     {
-      "case_id": "case-0bb28e17910e",
+      "case_id": "case-20d809297119",
       "case_key": "198.51.100.24:brute_force",
       "title": "Brute Force from 198.51.100.24",
       "status": "contained",
@@ -219,13 +219,13 @@
         "198.51.100.24"
       ],
       "correlation_ids": [
-        "incident-1023c929cc2b-attack-2"
+        "incident-504049143026-attack-2"
       ],
       "attack_count": 0,
       "alert_count": 0,
       "blocked_count": 1,
-      "first_seen": "2026-05-20 21:57:29 UTC",
-      "last_seen": "2026-05-20 21:57:29 UTC",
+      "first_seen": "2026-05-30 00:40:05 UTC",
+      "last_seen": "2026-05-30 00:40:05 UTC",
       "playbook_name": "bruteforce-containment",
       "recommended_actions": [
         "rate_limit",

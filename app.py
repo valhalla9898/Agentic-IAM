@@ -1291,6 +1291,9 @@ def get_navigation_pages():
 
     # Security master tree viewer
     pages.append("🌲 Security Master Tree")
+    # Playbooks & KB
+    pages.append("🗂️ Playbooks")
+    pages.append("📚 Security KB")
 
     # Risk assessment page for operators/admins
     if is_operator() or is_admin():
@@ -1449,6 +1452,10 @@ def main():
         show_risk_assessment(st.session_state.db)
     elif page == "🌲 Security Master Tree":
         show_page_security_master_tree()
+    elif page == "🗂️ Playbooks":
+        show_page_playbooks()
+    elif page == "📚 Security KB":
+        show_page_security_kb()
     else:
         st.warning(f"Page '{page}' not implemented yet")
 
@@ -1508,6 +1515,49 @@ def show_page_security_master_tree():
                 file_name="MASTER_SECURITY_TREE_QUICKVIEW.md",
                 mime="text/markdown",
             )
+
+
+def show_page_playbooks():
+    st.title("🗂️ Playbooks")
+    playbooks_dir = Path(__file__).parent / "docs" / "playbooks"
+    files = []
+    if playbooks_dir.exists():
+        files = sorted([p for p in playbooks_dir.iterdir() if p.suffix in (".md",)])
+
+    if not files:
+        st.info("No playbooks found in docs/playbooks/")
+        return
+
+    choice = st.selectbox("Select playbook", [p.name for p in files])
+    selected = playbooks_dir / choice
+    if selected.exists():
+        st.markdown(selected.read_text(encoding="utf-8"))
+        with selected.open("rb") as fh:
+            st.download_button("Download Playbook", fh.read(), file_name=selected.name)
+
+
+def show_page_security_kb():
+    st.title("📚 Security KB")
+    kb_dir = Path(__file__).parent / "docs" / "security_kb"
+    query = st.text_input("Search KB")
+
+    if not kb_dir.exists():
+        st.info("Security KB not found. Add articles under docs/security_kb/")
+        return
+
+    articles = sorted([p for p in kb_dir.iterdir() if p.suffix == ".md"])
+    results = []
+    for art in articles:
+        text = art.read_text(encoding="utf-8")
+        if not query or query.lower() in text.lower() or query.lower() in art.name.lower():
+            results.append((art.name, text))
+
+    if not results:
+        st.write("No articles match the query")
+    else:
+        for name, content in results:
+            st.subheader(name)
+            st.markdown(content)
 
     overview_col1, overview_col2, overview_col3, overview_col4 = st.columns(4)
     with overview_col1:

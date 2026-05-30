@@ -1,0 +1,27 @@
+name: Security Checks
+
+on:
+  push:
+    branches: [ main, master, 'feature/*' ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install bandit safety pytest
+      - name: Run Bandit
+        run: bandit -r . -x .venv -ll
+      - name: Run Safety
+        run: safety check --bare
+      - name: Run Tests
+        run: pytest -q
