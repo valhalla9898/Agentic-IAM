@@ -1473,6 +1473,60 @@ def show_home():
     st.markdown("---")
 
 
+def show_page_agents():
+    """Agents: combined Browse + Register view"""
+    st.title("Agents")
+    tab = st.radio("View", ["Browse Agents", "Register Agent"], index=0, key="agents_tab")
+    if tab == "Browse Agents":
+        show_page_browse_agents()
+    else:
+        # keep registration UI in a sidebar panel for compactness
+        show_page_register_agent()
+
+
+def show_page_monitoring():
+    """Monitoring: Health Center + System Monitor"""
+    st.title("Monitoring")
+    tab = st.radio("View", ["Health Center", "System Monitor"], index=0, key="monitoring_tab")
+    if tab == "Health Center":
+        show_page_health_center()
+    else:
+        if is_operator() or is_admin():
+            show_page_system_monitor()
+        else:
+            st.warning("System Monitor is restricted to Operator/Admin roles")
+
+
+def show_page_audit_reports():
+    """Audit & Reports combined page"""
+    st.title("Audit & Reports")
+    tab = st.radio("View", ["Audit Log", "Reports"], index=0, key="audit_reports_tab")
+    if tab == "Audit Log":
+        show_page_audit_log()
+    else:
+        show_page_reports()
+
+
+def show_page_investigation_center():
+    """Investigation Center: Activity Timeline + Forensics"""
+    st.title("Investigation Center")
+    tab = st.radio("View", ["Activity Timeline", "Attack Forensics"], index=0, key="investigation_tab")
+    if tab == "Activity Timeline":
+        show_page_activity_timeline()
+    else:
+        show_page_attack_forensics()
+
+
+def show_page_analytics_risk():
+    """Analytics & Risk combined view"""
+    st.title("Analytics & Risk")
+    tab = st.radio("View", ["Analytics", "Risk Assessment"], index=0, key="analytics_risk_tab")
+    if tab == "Analytics":
+        show_page_analytics()
+    else:
+        show_risk_assessment(st.session_state.db)
+
+
 def show_page_security_master_tree():
     """Show the Security Master Tree from docs."""
     st.title("🌲 Security Master Tree")
