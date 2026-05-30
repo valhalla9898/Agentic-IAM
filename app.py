@@ -51,58 +51,28 @@ from utils.rbac import (
     get_current_user_permissions,
     get_rbac_manager,
     is_admin,
-    is_operator,
-)
-from utils.security import (
-    AccountSecurity,
-    AuditLogger,
-    InputValidator,
-    RateLimiter,
-    SessionSecurityManager,
-    SQLInjectionProtection,
-)
+        pages = []
 
-from services.registry import ServiceRegistry
+        # Always present
+        pages.append("Home")
+        pages.append("Agents")
+        pages.append("Monitoring")
+        pages.append("Security Operations")
+        pages.append("Investigation Center")
+        pages.append("Analytics & Reports")
+        pages.append("Security KB")
+        pages.append("Playbooks")
+        pages.append("Settings")
+        pages.append("AI Assistant")
 
-# Add parent directory to path
-sys.path.insert(0, str(Path(__file__).parent))
+        # Admin/operator specific
+        if is_admin():
+            pages.insert(1, "User Management")
 
+        if is_operator() or is_admin():
+            pages.append("Risk & Compliance")
 
-DEMO_SECURITY_STATE_PATH = Path(__file__).parent / "attack_results" / "security_state.json"
-
-
-def _build_demo_security_state() -> dict:
-    """Create a realistic demo incident payload for local screenshots and demos."""
-    now = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
-    source_ip = "203.0.113.77"
-    base_state = {
-        "generated_at": now,
-        "incident_id": generate_correlation_id("incident"),
-        "attacks": [
-            {
-                "attack_type": "sql_injection",
-                "severity": "critical",
-                "status": "blocked",
-                "detected_at": now,
-                "source_ip": source_ip,
-                "target_endpoint": "/api/v1/auth/login",
-                "metadata": {
-                    "username": "demo_operator",
-                    "user": "unknown",
-                    "vector": "login_form",
-                },
-            },
-            {
-                "attack_type": "brute_force",
-                "severity": "high",
-                "status": "mitigated",
-                "detected_at": now,
-                "source_ip": "198.51.100.24",
-                "target_endpoint": "/api/v1/auth/login",
-                "metadata": {
-                    "username": "unknown",
-                    "attempts": 14,
-                    "vector": "credential_stuffing",
+        return pages
                 },
             },
         ],
@@ -1391,6 +1361,17 @@ def main():
     # Main content - Route to correct page
     if page == "Home":
         show_home()
+    elif page == "Agents":
+        show_page_browse_agents()
+    elif page == "Monitoring":
+        # show health by default; operators can access system monitor from the page
+        show_page_health_center()
+    elif page == "Audit & Reports":
+        show_page_audit_log()
+    elif page == "Investigation Center":
+        show_page_activity_timeline()
+    elif page == "Analytics & Reports":
+        show_page_analytics()
     # Bloome page removed
     elif page == "🤖 AI Assistant":
         show_ai_assistant()
