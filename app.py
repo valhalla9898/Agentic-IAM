@@ -15,6 +15,7 @@ from pathlib import Path
 import pandas as pd
 import requests
 import streamlit as st
+import atexit
 
 from config.settings import get_settings
 from dashboard.components.agent_selection import (
@@ -60,6 +61,8 @@ from utils.security import (
     SessionSecurityManager,
     SQLInjectionProtection,
 )
+
+from services.registry import ServiceRegistry
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent))
@@ -842,6 +845,17 @@ def initialize_session():
     if "csrf_token" not in st.session_state:
         st.session_state.csrf_token = SessionSecurityManager.generate_csrf_token()
 
+    # Initialize backend service registry (scaffolds)
+    if "services" not in st.session_state:
+        try:
+            svc_registry = ServiceRegistry()
+            svc_registry.initialize()
+            st.session_state.services = svc_registry
+            # Ensure services are shutdown on process exit
+            atexit.register(svc_registry.shutdown)
+        except Exception as e:
+            logging.getLogger(__name__).debug("Failed to initialize services: %s", e)
+
 
 def is_onboarding_required() -> bool:
     """Check whether the setup wizard should be shown before login."""
@@ -1275,6 +1289,9 @@ def get_navigation_pages():
     # AI Assistant available to all authenticated users
     pages.append("🤖 AI Assistant")
 
+    # Security master tree viewer
+    pages.append("🌲 Security Master Tree")
+
     # Risk assessment page for operators/admins
     if is_operator() or is_admin():
         pages.append("⚠️ Risk Assessment")
@@ -1430,6 +1447,8 @@ def main():
             st.error("❌ Access Denied: Operator or Admin only")
     elif page == "⚠️ Risk Assessment":
         show_risk_assessment(st.session_state.db)
+    elif page == "🌲 Security Master Tree":
+        show_page_security_master_tree()
     else:
         st.warning(f"Page '{page}' not implemented yet")
 
@@ -1464,6 +1483,31 @@ def show_home():
     """)
 
     st.markdown("---")
+
+
+def show_page_security_master_tree():
+    """Show the Security Master Tree from docs."""
+    st.title("🌲 Security Master Tree")
+    md_path = Path(__file__).parent / "docs" / "MASTER_SECURITY_TREE.md"
+    quick_path = Path(__file__).parent / "docs" / "MASTER_SECURITY_TREE_QUICKVIEW.md"
+
+    if md_path.exists():
+        try:
+            content = md_path.read_text(encoding="utf-8")
+            st.markdown(content)
+        except Exception as exc:
+            st.error(f"Failed to read master tree: {exc}")
+    else:
+        st.warning("Master tree document not found in docs/")
+
+    if quick_path.exists():
+        with quick_path.open("rb") as fh:
+            btn = st.download_button(
+                label="Download Quick View",
+                data=fh.read(),
+                file_name="MASTER_SECURITY_TREE_QUICKVIEW.md",
+                mime="text/markdown",
+            )
 
     overview_col1, overview_col2, overview_col3, overview_col4 = st.columns(4)
     with overview_col1:
