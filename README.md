@@ -1037,3 +1037,14 @@ kubectl get pods -l app=agentic-iam
 **This system provides a complete, secure, and high-performance solution for managing AI agent identities and access control in production environments.**
 
 **Last Updated**: May 16, 2026
+
+---
+
+## 🔐 Security Resources
+
+For a concise, curated cyber security taxonomy and quick reference, see the master tree:
+
+- [CYBER SECURITY — MASTER TREE](docs/MASTER_SECURITY_TREE.md)
+- [Master Tree — Quick View](docs/MASTER_SECURITY_TREE_QUICKVIEW.md)
+
+Use the quick-view file for copy-paste into UI components or notes.
