@@ -547,10 +547,11 @@ POST /api/v1/mobile/register
 
 ### Local Development Setup
 
-**Step 1: Clone Repository**
+**Step 1: Open local repository folder**
 ```bash
-git clone https://github.com/valhalla9898/Agentic-IAM.git
-cd Agentic-IAM
+# This documentation assumes you are working from the local workspace
+# Replace the path below with the folder where you're working
+cd C:\Users\Lenovo\Desktop\Agentic-IAM-main
 ```
 
 **Step 2: Create Virtual Environment**

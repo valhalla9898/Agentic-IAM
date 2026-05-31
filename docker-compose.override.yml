@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  agentic-iam:
+    # Mount local source for iterative development and enable live-reload command
+    volumes:
+      - ./:/app:cached
+      - ./logs:/app/logs
+      - ./data:/app/data
+    environment:
+      - AGENTIC_IAM_ENVIRONMENT=development
+      - AGENTIC_IAM_API_HOST=0.0.0.0
+      - AGENTIC_IAM_API_PORT=8000
+      - AGENTIC_IAM_LOG_LEVEL=DEBUG
+    command: >
+      sh -c "uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload"
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+      - redis
+    # do not restart automatically in dev to make debugging easier
+    restart: "no"
+
+# Note: This override assumes the project exposes an ASGI app at `api.main:app`.
+# If your app runs differently, update the `command` to `python -u main.py` or similar.

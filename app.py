@@ -25,6 +25,7 @@ from dashboard.components.agent_selection import (
     show_agent_selector,
 )
 from dashboard.components.ai_assistant import show_ai_assistant
+from dashboard.utils import inject_ui_enhancements
 
 # Bloome storefront removed — related utilities were deleted
 from dashboard.components.risk_assessment import show_risk_assessment
@@ -51,61 +52,20 @@ from utils.rbac import (
     get_current_user_permissions,
     get_rbac_manager,
     is_admin,
-        pages = []
+    is_operator,
+)
+from utils.security import (
+    RateLimiter,
+    AccountSecurity,
+    AuditLogger,
+    SQLInjectionProtection,
+    InputValidator,
+    SessionSecurityManager,
+)
 
-        # Always present
-        pages.append("Home")
-        pages.append("Agents")
-        pages.append("Monitoring")
-        pages.append("Security Operations")
-        pages.append("Investigation Center")
-        pages.append("Analytics & Reports")
-        pages.append("Security KB")
-        pages.append("Playbooks")
-        pages.append("Settings")
-        pages.append("AI Assistant")
 
-        # Admin/operator specific
-        if is_admin():
-            pages.insert(1, "User Management")
-
-        if is_operator() or is_admin():
-            pages.append("Risk & Compliance")
-
-        return pages
-                },
-            },
-        ],
-        "active": [
-            {
-                "severity": "critical",
-                "alert_type": "web_attack",
-                "title": "SQL injection attempt blocked",
-                "message": "WAF and application controls blocked a malicious login payload before session creation.",
-                "created_at": now,
-            },
-            {
-                "severity": "high",
-                "alert_type": "auth_attack",
-                "title": "Repeated login failures detected",
-                "message": "Rate limiter locked the source after repeated failures.",
-                "created_at": now,
-            },
-        ],
-        "blocked_ips": [
-            {
-                "ip": source_ip,
-                "reason": "Auto-blocked after SQL injection pattern detection",
-                "blocked_at": now,
-            },
-            {
-                "ip": "198.51.100.24",
-                "reason": "Auto-blocked after credential stuffing threshold exceeded",
-                "blocked_at": now,
-            },
-        ],
-    }
-    return enrich_security_state(base_state, DEFAULT_SECURITY_RULES)
+# Local demo security payload path (can be overridden in tests)
+DEMO_SECURITY_STATE_PATH = Path(__file__).resolve().parent / "data" / "demo_security_state.json"
 
 
 def _write_demo_security_state(state: dict | None = None) -> dict:
@@ -130,6 +90,54 @@ def _load_demo_security_state() -> dict:
 
         logging.getLogger(__name__).debug("Failed to load demo security state: %s", e)
         return {}
+
+
+def _build_demo_security_state() -> dict:
+    """Construct a synthetic demo security state for screenshots and tests."""
+    now = datetime.utcnow().isoformat() + "Z"
+    incident_id = f"demo-{int(datetime.utcnow().timestamp())}"
+    source_ip = "203.0.113.45"
+
+    base_state = {
+        "generated_at": now,
+        "incident_id": incident_id,
+        "correlation_id": generate_correlation_id(),
+        "executive_summary": {
+            "threat_level": "high",
+            "recommended_actions": [
+                "Isolate source IP",
+                "Rotate exposed credentials",
+                "Perform forensic capture",
+            ],
+        },
+        "attacks": [
+            {
+                "attack_type": "sql_injection",
+                "source_ip": source_ip,
+                "target_endpoint": "/login",
+                "payload": "' OR '1'='1",
+                "severity": "critical",
+                "status": "blocked",
+                "detected_at": now,
+                "metadata": {"user": None},
+                "matched_rules": ["sqli-detector-1"],
+                "recommended_actions": ["Block IP", "Invalidate sessions"],
+            }
+        ],
+        "active": [
+            {
+                "severity": "critical",
+                "alert_type": "web_attack",
+                "title": "SQL injection attempt blocked",
+                "message": "WAF blocked a malicious login payload before session creation.",
+                "created_at": now,
+            }
+        ],
+        "blocked_ips": [
+            {"ip": source_ip, "reason": "Auto-blocked after SQLi detection", "blocked_at": now}
+        ],
+    }
+    return enrich_security_state(base_state, DEFAULT_SECURITY_RULES)
 
 
 def _build_attack_flow_stages() -> list[dict]:
@@ -180,6 +188,10 @@ def _get_dashboard_db():
         return st.session_state.db
     except AttributeError:
         return None
+
+
+# Inject UI enhancements (non-invasive styles/scripts). Set RTL based on environment setting
+inject_ui_enhancements(rtl=(os.getenv("AGENTIC_IAM_RTL", "false").lower() == "true"))
 
 
 def _dispatch_security_notifications(payload: dict) -> list[dict]:
@@ -790,6 +802,8 @@ st.markdown(
 
 def initialize_session():
     """Initialize session state"""
+    from utils.security import RateLimiter as _RateLimiter
+
     if "iam" not in st.session_state:
         st.session_state.iam = None
     if "agent_page" not in st.session_state:
@@ -809,7 +823,7 @@ def initialize_session():
 
     # Initialize security components
     if "rate_limiter" not in st.session_state:
-        st.session_state.rate_limiter = RateLimiter(max_attempts=5, window_seconds=300)
+        st.session_state.rate_limiter = _RateLimiter(max_attempts=5, window_seconds=300)
     if "account_security" not in st.session_state:
         st.session_state.account_security = AccountSecurity(max_failed_attempts=5)
     if "csrf_token" not in st.session_state:
@@ -1265,6 +1279,18 @@ def get_navigation_pages():
     pages.append("🗂️ Playbooks")
     pages.append("📚 Security KB")
 
+    # Additional security/navigation pages (placeholders)
+    pages.append("🧾 Threat Models")
+    pages.append("🗺️ ERD / Architecture")
+    pages.append("🧩 Policy Simulator")
+    pages.append("🔐 Zero Trust Engine")
+    pages.append("⭐ Agent Trust Scores")
+    pages.append("✍️ Playbook Editor")
+    pages.append("📥 Alerts Inbox")
+    pages.append("🗄️ Audit Exports")
+    pages.append("✅ Compliance Reports")
+    pages.append("🔗 Integrations")
+
     # Risk assessment page for operators/admins
     if is_operator() or is_admin():
         pages.append("⚠️ Risk Assessment")
@@ -1437,6 +1463,26 @@ def main():
         show_page_playbooks()
     elif page == "📚 Security KB":
         show_page_security_kb()
+    elif page == "🧾 Threat Models":
+        show_page_threat_models()
+    elif page == "🗺️ ERD / Architecture":
+        show_page_erd_architecture()
+    elif page == "🧩 Policy Simulator":
+        show_page_policy_simulator()
+    elif page == "🔐 Zero Trust Engine":
+        show_page_zero_trust_engine()
+    elif page == "⭐ Agent Trust Scores":
+        show_page_agent_trust_scores()
+    elif page == "✍️ Playbook Editor":
+        show_page_playbook_editor()
+    elif page == "📥 Alerts Inbox":
+        show_page_alerts_inbox()
+    elif page == "🗄️ Audit Exports":
+        show_page_audit_exports()
+    elif page == "✅ Compliance Reports":
+        show_page_compliance_reports()
+    elif page == "🔗 Integrations":
+        show_page_integrations()
     else:
         st.warning(f"Page '{page}' not implemented yet")
 
@@ -1599,6 +1645,102 @@ def show_page_security_kb():
         st.metric("System Health", f"{system_health.get('overall_health', 0)}%")
     with overview_col2:
         st.metric("Active Agents", system_analytics.get("active_agents", 0))
+
+
+def show_page_threat_models():
+    st.title("🧾 Threat Models")
+    md_dir = Path(__file__).parent / "docs" / "threat_models"
+    if not md_dir.exists():
+        st.info("No threat model docs found under docs/threat_models/")
+        return
+    files = sorted([p for p in md_dir.iterdir() if p.suffix in (".md",)])
+    choice = st.selectbox("Select threat model", [p.name for p in files])
+    if choice:
+        content = (md_dir / choice).read_text(encoding="utf-8")
+        st.markdown(content)
+
+
+def show_page_erd_architecture():
+    st.title("🗺️ ERD / Architecture")
+    erd = Path(__file__).parent / "docs" / "ERD.md"
+    if erd.exists():
+        st.markdown(erd.read_text(encoding="utf-8"))
+    else:
+        st.info("ERD/Architecture doc not found (docs/ERD.md)")
+
+
+def show_page_policy_simulator():
+    st.title("🧩 Policy Simulator")
+    st.info("Policy simulator is a placeholder — no enforcement will change.")
+    with st.form("policy_sim"):
+        user = st.text_input("User/Role to simulate")
+        resource = st.text_input("Resource/Action")
+        submitted = st.form_submit_button("Simulate")
+    if submitted:
+        st.success(f"Simulated policy check for {user} -> {resource}: ALLOW (demo)")
+
+
+def show_page_zero_trust_engine():
+    st.title("🔐 Zero Trust Engine")
+    st.write("Status: placeholder — engine scaffold is registered but inactive in UI mode.")
+    st.write("Use backend services to integrate Zero Trust checks.")
+
+
+def show_page_agent_trust_scores():
+    st.title("⭐ Agent Trust Scores")
+    st.info("Summary view of agent trust & behavior (demo placeholder)")
+    db = st.session_state.db
+    agents = []
+    try:
+        agents = db.list_agents() if hasattr(db, "list_agents") else []
+    except Exception:
+        agents = []
+    rows = []
+    for a in (agents or [])[:50]:
+        rows.append({"Agent": a.get("name", a.get("id")), "Trust": "85% (demo)"})
+    if rows:
+        st.dataframe(pd.DataFrame(rows))
+    else:
+        st.info("No agents available to score")
+
+
+def show_page_playbook_editor():
+    st.title("✍️ Playbook Editor")
+    st.info("Basic editor placeholder — editing not yet persisted to repo.")
+    content = st.text_area("Playbook content", height=240)
+    if st.button("Save Playbook (demo)"):
+        st.success("Playbook saved to session (demo only)")
+
+
+def show_page_alerts_inbox():
+    st.title("📥 Alerts Inbox")
+    st.info("Combined alert inbox (view-only placeholder)")
+    alerts = _fetch_security_alerts("active") or []
+    if alerts:
+        st.dataframe(pd.DataFrame(alerts))
+    else:
+        st.info("No active alerts")
+
+
+def show_page_audit_exports():
+    st.title("🗄️ Audit Exports")
+    st.info("Download audit logs and exports (placeholder)")
+    if st.button("Export Audit Log (demo)"):
+        st.download_button("Download", data="[]", file_name="audit_export.json")
+
+
+def show_page_compliance_reports():
+    st.title("✅ Compliance Reports")
+    st.info("Prebuilt compliance checklists (demo placeholders)")
+    st.write("- PCI: not configured")
+    st.write("- ISO: not configured")
+
+
+def show_page_integrations():
+    st.title("🔗 Integrations")
+    st.info("View and manage integrations (read-only placeholder)")
+    settings = st.session_state.db.get_system_settings() if st.session_state.db else {}
+    st.json(settings)
     with overview_col3:
         st.metric("Total Events", system_analytics.get("total_events", 0))
     with overview_col4:

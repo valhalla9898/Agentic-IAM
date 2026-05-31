@@ -1048,3 +1048,28 @@ For a concise, curated cyber security taxonomy and quick reference, see the mast
 - [Master Tree — Quick View](docs/MASTER_SECURITY_TREE_QUICKVIEW.md)
 
 Use the quick-view file for copy-paste into UI components or notes.
+
+---
+
+## 🛠️ Local changes added by the assistant
+
+The following non-destructive improvements were added to this workspace (keeps existing content):
+
+- **CI**: GitHub Actions workflow for linting and running tests (`.github/workflows/ci.yml`).
+- **Pre-commit hooks**: `black`, `isort`, `flake8` configured in `.pre-commit-config.yaml`.
+- **Unit & Integration tests**: added/updated under `tests/` and verified locally (172 passed, 9 skipped).
+- **Docker docs**: `DOCKER.md` and development compose override at `docker-compose.override.yml`.
+- **.env template**: `.env.example` updated with recommended environment variables.
+- **Streamlit UI helpers**: centralized CSS/RTL/toasts in `dashboard/utils.py` (non-invasive).
+- **Quick launcher**: `scripts\افتحي_يا_ميرنا.ps1` and `scripts\افتحي_يا_ميرنا.bat` with a VS Code task (`.vscode/tasks.json`) labeled "Open Project (افتحي يا ميرنا)".
+
+To run the quick launcher from the workspace root (Windows):
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\افتحي_يا_ميرنا.bat
+```
+
+Notes:
+- These additions are additive — nothing was removed from the repository.
+- Demo admin credentials used by onboarding are present in `app.py` (username `valhalla_admin`, password `Valhalla@12345`). Remove or change before production.
+

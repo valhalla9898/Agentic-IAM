@@ -8,6 +8,7 @@ import logging
 import uuid
 
 import streamlit as st
+from dashboard.utils import show_toast
 
 logger = logging.getLogger(__name__)
 
@@ -91,10 +92,12 @@ def show_agent_registration():
 
             if success:
                 st.success("✅ Agent registered successfully!")
+                show_toast("Agent registered successfully ✅")
                 st.info(f"🆔 Agent ID: {agent_id}")
                 st.balloons()
             else:
                 st.error("❌ Registration failed. Please try again")
+                show_toast("Registration failed ❌")
 
 
 def show_agent_selector():
@@ -207,6 +210,7 @@ def show_agent_list():
                                 )
                             ):
                                 st.success(f"✅ Agent {aid} deleted successfully")
+                                show_toast(f"Agent {aid} deleted ✅")
                                 if st.session_state.get("selected_agent") == aid:
                                     st.session_state.selected_agent = None
                                 st.session_state[pending_delete_key] = False
@@ -215,18 +219,22 @@ def show_agent_list():
                                 st.error(
                                     f"Agent {aid} deleted from DB, but registry cleanup failed"
                                 )
+                                show_toast(f"Agent {aid} partially deleted (registry cleanup failed) ⚠️")
                                 st.session_state[pending_delete_key] = False
                                 st.rerun()
                             elif deleted and still_exists is not None:
                                 st.error(f"Delete reported success, but agent {aid} still exists")
+                                show_toast(f"Agent {aid} delete inconsistency ⚠️")
                                 st.session_state[pending_delete_key] = False
                                 st.rerun()
                             else:
                                 st.error(f"Failed to delete agent {aid}")
+                                show_toast(f"Failed to delete agent {aid} ❌")
                                 st.session_state[pending_delete_key] = False
                                 st.rerun()
                         except Exception as e:
                             st.error(f"Error deleting agent: {e}")
+                            show_toast(f"Error deleting agent: {e}")
                             st.session_state[pending_delete_key] = False
                             st.rerun()
 

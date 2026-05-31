@@ -60,3 +60,43 @@ def test_agent_trust_updates_score():
     assert 0.0 <= score2 <= 1.0
 
     registry.shutdown()
+
+
+@pytest.mark.integration
+def test_zero_trust_and_investigation_branches():
+    from services.registry import ServiceRegistry
+
+    registry = ServiceRegistry()
+    registry.initialize()
+
+    # zero trust placeholder behavior
+    risk = registry.zerotrust.evaluate_risk("agent-z", {"ip": "1.2.3.4"})
+    assert risk == 0.0
+    assert registry.zerotrust.continuous_verify("agent-z", {}) is True
+
+    # access policy helper branches
+    registry.access.add_role("viewer", ["read"])
+    registry.access.assign_permission("viewer", "agents:list")
+    assert registry.access.check_access("viewer", "agents", "list") is True
+    assert registry.access.check_access("viewer", "secrets", "delete") is False
+
+    # investigation analysis helpers
+    registry.investigation.record_event({
+        "agent_id": "agent-z",
+        "event_type": "alert",
+        "details": {"severity": "high"},
+        "id": "evt-z1",
+    })
+    registry.investigation.record_event({
+        "agent_id": "agent-y",
+        "event_type": "alert",
+        "details": {"severity": "low"},
+        "id": "evt-z2",
+    })
+    timeline = registry.investigation.fetch_timeline(agent_id="agent-z", limit=10)
+    assert len(timeline) == 1
+    summary = registry.investigation.analyze_attack(["evt-z1", "evt-z2"])
+    assert summary["summary"] == "analysis placeholder"
+    assert summary["event_count"] == 2
+
+    registry.shutdown()

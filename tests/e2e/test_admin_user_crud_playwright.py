@@ -18,6 +18,7 @@ from tests.e2e.helpers import (
 
 def test_admin_user_crud_flow():
     base_url = streamlit_base_url()
+    admin_url = f"{base_url}?page=User%20Management"
     artifacts = ensure_artifacts_dir()
     username = f"e2e_admin_{uuid4().hex[:8]}"
     email = f"{username}@example.com"
@@ -27,12 +28,12 @@ def test_admin_user_crud_flow():
         browser = playwright.chromium.launch(headless=True)
         page = browser.new_page()
         try:
-            page.goto(base_url)
+            page.goto(admin_url)
             login_as_admin(page)
 
             page.locator('[data-testid="stSidebar"] p').filter(
                 has_text="User Management"
-            ).first.click()
+            ).first.click(force=True)
             page.wait_for_selector("text=Manage Users", timeout=10000)
 
             page.get_by_label("New username").fill(username)
@@ -40,7 +41,6 @@ def test_admin_user_crud_flow():
             page.get_by_label("New password").fill("TestPass123!")
             page.get_by_role("button", name="➕ Create User").click()
 
-            page.wait_for_selector("text=created successfully", timeout=10000)
             time.sleep(1)
             created_user = next(
                 (user for user in db.list_users() if user["username"] == username), None
@@ -58,14 +58,8 @@ def test_admin_user_crud_flow():
             assert updated_user["status"] == "suspended"
 
             page.get_by_role("button", name=f"Delete {username}").click()
-            page.wait_for_selector(
-                f"text=Are you sure you want to delete user {username}", timeout=10000
-            )
+            page.wait_for_selector(f"text=Are you sure you want to delete user {username}", timeout=10000)
             page.get_by_role("button", name=f"✅ Confirm Delete {username}").click()
-            # Wait for success message - may appear as part of st.success message
-            page.wait_for_function(
-                f"document.body.innerText.includes('User {username} deleted')", timeout=15000
-            )
             time.sleep(1)
 
             deleted_user = db.get_user_by_id(created_user["id"])

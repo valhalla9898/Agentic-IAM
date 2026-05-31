@@ -11,6 +11,105 @@ from typing import Any, Dict, List, Optional
 import streamlit as st
 
 
+def inject_ui_enhancements(rtl: bool = False):
+        """Inject lightweight CSS and JS for improved UI (responsive, RTL, toasts, spinner).
+
+        Non-invasive: does not change structure of Streamlit components, only styles and
+        adds optional client-side helpers. Call early in `app.py`.
+        """
+        css = """
+        :root{
+            --brand-bg: #0b3d91;
+            --brand-accent: #ffb400;
+            --brand-foreground: #ffffff;
+            --card-radius: 8px;
+            --gap: 12px;
+            --max-width: 1100px;
+        }
+
+        /* Container sizing and centering */
+        .reportview-container .main > div {
+            max-width: var(--max-width) !important;
+            margin: 0 auto !important;
+            padding: 18px !important;
+        }
+
+        /* Card-style sections */
+        .stContainer, .css-1d391kg {
+            border-radius: var(--card-radius) !important;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06) !important;
+        }
+
+        /* Buttons and inputs */
+        button, input[type=text], textarea {
+            border-radius: 6px !important;
+            padding: 8px 10px !important;
+        }
+
+        /* Small responsive tweaks */
+        @media (max-width: 640px){
+            :root{ --max-width: 100%; }
+            .reportview-container .main > div { padding: 12px !important; }
+        }
+
+        /* RTL support: applied when `rtl` is true by adding `dir="rtl"` to body */
+        body[dir="rtl"] { direction: rtl !important; }
+
+        /* Simple toast container */
+        #agentic-toast {
+            position: fixed;
+            right: 16px;
+            bottom: 16px;
+            z-index: 9999;
+            display: none;
+            background: rgba(11,61,145,0.95);
+            color: white;
+            padding: 10px 14px;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        """
+
+        js = """
+        function showAgenticToast(msg, timeout){
+            timeout = timeout || 3500;
+            let t = document.getElementById('agentic-toast');
+            if(!t){
+                t = document.createElement('div');
+                t.id = 'agentic-toast';
+                document.body.appendChild(t);
+            }
+            t.innerText = msg;
+            t.style.display = 'block';
+            clearTimeout(window.__agentic_toast_timeout);
+            window.__agentic_toast_timeout = setTimeout(()=>{ t.style.display='none'; }, timeout);
+        }
+
+        // Attach to global for debugging
+        window.showAgenticToast = showAgenticToast;
+        """
+
+        # Apply CSS and JS via an HTML injection
+        html = f"""
+        <style>{css}</style>
+        <script>{js}</script>
+        """
+
+        # Use Streamlit HTML injection; allow unsafe HTML because we only inject style/script
+        st.markdown(html, unsafe_allow_html=True)
+
+        # If RTL requested, set body dir via a small script
+        if rtl:
+                st.markdown("""<script>document.body.setAttribute('dir', 'rtl');</script>""", unsafe_allow_html=True)
+
+
+def show_toast(message: str, timeout: int = 3500):
+        """Show a small toast notification using the injected JS helper."""
+        safe = str(message).replace("\n", "\\n").replace("'", "\'")
+        script = f"<script>if(window.showAgenticToast){{window.showAgenticToast('{safe}', {timeout});}}else{{console.log('toast:', '{safe}');}}</script>"
+        st.markdown(script, unsafe_allow_html=True)
+
+
 def safe_async_run(coro):
     """Safely run async function"""
     try:

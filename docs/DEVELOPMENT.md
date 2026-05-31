@@ -12,11 +12,11 @@ This guide covers setting up the development environment and contributing to Age
 
 ## Development Setup
 
-### 1. Clone Repository
+### 1. Open Local Repository
 
 ```bash
-git clone https://github.com/valhalla9898/Agentic-IAM.git
-cd Agentic-IAM
+# If you're working locally, change directory to the workspace path:
+cd C:\Users\Lenovo\Desktop\Agentic-IAM-main
 ```
 
 ### 2. Create Virtual Environment

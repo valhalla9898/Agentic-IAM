@@ -124,3 +124,24 @@ def test_process_security_notification_queue_posts_and_updates(monkeypatch):
 
     res = app_module._process_security_notification_queue(fake)
     assert isinstance(res, list)
+
+
+def test_get_navigation_pages_respects_roles_and_permissions(monkeypatch):
+    monkeypatch.setattr(app_module, "is_admin", lambda: False)
+    monkeypatch.setattr(app_module, "is_operator", lambda: False)
+    monkeypatch.setattr(app_module, "check_permission", lambda permission: permission.value in {"agent:read", "report:view"})
+
+    pages = app_module.get_navigation_pages()
+    assert "🤖 AI Assistant" in pages
+    assert "🔍 Browse Agents" in pages
+    assert "📊 Reports" in pages
+    assert "Home" not in pages
+    assert "👥 User Management" not in pages
+
+    monkeypatch.setattr(app_module, "is_admin", lambda: True)
+    monkeypatch.setattr(app_module, "is_operator", lambda: False)
+    admin_pages = app_module.get_navigation_pages()
+    assert "Home" in admin_pages
+    assert "👥 User Management" in admin_pages
+    assert "🛡️ Security Operations" in admin_pages
+

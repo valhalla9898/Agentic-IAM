@@ -1,3 +1,41 @@
+import os
+import json
+
+from database import Database
+
+
+def test_database_init_and_attack_event(tmp_path):
+    db_file = tmp_path / "agentic_test.db"
+    db = Database(str(db_file))
+
+    # DB file should be created
+    assert os.path.exists(db.db_path)
+
+    # Record an attack event
+    eid = db.record_attack_event(
+        attack_type="sql_injection",
+        source_ip="127.0.0.1",
+        target_endpoint="/login",
+        payload="{'attempt':'1'}",
+        severity="high",
+        metadata={"sample": True},
+    )
+    assert isinstance(eid, int)
+
+    events = db.list_attack_events()
+    assert any(e["id"] == eid for e in events) or len(events) >= 1
+
+
+def test_block_ip_and_list(tmp_path):
+    db_file = tmp_path / "agentic_test2.db"
+    db = Database(str(db_file))
+
+    ok = db.block_ip("10.0.0.1", reason="malicious", duration_seconds=60)
+    assert ok is True
+
+    blocked = db.list_blocked_ips()
+    assert isinstance(blocked, list)
+    assert any(b["ip"] == "10.0.0.1" or b.get("ip") == "10.0.0.1" for b in blocked)
 from database import Database
 
 
