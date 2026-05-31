@@ -1225,77 +1225,72 @@ def show_logout():
 
 
 def get_navigation_pages():
-    """Get navigation pages based on user role"""
-    pages = []
+    """Get navigation pages based on user role.
 
-    if is_admin() or is_operator():
-        pages.insert(0, "Home")
+    Uses the centralized `dashboard.navigation` config and returns a
+    flattened list of route labels for backward compatibility.
+    """
+    try:
+        from dashboard.navigation import build_navigation, flatten_labels
 
-    # High-value operational views
-    pages.append("🏥 Health Center")
-    pages.append("🧭 Activity Timeline")
-    pages.append("🚨 Incident Response")
+        role = (st.session_state.user.get("role") if st.session_state.user else "guest")
 
-    # Security forensics views - replace overlapping configuration pages
-    if is_operator() or is_admin():
-        pages.append("🕵️ Attack Forensics")
-        pages.append("🧪 Attack Flow Lifecycle")
-        pages.append("🔔 Alert Center")
+        def has_perm(p: str) -> bool:
+            try:
+                return check_permission(p)
+            except Exception:
+                return True
 
-    # User pages (available to all authenticated users)
-    if check_permission(Permission.AGENT_READ):
-        pages.append("🔍 Browse Agents")
-
-    if check_permission(Permission.AGENT_CREATE):
-        pages.append("➕ Register Agent")
-
-    if check_permission(Permission.AUDIT_READ):
-        pages.append("📋 Audit Log")
-
-    if check_permission(Permission.REPORT_VIEW):
-        pages.append("📊 Reports")
-
-    if check_permission(Permission.SETTINGS_VIEW):
-        pages.append("⚙️ Settings")
-
-    # Admin-only pages
-    if is_admin():
-        pages.append("👥 User Management")
-        pages.append("🔧 System Config")
-        pages.append("📡 System Monitor")
-        pages.append("🛡️ Security Operations")
-        pages.append("⚡ Automation Center")
-
-    # Operator pages
-    if is_operator():
-        pages.append("📈 Analytics")
-
-    # AI Assistant available to all authenticated users
-    pages.append("🤖 AI Assistant")
-
-    # Security master tree viewer
-    pages.append("🌲 Security Master Tree")
-    # Playbooks & KB
-    pages.append("🗂️ Playbooks")
-    pages.append("📚 Security KB")
-
-    # Additional security/navigation pages (placeholders)
-    pages.append("🧾 Threat Models")
-    pages.append("🗺️ ERD / Architecture")
-    pages.append("🧩 Policy Simulator")
-    pages.append("🔐 Zero Trust Engine")
-    pages.append("⭐ Agent Trust Scores")
-    pages.append("✍️ Playbook Editor")
-    pages.append("📥 Alerts Inbox")
-    pages.append("🗄️ Audit Exports")
-    pages.append("✅ Compliance Reports")
-    pages.append("🔗 Integrations")
-
-    # Risk assessment page for operators/admins
-    if is_operator() or is_admin():
-        pages.append("⚠️ Risk Assessment")
-
-    return pages
+        nav = build_navigation(role, has_permission=has_perm)
+        labels = flatten_labels(nav)
+        return labels
+    except Exception:
+        # Fallback to the previous simple list if anything fails
+        pages = []
+        if is_admin() or is_operator():
+            pages.insert(0, "Home")
+        pages.append("🏥 Health Center")
+        pages.append("🧭 Activity Timeline")
+        pages.append("🚨 Incident Response")
+        if is_operator() or is_admin():
+            pages.append("🕵️ Attack Forensics")
+            pages.append("🧪 Attack Flow Lifecycle")
+            pages.append("🔔 Alert Center")
+        if check_permission(Permission.AGENT_READ):
+            pages.append("🔍 Browse Agents")
+        if check_permission(Permission.AGENT_CREATE):
+            pages.append("➕ Register Agent")
+        if check_permission(Permission.AUDIT_READ):
+            pages.append("📋 Audit Log")
+        if check_permission(Permission.REPORT_VIEW):
+            pages.append("📊 Reports")
+        if check_permission(Permission.SETTINGS_VIEW):
+            pages.append("⚙️ Settings")
+        if is_admin():
+            pages.append("👥 User Management")
+            pages.append("🔧 System Config")
+            pages.append("📡 System Monitor")
+            pages.append("🛡️ Security Operations")
+            pages.append("⚡ Automation Center")
+        if is_operator():
+            pages.append("📈 Analytics")
+        pages.append("🤖 AI Assistant")
+        pages.append("🌲 Security Master Tree")
+        pages.append("🗂️ Playbooks")
+        pages.append("📚 Security KB")
+        pages.append("🧾 Threat Models")
+        pages.append("🗺️ ERD / Architecture")
+        pages.append("🧩 Policy Simulator")
+        pages.append("🔐 Zero Trust Engine")
+        pages.append("⭐ Agent Trust Scores")
+        pages.append("✍️ Playbook Editor")
+        pages.append("📥 Alerts Inbox")
+        pages.append("🗄️ Audit Exports")
+        pages.append("✅ Compliance Reports")
+        pages.append("🔗 Integrations")
+        if is_operator() or is_admin():
+            pages.append("⚠️ Risk Assessment")
+        return pages
 
 
 def main():
@@ -1322,32 +1317,146 @@ def main():
             show_logout()
             st.markdown("---")
 
-        # Get available pages based on permissions
-        available_pages = get_navigation_pages()
-
-        # Check for requested page (from query params or session state)
-        requested_page = get_requested_page()
-        if not requested_page:
-            requested_page = st.session_state.get("requested_page")
-
-        if requested_page and requested_page in available_pages:
-            st.session_state.pending_navigation = requested_page
-
-        pending_navigation = st.session_state.get("pending_navigation")
-        if pending_navigation and pending_navigation in available_pages:
-            st.session_state.main_navigation = pending_navigation
-            st.session_state.pending_navigation = None
-
-        # Navigation - use stored value or first available page
-        current_page = st.session_state.get("main_navigation", available_pages[0])
+        # Build a rich navigation tree from the centralized config
         try:
-            page_index = (
-                available_pages.index(current_page) if current_page in available_pages else 0
-            )
-        except ValueError:
-            page_index = 0
+            from dashboard.navigation import build_navigation, flatten_labels
 
-        page = st.radio("Navigation", available_pages, index=page_index, key="main_navigation")
+            role = (st.session_state.user.get("role") if st.session_state.user else "guest")
+
+            def has_perm(p: str) -> bool:
+                try:
+                    return check_permission(p)
+                except Exception:
+                    return True
+
+            nav = build_navigation(role, has_permission=has_perm)
+
+            # If a requested page is present (from URL/query), honor it
+            requested_page = get_requested_page() or st.session_state.get("requested_page")
+            if requested_page:
+                st.session_state.pending_navigation = requested_page
+
+            pending_navigation = st.session_state.get("pending_navigation")
+            if pending_navigation:
+                st.session_state.main_navigation = pending_navigation
+                st.session_state.pending_navigation = None
+
+            # Render navigation as a collapsible tree with quick actions
+            st.markdown("### Navigation")
+            for item in nav:
+                label = f"{item.get('icon','')} {item.get('label')}" if item.get('icon') else item.get('label')
+
+                children = item.get("children", [])
+                if children:
+                    # compute some dynamic badges (agents, alerts) once per sidebar render
+                    def _get_badges():
+                        db = st.session_state.get('db')
+                        agents_count = 0
+                        events_count = 0
+                        alerts_count = 0
+                        try:
+                            if db:
+                                try:
+                                    agents_count = len(db.list_agents())
+                                except Exception:
+                                    agents_count = 0
+                                try:
+                                    events = db.get_events(limit=100)
+                                    events_count = len(events) if events else 0
+                                except Exception:
+                                    events_count = 0
+                                # attempt a few known alert methods
+                                try:
+                                    alerts = db.get_unresolved_alerts()
+                                    alerts_count = len(alerts) if alerts else 0
+                                except Exception:
+                                    try:
+                                        alerts = db.get_alerts()
+                                        alerts_count = len([a for a in alerts if not a.get('resolved')])
+                                    except Exception:
+                                        alerts_count = 0
+                        except Exception:
+                            pass
+                        return {"agents": agents_count, "events": events_count, "alerts": alerts_count}
+
+                    badges = _get_badges()
+
+                    with st.expander(label, expanded=False):
+                        # Quick actions for the group header (if any)
+                        group_actions = item.get('quick_actions', [])
+                        if group_actions:
+                            cols = st.columns(len(group_actions))
+                            for i, act in enumerate(group_actions):
+                                act_id = act.get('id')
+                                act_label = f"{act.get('icon','')} {act.get('label')}"
+                                if cols[i].button(act_label, key=f"qa_{item.get('id')}_{act_id}"):
+                                    # map common actions
+                                    if act_id == 'refresh':
+                                        st.experimental_rerun()
+                                    elif act_id == 'new_agent':
+                                        navigate_to('➕ Register Agent')
+                                    else:
+                                        # custom action hooks could be added here
+                                        st.info(f"Action: {act_label}")
+
+                        for child in children:
+                            route = child.get("route") or child.get("label")
+                            # show child as a button which navigates when clicked
+                            display_label = route
+                            # attach dynamic badges for known routes
+                            if 'Agent' in display_label and badges.get('agents') is not None:
+                                display_label = f"{display_label} ({badges.get('agents')})"
+                            if 'Alert' in display_label and badges.get('alerts') is not None:
+                                display_label = f"{display_label} ({badges.get('alerts')})"
+
+                            if st.button(display_label, key=f"nav_{child.get('id')}", on_click=navigate_to, args=(route,)):
+                                pass
+                            # optional static badge from config
+                            badge = child.get("badge")
+                            if badge:
+                                st.caption(f"{badge}")
+                else:
+                    route = item.get("route") or item.get("label")
+                    # single item - include badges if known
+                    db = st.session_state.get('db')
+                    agents_count = 0
+                    try:
+                        if db:
+                            agents_count = len(db.list_agents())
+                    except Exception:
+                        agents_count = 0
+                    display_label = label
+                    if 'Agents' in label:
+                        display_label = f"{label} ({agents_count})"
+                    if st.button(display_label, key=f"nav_{item.get('id')}", on_click=navigate_to, args=(route,)):
+                        pass
+
+            # Flatten labels for compatibility with the routing below
+            available_pages = flatten_labels(nav)
+
+            # Determine current page
+            current_page = st.session_state.get("main_navigation", available_pages[0] if available_pages else "Home")
+            page = current_page
+        except Exception:
+            # Fallback to original simple navigation rendering
+            available_pages = get_navigation_pages()
+            requested_page = get_requested_page()
+            if not requested_page:
+                requested_page = st.session_state.get("requested_page")
+            if requested_page and requested_page in available_pages:
+                st.session_state.pending_navigation = requested_page
+            pending_navigation = st.session_state.get("pending_navigation")
+            if pending_navigation and pending_navigation in available_pages:
+                st.session_state.main_navigation = pending_navigation
+                st.session_state.pending_navigation = None
+            current_page = st.session_state.get("main_navigation", available_pages[0])
+            try:
+                page_index = (
+                    available_pages.index(current_page) if current_page in available_pages else 0
+                )
+            except ValueError:
+                page_index = 0
+            page = st.radio("Navigation", available_pages, index=page_index, key="main_navigation")
 
         st.markdown("---")
 
